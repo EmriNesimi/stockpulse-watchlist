@@ -19,6 +19,8 @@ build/
 frontend/dist/
 backend/dist/
 
+*.tsbuildinfo
+
 # Logs
 npm-debug.log*
 *.log
