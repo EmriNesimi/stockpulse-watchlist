@@ -1,0 +1,33 @@
+/* StockPulse design tokens — dark OLED trading-terminal theme.
+   Chosen via the ui-ux-pro-max design system search (fintech / dense dashboard). */
+:root {
+  --color-primary: #0f172a;
+  --color-on-primary: #ffffff;
+  --color-secondary: #1e293b;
+  --color-accent: #16a34a;
+  --color-background: #020617;
+  --color-foreground: #f8fafc;
+  --color-muted: #1a1e2f;
+  --color-border: #334155;
+  --color-destructive: #dc2626;
+  --color-bullish: #26a69a;
+  --color-bearish: #ef5350;
+
+  --font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* Dense dashboard spacing scale (8-32px), not the spacious marketing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+
+  --motion-fast: 150ms;
+  --motion-base: 250ms;
+  --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
