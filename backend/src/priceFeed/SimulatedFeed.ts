@@ -1,5 +1,5 @@
-import { env } from "../env";
 import type { PriceFeed, PriceTick, Unsubscribe } from "./PriceFeed";
+import { fetchPreviousClose } from "./previousClose";
 
 const TICK_INTERVAL_MS = 1500;
 const MAX_STEP_PCT = 0.002; // 0.2% per tick, keeps the walk plausible-looking
@@ -19,19 +19,6 @@ function fallbackBasePrice(symbol: string): number {
     hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
   }
   return 20 + (hash % 480); // roughly $20-$500
-}
-
-async function fetchPreviousClose(symbol: string): Promise<number | null> {
-  if (!env.polygonApiKey) return null;
-  try {
-    const url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/prev?adjusted=true&apiKey=${env.polygonApiKey}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return null;
-    const body = (await res.json()) as { results?: Array<{ c: number }> };
-    return body.results?.[0]?.c ?? null;
-  } catch {
-    return null; // fine, we'll just use the deterministic fallback
-  }
 }
 
 export class SimulatedFeed implements PriceFeed {
