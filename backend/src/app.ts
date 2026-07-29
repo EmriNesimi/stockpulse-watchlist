@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { env } from "./env";
+import watchlistRouter from "./routes/watchlist";
 
 export function createApp() {
   const app = express();
@@ -28,6 +29,14 @@ export function createApp() {
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
+  });
+
+  app.use("/api/watchlist", watchlistRouter);
+
+  // Keep error details out of responses — log server-side, send something generic.
+  app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
   });
 
   return app;
