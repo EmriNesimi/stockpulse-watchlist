@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Single-user app for now, but userId is here so this doesn't need a
+// migration if we ever bolt on auth later.
+model Watchlist {
+  id        String          @id @default(cuid())
+  userId    String          @default("default-user")
+  createdAt DateTime        @default(now())
+  items     WatchlistItem[]
+
+  @@unique([userId])
+}
+
+model WatchlistItem {
+  id          String    @id @default(cuid())
+  symbol      String
+  name        String?
+  addedAt     DateTime  @default(now())
+  watchlistId String
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+
+  @@unique([watchlistId, symbol])
+  @@index([watchlistId])
+}
