@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Search from "./components/Search";
 import WatchlistTable from "./components/WatchlistTable";
+import ConnectionBadge from "./components/ConnectionBadge";
+import { useLiveTicks } from "./hooks/useLiveTicks";
 import {
   addToWatchlist,
   getWatchlist,
@@ -8,13 +10,11 @@ import {
   type TickerResult,
   type WatchlistItem,
 } from "./lib/api";
-import type { PriceState } from "./types";
 
 export default function App() {
   const [items, setItems] = useState<WatchlistItem[]>([]);
-  // Populated by the WebSocket client hook once that lands (next commit) —
-  // stays empty for now, table just renders "—" placeholders.
-  const [prices] = useState<Record<string, PriceState>>({});
+  const symbols = useMemo(() => items.map((i) => i.symbol), [items]);
+  const { prices, status } = useLiveTicks(symbols);
 
   useEffect(() => {
     getWatchlist()
@@ -62,9 +62,12 @@ export default function App() {
           background: "var(--color-primary)",
         }}
       >
-        <span style={{ fontWeight: 600, fontSize: "1.125rem", letterSpacing: "-0.01em" }}>
-          StockPulse
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+          <span style={{ fontWeight: 600, fontSize: "1.125rem", letterSpacing: "-0.01em" }}>
+            StockPulse
+          </span>
+          <ConnectionBadge status={status} />
+        </div>
         <Search onAdd={handleAdd} alreadyAdded={(symbol) => items.some((i) => i.symbol === symbol)} />
       </header>
 

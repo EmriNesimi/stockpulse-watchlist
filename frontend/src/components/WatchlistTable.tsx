@@ -54,7 +54,30 @@ export default function WatchlistTable({ items, prices, onRemove }: WatchlistTab
                 <div style={{ fontSize: "0.8125rem", opacity: 0.6 }}>{item.name}</div>
               </td>
               <td className="tabular-nums" style={{ padding: "var(--space-3)" }}>
-                {state ? `$${state.price.toFixed(2)}` : "—"}
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                  {state ? `$${state.price.toFixed(2)}` : "—"}
+                  {state && (
+                    <span
+                      title={
+                        state.source === "live"
+                          ? "Streaming real trades from Polygon.io"
+                          : "Simulated — no real-time Polygon entitlement configured"
+                      }
+                      style={{
+                        fontSize: "0.6875rem",
+                        fontWeight: 600,
+                        letterSpacing: "0.02em",
+                        padding: "1px 6px",
+                        borderRadius: "var(--radius-sm)",
+                        color: state.source === "live" ? "var(--color-bullish)" : "var(--color-foreground)",
+                        border: `1px solid ${state.source === "live" ? "var(--color-bullish)" : "var(--color-border)"}`,
+                        opacity: state.source === "live" ? 1 : 0.6,
+                      }}
+                    >
+                      {state.source === "live" ? "LIVE" : "SIM"}
+                    </span>
+                  )}
+                </div>
               </td>
               <td
                 className="tabular-nums"
