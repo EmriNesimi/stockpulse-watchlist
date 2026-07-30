@@ -60,8 +60,13 @@ export default function Search({ onAdd, alreadyAdded }: SearchProps) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setQuery("");
+          }}
           placeholder="Search tickers (e.g. Apple, AAPL)"
           aria-label="Search for a stock ticker to add to your watchlist"
+          aria-expanded={debouncedQuery.length > 0}
+          aria-controls="search-results"
           style={{
             flex: 1,
             background: "transparent",
@@ -77,6 +82,7 @@ export default function Search({ onAdd, alreadyAdded }: SearchProps) {
 
       {debouncedQuery && (
         <div
+          id="search-results"
           role="listbox"
           aria-label="Ticker search results"
           style={{

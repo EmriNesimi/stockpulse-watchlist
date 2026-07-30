@@ -3,6 +3,7 @@ import Search from "./components/Search";
 import WatchlistTable from "./components/WatchlistTable";
 import ConnectionBadge from "./components/ConnectionBadge";
 import { useLiveTicks } from "./hooks/useLiveTicks";
+import { useThrottledAnnouncement } from "./hooks/useThrottledAnnouncement";
 import {
   addToWatchlist,
   getWatchlist,
@@ -15,6 +16,7 @@ export default function App() {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const symbols = useMemo(() => items.map((i) => i.symbol), [items]);
   const { prices, status } = useLiveTicks(symbols);
+  const announcement = useThrottledAnnouncement(items, prices);
 
   useEffect(() => {
     getWatchlist()
@@ -51,6 +53,13 @@ export default function App() {
         minHeight: "100dvh",
       }}
     >
+      <a href="#main-content" className="skip-link">
+        Skip to watchlist
+      </a>
+      <div role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </div>
+
       <header
         style={{
           display: "flex",
@@ -71,7 +80,7 @@ export default function App() {
         <Search onAdd={handleAdd} alreadyAdded={(symbol) => items.some((i) => i.symbol === symbol)} />
       </header>
 
-      <main style={{ flex: 1, padding: "var(--space-5)" }}>
+      <main id="main-content" tabIndex={-1} style={{ flex: 1, padding: "var(--space-5)" }}>
         <WatchlistTable items={items} prices={prices} onRemove={handleRemove} />
       </main>
     </div>
