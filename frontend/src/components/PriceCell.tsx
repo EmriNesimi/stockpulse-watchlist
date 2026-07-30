@@ -49,8 +49,8 @@ export default function PriceCell({ state }: PriceCellProps) {
         <span
           title={
             state.source === "live"
-              ? "Streaming real trades from Polygon.io"
-              : "Simulated — no real-time Polygon entitlement configured"
+              ? "Streaming real trades from Massive"
+              : "Simulated — no real-time Massive entitlement configured"
           }
           style={{
             fontSize: "0.6875rem",

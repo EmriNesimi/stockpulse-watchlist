@@ -1,5 +1,6 @@
-// Used when there's no POLYGON_API_KEY configured, so search still works
-// for anyone trying the app out without signing up for anything first.
+// Used when there's no MASSIVE_API_KEY configured (or free-tier quota is
+// exhausted), so search still works for anyone trying the app out without
+// signing up for anything first.
 export const FALLBACK_TICKERS = [
   { symbol: "AAPL", name: "Apple Inc." },
   { symbol: "MSFT", name: "Microsoft Corporation" },

@@ -4,14 +4,14 @@ import type { PriceFeed, PriceTick, Unsubscribe } from "./PriceFeed";
 import { SimulatedFeed } from "./SimulatedFeed";
 import { fetchPreviousClose } from "./previousClose";
 
-const POLYGON_WS_URL = "wss://socket.polygon.io/stocks";
+const MASSIVE_WS_URL = "wss://socket.massive.com/stocks";
 const AUTH_TIMEOUT_MS = 6000;
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30_000;
 
 type AuthState = "connecting" | "authenticated" | "failed";
 
-interface PolygonEvent {
+interface MassiveEvent {
   ev: string;
   status?: string;
   sym?: string;
@@ -26,13 +26,15 @@ interface SubscriptionRecord {
 }
 
 /**
- * Wraps Polygon's real-time stocks WebSocket. Free-tier keys don't get
- * real-time US stock trades (that needs a paid plan), so if auth fails,
- * times out, or Polygon sends back an error status, this quietly moves
- * every subscriber over to a SimulatedFeed instead of taking the app down.
- * Callers never need to know which one is actually serving their subscription.
+ * Wraps Massive's real-time stocks WebSocket (Massive is the market-data
+ * provider formerly branded Polygon.io — same account/API, renamed Oct
+ * 2025). Free-tier keys don't get real-time US stock trades (that needs a
+ * paid plan), so if auth fails, times out, or Massive sends back an error
+ * status, this quietly moves every subscriber over to a SimulatedFeed
+ * instead of taking the app down. Callers never need to know which one is
+ * actually serving their subscription.
  */
-export class PolygonLiveFeed implements PriceFeed {
+export class MassiveLiveFeed implements PriceFeed {
   private ws: WebSocket | null = null;
   private authState: AuthState = "connecting";
   private authTimer: ReturnType<typeof setTimeout> | null = null;
@@ -84,21 +86,21 @@ export class PolygonLiveFeed implements PriceFeed {
 
   private connect() {
     this.authState = "connecting";
-    this.ws = new WebSocket(POLYGON_WS_URL);
+    this.ws = new WebSocket(MASSIVE_WS_URL);
 
     this.authTimer = setTimeout(() => {
-      console.warn("Polygon WS auth timed out — falling back to simulated feed.");
+      console.warn("Massive WS auth timed out — falling back to simulated feed.");
       this.failOver();
     }, AUTH_TIMEOUT_MS);
 
     this.ws.on("open", () => {
-      this.ws?.send(JSON.stringify({ action: "auth", params: env.polygonApiKey }));
+      this.ws?.send(JSON.stringify({ action: "auth", params: env.massiveApiKey }));
     });
 
     this.ws.on("message", (raw) => this.handleMessage(raw.toString()));
 
     this.ws.on("error", (err) => {
-      console.error("Polygon WS error:", err.message);
+      console.error("Massive WS error:", err.message);
     });
 
     this.ws.on("close", () => {
@@ -138,7 +140,7 @@ export class PolygonLiveFeed implements PriceFeed {
   }
 
   private handleMessage(raw: string) {
-    let events: PolygonEvent[];
+    let events: MassiveEvent[];
     try {
       events = JSON.parse(raw);
     } catch {
@@ -156,18 +158,18 @@ export class PolygonLiveFeed implements PriceFeed {
     }
   }
 
-  private handleStatus(event: PolygonEvent) {
+  private handleStatus(event: MassiveEvent) {
     if (event.status === "auth_success") {
       if (this.authTimer) clearTimeout(this.authTimer);
       this.authState = "authenticated";
       this.reconnectAttempt = 0;
       for (const symbol of this.live.keys()) this.sendSubscribe(symbol);
     } else if (event.status === "auth_failed" || event.status === "max_connections") {
-      console.warn(`Polygon WS ${event.status} — falling back to simulated feed.`);
+      console.warn(`Massive WS ${event.status} — falling back to simulated feed.`);
       this.failOver();
     } else if (event.status === "error") {
       // Typically "not entitled" for free-tier keys on the real-time stocks cluster.
-      console.warn("Polygon WS reported an error, falling back to simulated feed:", event);
+      console.warn("Massive WS reported an error, falling back to simulated feed:", event);
       this.failOver();
     }
   }

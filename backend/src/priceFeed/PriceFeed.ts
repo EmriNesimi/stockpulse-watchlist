@@ -8,7 +8,7 @@ export interface PriceTick {
 
 export type Unsubscribe = () => void;
 
-// Both the simulated engine and the real Polygon WS feed implement this, so
+// Both the simulated engine and the real Massive WS feed implement this, so
 // the rest of the app (WS broadcaster, routes) never has to care which one
 // is actually running underneath.
 export interface PriceFeed {

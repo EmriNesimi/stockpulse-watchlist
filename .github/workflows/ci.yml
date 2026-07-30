@@ -18,9 +18,9 @@ jobs:
         run: |
           set -e
           # Backstop to GitHub's native secret scanning: fail if a real-looking
-          # POLYGON_API_KEY or generic API key assignment shows up in tracked files.
-          if git grep -nE "POLYGON_API_KEY\s*=\s*[A-Za-z0-9_\-]{16,}" -- . ':!*.example' ':!.github/workflows/*'; then
-            echo "::error::Possible committed secret matching POLYGON_API_KEY=<value> pattern"
+          # MASSIVE_API_KEY or generic API key assignment shows up in tracked files.
+          if git grep -nE "MASSIVE_API_KEY\s*=\s*[A-Za-z0-9_\-]{16,}" -- . ':!*.example' ':!.github/workflows/*'; then
+            echo "::error::Possible committed secret matching MASSIVE_API_KEY=<value> pattern"
             exit 1
           fi
           if find . -name "*.db" -not -path "./node_modules/*" | grep -q .; then

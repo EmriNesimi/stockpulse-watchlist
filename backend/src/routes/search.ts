@@ -2,7 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { env } from "../env";
 import { asyncHandler } from "../asyncHandler";
-import { FALLBACK_TICKERS } from "../polygon/fallbackTickers";
+import { FALLBACK_TICKERS } from "../massive/fallbackTickers";
+import { tryConsumeMassiveQuota } from "../massive/rateLimiter";
 
 const router = Router();
 
@@ -15,13 +16,13 @@ interface TickerResult {
   name: string;
 }
 
-async function searchPolygon(query: string): Promise<TickerResult[]> {
-  const url = new URL("https://api.polygon.io/v3/reference/tickers");
+async function searchMassive(query: string): Promise<TickerResult[]> {
+  const url = new URL("https://api.massive.com/v3/reference/tickers");
   url.searchParams.set("search", query);
   url.searchParams.set("active", "true");
   url.searchParams.set("market", "stocks");
   url.searchParams.set("limit", "10");
-  url.searchParams.set("apiKey", env.polygonApiKey!);
+  url.searchParams.set("apiKey", env.massiveApiKey!);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
@@ -29,7 +30,7 @@ async function searchPolygon(query: string): Promise<TickerResult[]> {
   try {
     const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) {
-      throw new Error(`Polygon search failed with status ${res.status}`);
+      throw new Error(`Massive search failed with status ${res.status}`);
     }
     const body = (await res.json()) as { results?: Array<{ ticker: string; name: string }> };
     return (body.results ?? []).map((r) => ({ symbol: r.ticker, name: r.name }));
@@ -53,17 +54,24 @@ router.get(
       return res.status(400).json({ error: "Query param 'q' is required" });
     }
 
-    if (!env.polygonApiKey) {
+    if (!env.massiveApiKey) {
+      return res.json({ results: searchFallback(parsed.data.q), source: "fallback" });
+    }
+
+    // Free-tier Massive accounts are capped at 5 REST calls/min — don't burn
+    // quota on search-as-you-type if we're near the limit, just serve the
+    // static list for this request instead.
+    if (!tryConsumeMassiveQuota()) {
       return res.json({ results: searchFallback(parsed.data.q), source: "fallback" });
     }
 
     try {
-      const results = await searchPolygon(parsed.data.q);
-      res.json({ results, source: "polygon" });
+      const results = await searchMassive(parsed.data.q);
+      res.json({ results, source: "massive" });
     } catch (err) {
-      // Don't take the whole search feature down if Polygon has a bad day —
+      // Don't take the whole search feature down if Massive has a bad day —
       // fall back to the static list rather than erroring out.
-      console.error("Polygon search failed, falling back to static list:", err);
+      console.error("Massive search failed, falling back to static list:", err);
       res.json({ results: searchFallback(parsed.data.q), source: "fallback" });
     }
   })
