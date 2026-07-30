@@ -1,15 +1,26 @@
 import { useEffect, useState } from "react";
 import Search from "./components/Search";
-import { addToWatchlist, getWatchlist, type TickerResult, type WatchlistItem } from "./lib/api";
+import WatchlistTable from "./components/WatchlistTable";
+import {
+  addToWatchlist,
+  getWatchlist,
+  removeFromWatchlist,
+  type TickerResult,
+  type WatchlistItem,
+} from "./lib/api";
+import type { PriceState } from "./types";
 
 export default function App() {
   const [items, setItems] = useState<WatchlistItem[]>([]);
+  // Populated by the WebSocket client hook once that lands (next commit) —
+  // stays empty for now, table just renders "—" placeholders.
+  const [prices] = useState<Record<string, PriceState>>({});
 
   useEffect(() => {
     getWatchlist()
       .then(({ items }) => setItems(items))
       .catch(() => {
-        /* real error handling/empty-state UI lands with the watchlist table */
+        /* error state lands with the WS/live-data commit */
       });
   }, []);
 
@@ -18,7 +29,17 @@ export default function App() {
       const { item } = await addToWatchlist(ticker.symbol, ticker.name);
       setItems((prev) => [...prev, item]);
     } catch {
-      // surfaced properly once the watchlist table/toast UI is in place
+      // surfaced properly once there's a toast/error UI
+    }
+  }
+
+  async function handleRemove(symbol: string) {
+    const previous = items;
+    setItems((prev) => prev.filter((i) => i.symbol !== symbol)); // optimistic
+    try {
+      await removeFromWatchlist(symbol);
+    } catch {
+      setItems(previous); // roll back if the backend rejected it
     }
   }
 
@@ -48,23 +69,7 @@ export default function App() {
       </header>
 
       <main style={{ flex: 1, padding: "var(--space-5)" }}>
-        {items.length === 0 ? (
-          <p style={{ opacity: 0.7 }}>
-            Nothing on your watchlist yet — search above to add a ticker.
-          </p>
-        ) : (
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-            {items.map((item) => (
-              <li key={item.id} style={{ padding: "var(--space-2) 0" }}>
-                <strong className="tabular-nums">{item.symbol}</strong>{" "}
-                <span style={{ opacity: 0.7 }}>{item.name}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <p style={{ opacity: 0.5, fontSize: "0.875rem", marginTop: "var(--space-5)" }}>
-          Live prices, sparklines, and remove buttons land in the next commit.
-        </p>
+        <WatchlistTable items={items} prices={prices} onRemove={handleRemove} />
       </main>
     </div>
   );
