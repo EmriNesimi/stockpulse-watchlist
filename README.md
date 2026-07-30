@@ -11,13 +11,13 @@
 ![Express](https://img.shields.io/badge/Express-4-0F172A?style=for-the-badge&logo=express&logoColor=F8FAFC)
 ![WebSocket](https://img.shields.io/badge/WebSocket-ws-0F172A?style=for-the-badge&logo=socketdotio&logoColor=26A69A)
 ![Prisma](https://img.shields.io/badge/Prisma-SQLite-0F172A?style=for-the-badge&logo=prisma&logoColor=F8FAFC)
-![Polygon.io](https://img.shields.io/badge/Polygon.io-market%20data-0F172A?style=for-the-badge&logo=polygon&logoColor=26A69A)
+![Massive](https://img.shields.io/badge/Massive-market%20data-0F172A?style=for-the-badge&logoColor=26A69A)
 
 </div>
 
 ---
 
-A real-time stock watchlist: search for tickers, add them to your list, and watch prices update live over a WebSocket. Full-stack — React frontend, Express + WebSocket backend, SQLite persistence via Prisma, Polygon.io for market data.
+A real-time stock watchlist: search for tickers, add them to your list, and watch prices update live over a WebSocket. Full-stack — React frontend, Express + WebSocket backend, SQLite persistence via Prisma, [Massive](https://massive.com) (formerly Polygon.io — same company/API, renamed October 2025) for market data.
 
 Built as a portfolio project to demonstrate working with an external API, real-time data over WebSockets, and a properly separated frontend/backend with real persistence — not just a static demo.
 
@@ -26,7 +26,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 Feature-complete for the initial build. Built incrementally, commit by commit — full history on the repo shows each piece landing and getting manually tested before the next one started.
 
 **✅ Done**
-- **Backend**: Express API, Prisma/SQLite watchlist persistence, Polygon ticker search proxy (with a static fallback list), a simulated real-time price engine, real Polygon WebSocket integration (with automatic graceful fallback if the key isn't entitled), and a WebSocket broadcaster that fans price ticks out to connected clients with per-connection rate/size/subscription limits.
+- **Backend**: Express API, Prisma/SQLite watchlist persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), and a WebSocket broadcaster that fans price ticks out to connected clients with per-connection rate/size/subscription limits.
 - **Frontend**: Vite + React + TS app in the dark trading-terminal design system — debounced ticker search wired to the real API, a watchlist table with sparklines and a working remove button, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, and a header connection-status indicator.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
@@ -49,9 +49,10 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
                                                        ┌───────────────────┼───────────────────┐
                                                        │                                       │
                                               ┌────────▼─────────┐               ┌─────────────▼──────────┐
-                                              │  Polygon.io REST  │               │  Prisma → SQLite        │
+                                              │  Massive REST     │               │  Prisma → SQLite        │
                                               │  (ticker search,  │               │  (Watchlist,             │
-                                              │   previous close) │               │   WatchlistItem)         │
+                                              │   previous close, │               │   WatchlistItem)         │
+                                              │   rate-limited)   │               │                          │
                                               └───────────────────┘               └─────────────────────────┘
 ```
 
@@ -61,18 +62,18 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
 ```
 PriceFeed (backend/src/priceFeed/):
 ┌─────────────────────────────────────────────┐
-│  POLYGON_API_KEY set?                        │
-│    yes → PolygonLiveFeed                     │
-│            (wss://socket.polygon.io/stocks)  │
+│  MASSIVE_API_KEY set?                        │
+│    yes → MassiveLiveFeed                     │
+│            (wss://socket.massive.com/stocks) │
 │            auth fails/not entitled?          │
 │              → falls back to SimulatedFeed   │
 │    no  → SimulatedFeed directly              │
-│           (random walk seeded from Polygon's │
+│           (random walk seeded from Massive's │
 │            previous-close REST endpoint)     │
 └─────────────────────────────────────────────┘
 ```
 
-**Why does this exist?** Polygon's free tier doesn't include real-time US stock trades over WebSocket — that needs a paid plan. Rather than the app being broken without one, `PriceFeed` is an interface with two implementations: `SimulatedFeed` (a random walk seeded from a real previous-close price) and `PolygonLiveFeed` (the real thing). `PolygonLiveFeed` detects auth failure or missing entitlement and transparently swaps its subscribers over to `SimulatedFeed` — no reconnect, no frontend changes, no crash. Drop in a paid key later and it just works.
+**Why does this exist?** Massive's free tier doesn't include real-time US stock trades over WebSocket — that needs a paid plan, and REST calls are capped at 5/min. Rather than the app being broken or rate-limited into uselessness without one, `PriceFeed` is an interface with two implementations: `SimulatedFeed` (a random walk seeded from a real previous-close price) and `MassiveLiveFeed` (the real thing). `MassiveLiveFeed` detects auth failure or missing entitlement and transparently swaps its subscribers over to `SimulatedFeed` — no reconnect, no frontend changes, no crash. A small sliding-window rate limiter (`backend/src/massive/rateLimiter.ts`) also caps outbound REST calls at 4/min, just under the free-tier ceiling, so ticker search and previous-close lookups degrade to fallback data instead of hitting a 429. Drop in a paid key later and both the WebSocket and rate limits open up automatically.
 
 </details>
 
@@ -89,13 +90,14 @@ stockpulse-watchlist/
 │   │   ├── asyncHandler.ts        # wraps async route handlers so errors don't hang
 │   │   ├── routes/
 │   │   │   ├── watchlist.ts       # GET/POST/DELETE, zod-validated
-│   │   │   └── search.ts          # Polygon ticker search proxy + fallback list
-│   │   ├── polygon/
-│   │   │   └── fallbackTickers.ts # static list used when there's no API key
+│   │   │   └── search.ts          # Massive ticker search proxy + fallback list
+│   │   ├── massive/
+│   │   │   ├── fallbackTickers.ts # static list used when there's no API key
+│   │   │   └── rateLimiter.ts     # sliding-window limiter for the free-tier 5/min cap
 │   │   ├── priceFeed/
 │   │   │   ├── PriceFeed.ts       # the interface
 │   │   │   ├── SimulatedFeed.ts   # default — random walk, no key needed
-│   │   │   ├── PolygonLiveFeed.ts # real wss://socket.polygon.io/stocks feed
+│   │   │   ├── MassiveLiveFeed.ts # real wss://socket.massive.com/stocks feed
 │   │   │   ├── previousClose.ts   # shared REST helper for seeding base prices
 │   │   │   └── index.ts           # createPriceFeed() factory
 │   │   └── ws/
@@ -171,15 +173,17 @@ npm run dev                 # http://localhost:5173
 
 Then open `http://localhost:5173` — search a ticker, add it, and it should start ticking within a couple seconds on the simulated feed.
 
-The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Polygon.io account to run or demo this.
+The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Massive account to run or demo this.
 
-### 🔑 Getting a Polygon.io API key (optional)
+### 🔑 Getting a Massive API key (optional)
 
-1. Sign up for free at [polygon.io/dashboard/signup](https://polygon.io/dashboard/signup).
-2. Copy your API key into `backend/.env` as `POLYGON_API_KEY=...`.
+1. Sign up for free at [massive.com](https://massive.com). (Massive is the market-data provider formerly branded Polygon.io — same company and API, they renamed in October 2025. Old `polygon.io` docs/links and existing accounts still work.)
+2. Copy your API key into `backend/.env` as `MASSIVE_API_KEY=...`.
 3. Restart the backend.
 
-With a free key, ticker search will hit Polygon's real REST API instead of the static fallback list. Real-time WebSocket stock trades require a **paid** Polygon plan — with a free key, `PolygonLiveFeed` will attempt the connection, get an entitlement error back from Polygon, and automatically fall back to the simulated feed. This is expected and handled gracefully; you'll see a log line explaining it.
+With a free key, ticker search hits Massive's real REST API instead of the static fallback list — but free-tier accounts are capped at **5 REST calls/min**, so the backend runs a small sliding-window rate limiter (`backend/src/massive/rateLimiter.ts`) that caps itself at 4/min and quietly serves fallback data instead of eating a 429 once it's near the ceiling.
+
+Real-time WebSocket stock trades require a **paid** Massive plan — with a free key, `MassiveLiveFeed` will attempt the connection, get an entitlement error back (`auth_failed`), and automatically fall back to the simulated feed. This is expected and handled gracefully; you'll see a log line explaining it. (Verified this against the real Massive API with a live free-tier key — REST search came back with real results tagged `"source": "massive"`, and the WebSocket fallback triggered exactly as designed.)
 
 ### 🔌 Trying the WebSocket directly
 
@@ -198,16 +202,16 @@ You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,
 | Var | Required | Default | Notes |
 |---|---|---|---|
 | `PORT` | no | `4000` | |
-| `POLYGON_API_KEY` | no | — | app runs on the simulated feed without it |
+| `MASSIVE_API_KEY` | no | — | app runs on the simulated feed without it; free tier is rate-limited (5 REST calls/min) and doesn't include real-time WS |
 | `DATABASE_URL` | no | `file:./prisma/dev.db` | SQLite connection string |
 | `FRONTEND_ORIGIN` | no | `http://localhost:5173` | locks down CORS to this origin |
 
-`backend/.env` is gitignored — only `.env.example` (with blank/placeholder values) is committed. The API key never reaches the frontend; all Polygon calls happen server-side.
+`backend/.env` is gitignored — only `.env.example` (with blank/placeholder values) is committed. The API key never reaches the frontend; all Massive calls happen server-side.
 
 ## 🔒 Security notes
 
-- **Secrets**: `POLYGON_API_KEY` lives only in `backend/.env` (gitignored). Never sent to the client. CI includes a grep-based backstop check for anything that looks like a committed key.
-- **Input validation**: every REST endpoint validates its input with `zod` before touching Prisma or building a Polygon URL. WebSocket subscribe/unsubscribe messages are validated the same way.
+- **Secrets**: `MASSIVE_API_KEY` lives only in `backend/.env` (gitignored). Never sent to the client. CI includes a grep-based backstop check for anything that looks like a committed key.
+- **Input validation**: every REST endpoint validates its input with `zod` before touching Prisma or building a Massive URL. WebSocket subscribe/unsubscribe messages are validated the same way.
 - **Rate limiting**: `express-rate-limit` on all `/api` routes (60 req/min); the WS broadcaster caps each connection at 30 subscribed symbols, 60 messages/min, and a 2KB max message size, so one misbehaving client can't exhaust server resources.
 - **Headers/CORS**: `helmet` for standard security headers; CORS locked to `FRONTEND_ORIGIN`, no wildcard.
 - **Dependencies**: lockfiles committed for both workspaces. `npm audit` is clean on runtime dependencies. The frontend has one known, accepted exception — see below.
@@ -232,7 +236,7 @@ You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,
 - **Backend**: Node.js, Express 4, TypeScript, `ws`
 - **Database**: SQLite via Prisma
 - **Validation**: Zod
-- **External API**: Polygon.io (REST + WebSocket)
+- **External API**: Massive (REST + WebSocket), formerly Polygon.io
 
 ---
 
