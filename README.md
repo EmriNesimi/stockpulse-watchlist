@@ -23,19 +23,15 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 
 ## 📍 Status
 
-This is being built incrementally, commit by commit. Current state:
+Feature-complete for the initial build. Built incrementally, commit by commit — full history on the repo shows each piece landing and getting manually tested before the next one started.
 
 **✅ Done**
-- Backend: Express API, Prisma/SQLite watchlist persistence, Polygon ticker search proxy, a simulated real-time price engine, real Polygon WebSocket integration (with automatic fallback), and a WebSocket broadcaster that fans price ticks out to connected clients.
-- Frontend: Vite + React + TS scaffold with the design system wired in, and a working debounced ticker search that adds real rows to the watchlist through the backend API.
+- **Backend**: Express API, Prisma/SQLite watchlist persistence, Polygon ticker search proxy (with a static fallback list), a simulated real-time price engine, real Polygon WebSocket integration (with automatic graceful fallback if the key isn't entitled), and a WebSocket broadcaster that fans price ticks out to connected clients with per-connection rate/size/subscription limits.
+- **Frontend**: Vite + React + TS app in the dark trading-terminal design system — debounced ticker search wired to the real API, a watchlist table with sparklines and a working remove button, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, and a header connection-status indicator.
+- **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
+- **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
 
-**🚧 Not done yet (next up)**
-- Frontend watchlist table with live price updates, sparklines, and remove buttons (currently just a plain list, no live prices rendered client-side yet).
-- Frontend WebSocket client (reconnect/backoff) + the "Live" vs "Simulated" badge.
-- Accessibility pass (aria-live announcements, focus management, reduced-motion checks) on the frontend.
-- Final security/dependency audit sweep and this README's last update once everything above lands.
-
-> If you're reading this mid-build: the backend is fully functional end-to-end right now (you can search, add/remove watchlist items, and connect a raw WebSocket client to `/ws` and get real price ticks — see [Trying the WebSocket directly](#-trying-the-websocket-directly)). The frontend just doesn't render the live prices yet.
+**⚠️ One caveat**: this was built in a terminal-only environment with no browser available to visually render the app. Everything's been verified end-to-end at the protocol level (REST calls, WebSocket messages, database round-trips, via real test scripts — not guesses), and the code has been read through carefully, but nobody has actually looked at it rendered in a browser yet. If you're picking this up: that's the one thing worth doing first.
 
 ## 🏗️ Architecture
 
@@ -112,11 +108,22 @@ stockpulse-watchlist/
 │   ├── src/
 │   │   ├── App.tsx
 │   │   ├── main.tsx
-│   │   ├── index.css               # global styles + tabular-nums + reduced-motion
-│   │   ├── styles/tokens.css       # design system CSS variables
-│   │   ├── components/Search.tsx   # debounced ticker search
-│   │   ├── hooks/useDebouncedValue.ts
-│   │   └── lib/api.ts              # fetch wrappers for the backend REST API
+│   │   ├── types.ts                     # shared PriceState type
+│   │   ├── index.css                    # global styles, tabular-nums, sr-only, reduced-motion
+│   │   ├── styles/tokens.css            # design system CSS variables
+│   │   ├── components/
+│   │   │   ├── Search.tsx               # debounced ticker search
+│   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove
+│   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash
+│   │   │   ├── Sparkline.tsx            # inline SVG price history
+│   │   │   └── ConnectionBadge.tsx      # WS connection status indicator
+│   │   ├── hooks/
+│   │   │   ├── useDebouncedValue.ts
+│   │   │   ├── useLiveTicks.ts          # WS client: subscribe diffing, reconnect/backoff
+│   │   │   └── useThrottledAnnouncement.ts  # aria-live summary, throttled to 1/8s
+│   │   └── lib/
+│   │       ├── api.ts                   # fetch wrappers for the backend REST API
+│   │       └── ws.ts                    # WS URL resolution
 │   └── vite.config.ts
 ├── .github/workflows/ci.yml
 └── .gitignore
@@ -161,6 +168,8 @@ cd frontend
 npm install
 npm run dev                 # http://localhost:5173
 ```
+
+Then open `http://localhost:5173` — search a ticker, add it, and it should start ticking within a couple seconds on the simulated feed.
 
 The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Polygon.io account to run or demo this.
 
