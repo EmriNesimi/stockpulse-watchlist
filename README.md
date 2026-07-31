@@ -1,17 +1,17 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:020617,100:16A34A&height=200&section=header&text=StockPulse&fontSize=60&fontColor=F8FAFC&fontAlignY=38&desc=Real-time%20stock%20watchlist%20%E2%80%94%20search%2C%20track%2C%20watch%20it%20move&descAlignY=58&descSize=18" width="100%" alt="StockPulse banner" />
+<img src="https://capsule-render.vercel.app/api?type=soft&color=0:020617,50:0F172A,100:16A34A&height=180&section=header&text=StockPulse&fontSize=54&fontColor=F8FAFC&fontAlignY=35&animation=fadeIn&desc=live%20tickers.%20a%20real%20watchlist.%20no%20fake%20data%20labeled%20as%20real.&descAlignY=58&descSize=16&descAlign=50" width="100%" alt="StockPulse banner" />
 
-<img src="https://readme-typing-svg.demolab.com?font=Inter&size=20&duration=2800&pause=900&color=26A69A&center=true&vCenter=true&width=560&lines=Search+a+ticker...;Add+it+to+your+watchlist...;Watch+the+price+move+live." alt="Typing animation" />
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=500&size=18&duration=2200&pause=800&color=00FF9C&background=02061700&center=true&vCenter=true&width=600&lines=%24+watching+AAPL...+%2B0.34%25;%24+watching+MSFT...+-0.12%25;%24+connection%3A+live" alt="Terminal-style typing animation" />
 
-<br />
+<br /><br />
 
-![React](https://img.shields.io/badge/React-18-0F172A?style=for-the-badge&logo=react&logoColor=26A69A)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.6-0F172A?style=for-the-badge&logo=typescript&logoColor=26A69A)
-![Express](https://img.shields.io/badge/Express-4-0F172A?style=for-the-badge&logo=express&logoColor=F8FAFC)
-![WebSocket](https://img.shields.io/badge/WebSocket-ws-0F172A?style=for-the-badge&logo=socketdotio&logoColor=26A69A)
-![Prisma](https://img.shields.io/badge/Prisma-SQLite-0F172A?style=for-the-badge&logo=prisma&logoColor=F8FAFC)
-![Massive](https://img.shields.io/badge/Massive-market%20data-0F172A?style=for-the-badge&logoColor=26A69A)
+![React](https://img.shields.io/badge/React-181717?style=flat-square&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-181717?style=flat-square&logo=typescript&logoColor=3178C6)
+![Express](https://img.shields.io/badge/Express-181717?style=flat-square&logo=express&logoColor=white)
+![WebSocket](https://img.shields.io/badge/WebSocket-181717?style=flat-square&logo=socketdotio&logoColor=00FF9C)
+![Prisma](https://img.shields.io/badge/Prisma-181717?style=flat-square&logo=prisma&logoColor=5A67D8)
+![Massive](https://img.shields.io/badge/Massive-181717?style=flat-square&logoColor=16A34A)
 
 </div>
 
@@ -20,6 +20,32 @@
 A real-time stock watchlist: search for tickers, add them to your list, and watch prices update live over a WebSocket. Full-stack — React frontend, Express + WebSocket backend, SQLite persistence via Prisma, [Massive](https://massive.com) (formerly Polygon.io — same company/API, renamed October 2025) for market data.
 
 Built as a portfolio project to demonstrate working with an external API, real-time data over WebSockets, and a properly separated frontend/backend with real persistence — not just a static demo.
+
+### Contents
+
+- [Features](#-features)
+- [Status](#-status)
+- [Architecture](#️-architecture)
+- [Project structure](#-project-structure)
+- [Design system](#-design-system)
+- [Setup](#-setup)
+- [API reference](#-api-reference)
+- [Environment variables](#️-environment-variables-backendenv)
+- [Security notes](#-security-notes)
+- [Roadmap](#️-roadmap)
+- [Tech stack](#-tech-stack)
+
+> Note: a couple of the links above rely on GitHub's auto-generated emoji anchors, which aren't always predictable — if one doesn't jump correctly, just scroll, the section's right there.
+
+## ✨ Features
+
+- 🔍 **Ticker search** — type a company name or symbol, get real matches back debounced at 300ms, no page reload.
+- ⭐ **Watchlist** — add/remove tickers, persisted server-side in a real database (not `localStorage`), so it survives a refresh or a new browser.
+- 📡 **Live prices over WebSocket** — every row updates in place as ticks arrive, with a subtle color-and-icon flash on change (never color alone).
+- 📈 **Sparklines** — a rolling 30-point price history per symbol, rendered as inline SVG, no charting library needed for something this small.
+- 🟢 **Transparent data source** — a LIVE/SIM badge on every price and a connection-status indicator in the header, so it's never a mystery whether you're looking at real trades or the simulated fallback.
+- 🔌 **Works with zero setup** — no API key, no account, no config required to run it and see it working end to end.
+- ♿ **Accessible by default** — throttled screen-reader announcements, keyboard support, visible focus states, and full `prefers-reduced-motion` compliance.
 
 ## 📍 Status
 
@@ -197,6 +223,34 @@ npx wscat -c ws://localhost:4000/ws
 
 You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,"source":"simulated"}` messages roughly every 1.5s per symbol.
 
+## 📖 API reference
+
+### REST
+
+| Method | Path | Body / Query | Response |
+|---|---|---|---|
+| `GET` | `/health` | — | `{ "status": "ok" }` |
+| `GET` | `/api/search` | `?q=<string>` | `{ results: [{ symbol, name }], source: "massive" \| "fallback" }` |
+| `GET` | `/api/watchlist` | — | `{ items: [{ id, symbol, name, addedAt }] }` |
+| `POST` | `/api/watchlist` | `{ symbol, name? }` | `201` `{ item }` · `409` if already on the list · `400` on a bad symbol |
+| `DELETE` | `/api/watchlist/:symbol` | — | `204` on success · `404` if it wasn't there |
+
+### WebSocket (`/ws`)
+
+**Client → server**
+```json
+{ "action": "subscribe",   "symbols": ["AAPL", "MSFT"] }
+{ "action": "unsubscribe", "symbols": ["AAPL"] }
+```
+
+**Server → client**
+```json
+{ "type": "tick",  "symbol": "AAPL", "price": 231.42, "changePercent": 0.87, "timestamp": 1730000000000, "source": "live" }
+{ "type": "error", "message": "Max 30 symbols per connection" }
+```
+
+Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message size — see [Security notes](#-security-notes).
+
 ## ⚙️ Environment variables (`backend/.env`)
 
 | Var | Required | Default | Notes |
@@ -230,6 +284,17 @@ You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,
 
 </details>
 
+## 🗺️ Roadmap
+
+Things that would make sense to add next, roughly in order of value:
+
+- [ ] Candlestick/OHLC chart on click-through for a single symbol, instead of just the row sparkline.
+- [ ] Price alerts (e.g. "notify me if AAPL crosses $200") — the WS broadcaster's per-symbol fanout makes this a natural extension.
+- [ ] Multi-user auth — the `Watchlist.userId` column already exists for this, no schema migration needed.
+- [ ] A real test suite (unit tests for the `PriceFeed` implementations and the zod schemas would be the highest-value first pass).
+- [ ] Swap the frontend's inline styles for a proper CSS approach (Tailwind or CSS modules) now that the component count has grown past what inline styles comfortably scale to.
+- [ ] Revisit the Vite 8 upgrade once its Rolldown bundler stabilizes on this toolchain (see the accepted-risk note above).
+
 ## 🧰 Tech stack
 
 - **Frontend**: React 18, TypeScript, Vite
@@ -241,5 +306,5 @@ You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,
 ---
 
 <div align="center">
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:16A34A,100:020617&height=100&section=footer" width="100%" alt="footer" />
+<img src="https://capsule-render.vercel.app/api?type=soft&color=0:16A34A,50:0F172A,100:020617&height=100&section=footer" width="100%" alt="footer" />
 </div>
