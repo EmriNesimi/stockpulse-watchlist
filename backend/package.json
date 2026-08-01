@@ -2,13 +2,14 @@
   "name": "stockpulse-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "StockPulse backend — Express REST API, WebSocket price broadcaster, Prisma/SQLite persistence, Polygon.io integration",
+  "description": "StockPulse backend — Express REST API, WebSocket price broadcaster, Prisma/SQLite persistence, Massive integration",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@prisma/client": "5.20.0",
@@ -27,6 +28,7 @@
     "@types/ws": "8.5.12",
     "prisma": "5.20.0",
     "tsx": "4.23.1",
-    "typescript": "5.6.3"
+    "typescript": "5.6.3",
+    "vitest": "3.2.7"
   }
 }

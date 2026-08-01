@@ -1,22 +1,9 @@
 import { Router } from "express";
-import { z } from "zod";
 import { prisma } from "../db";
 import { asyncHandler } from "../asyncHandler";
+import { symbolSchema, addItemSchema } from "./watchlist.schemas";
 
 const router = Router();
-
-// "default-user" until there's ever a real login. Ticker symbols like
-// BRK.B and BF-B exist, so allow dots/dashes but keep it tight otherwise.
-const symbolSchema = z
-  .string()
-  .trim()
-  .toUpperCase()
-  .regex(/^[A-Z]{1,6}([.-][A-Z]{1,2})?$/, "Not a valid ticker symbol");
-
-const addItemSchema = z.object({
-  symbol: symbolSchema,
-  name: z.string().trim().max(200).optional(),
-});
 
 async function getOrCreateWatchlist(userId: string) {
   const existing = await prisma.watchlist.findUnique({

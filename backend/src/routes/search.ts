@@ -1,15 +1,11 @@
 import { Router } from "express";
-import { z } from "zod";
 import { env } from "../env";
 import { asyncHandler } from "../asyncHandler";
 import { FALLBACK_TICKERS } from "../massive/fallbackTickers";
 import { tryConsumeMassiveQuota } from "../massive/rateLimiter";
+import { searchQuerySchema } from "./search.schemas";
 
 const router = Router();
-
-const querySchema = z.object({
-  q: z.string().trim().min(1).max(50),
-});
 
 interface TickerResult {
   symbol: string;
@@ -49,7 +45,7 @@ function searchFallback(query: string): TickerResult[] {
 router.get(
   "/",
   asyncHandler(async (req, res) => {
-    const parsed = querySchema.safeParse(req.query);
+    const parsed = searchQuerySchema.safeParse(req.query);
     if (!parsed.success) {
       return res.status(400).json({ error: "Query param 'q' is required" });
     }

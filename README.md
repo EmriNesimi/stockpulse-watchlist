@@ -115,15 +115,17 @@ stockpulse-watchlist/
 │   │   ├── db.ts                  # Prisma client singleton
 │   │   ├── asyncHandler.ts        # wraps async route handlers so errors don't hang
 │   │   ├── routes/
-│   │   │   ├── watchlist.ts       # GET/POST/DELETE, zod-validated
-│   │   │   └── search.ts          # Massive ticker search proxy + fallback list
+│   │   │   ├── watchlist.ts               # GET/POST/DELETE, zod-validated
+│   │   │   ├── watchlist.schemas.ts       # symbol/addItem schemas (+ .test.ts)
+│   │   │   ├── search.ts                  # Massive ticker search proxy + fallback list
+│   │   │   └── search.schemas.ts          # query schema (+ .test.ts)
 │   │   ├── massive/
 │   │   │   ├── fallbackTickers.ts # static list used when there's no API key
-│   │   │   └── rateLimiter.ts     # sliding-window limiter for the free-tier 5/min cap
+│   │   │   └── rateLimiter.ts     # sliding-window limiter for the free-tier 5/min cap (+ .test.ts)
 │   │   ├── priceFeed/
 │   │   │   ├── PriceFeed.ts       # the interface
-│   │   │   ├── SimulatedFeed.ts   # default — random walk, no key needed
-│   │   │   ├── MassiveLiveFeed.ts # real wss://socket.massive.com/stocks feed
+│   │   │   ├── SimulatedFeed.ts   # default — random walk, no key needed (+ .test.ts)
+│   │   │   ├── MassiveLiveFeed.ts # real wss://socket.massive.com/stocks feed (+ .test.ts)
 │   │   │   ├── previousClose.ts   # shared REST helper for seeding base prices
 │   │   │   └── index.ts           # createPriceFeed() factory
 │   │   └── ws/
@@ -131,6 +133,7 @@ stockpulse-watchlist/
 │   ├── prisma/
 │   │   ├── schema.prisma          # Watchlist, WatchlistItem models
 │   │   └── migrations/
+│   ├── vitest.config.ts
 │   └── .env.example
 ├── frontend/
 │   ├── src/
@@ -198,6 +201,8 @@ npm run dev                 # http://localhost:5173
 ```
 
 Then open `http://localhost:5173` — search a ticker, add it, and it should start ticking within a couple seconds on the simulated feed.
+
+Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, and `MassiveLiveFeed`'s full auth/fallback state machine, run against a mocked WebSocket so no real network calls happen).
 
 The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Massive account to run or demo this.
 
@@ -269,7 +274,7 @@ Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message s
 - **Rate limiting**: `express-rate-limit` on all `/api` routes (60 req/min); the WS broadcaster caps each connection at 30 subscribed symbols, 60 messages/min, and a 2KB max message size, so one misbehaving client can't exhaust server resources.
 - **Headers/CORS**: `helmet` for standard security headers; CORS locked to `FRONTEND_ORIGIN`, no wildcard.
 - **Dependencies**: lockfiles committed for both workspaces. `npm audit` is clean on runtime dependencies. The frontend has one known, accepted exception — see below.
-- **CI**: `.github/workflows/ci.yml` runs typecheck + build + `npm audit` + a secret-pattern grep on every push/PR for both workspaces.
+- **CI**: `.github/workflows/ci.yml` runs typecheck + build + tests (backend) + `npm audit` + a secret-pattern grep on every push/PR for both workspaces.
 
 <details>
 <summary><strong>Known accepted risk: Vite/esbuild dev-server advisories (click to expand)</strong></summary>
@@ -291,7 +296,9 @@ Things that would make sense to add next, roughly in order of value:
 - [ ] Candlestick/OHLC chart on click-through for a single symbol, instead of just the row sparkline.
 - [ ] Price alerts (e.g. "notify me if AAPL crosses $200") — the WS broadcaster's per-symbol fanout makes this a natural extension.
 - [ ] Multi-user auth — the `Watchlist.userId` column already exists for this, no schema migration needed.
-- [ ] A real test suite (unit tests for the `PriceFeed` implementations and the zod schemas would be the highest-value first pass).
+- [x] ~~A real test suite~~ — done: Vitest covering the `PriceFeed` implementations, the Massive rate limiter, and the zod schemas (36 tests, wired into CI).
+- [ ] Test coverage for the Express routes and WS broadcaster themselves (currently only the pure logic underneath them — schemas, `PriceFeed`, rate limiter — is unit tested, not the HTTP/WS layer).
+- [ ] Frontend test coverage — nothing there yet at all.
 - [ ] Swap the frontend's inline styles for a proper CSS approach (Tailwind or CSS modules) now that the component count has grown past what inline styles comfortably scale to.
 - [ ] Revisit the Vite 8 upgrade once its Rolldown bundler stabilizes on this toolchain (see the accepted-risk note above).
 

@@ -48,6 +48,8 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
+      - name: Test
+        run: npm test
       - name: Audit (high severity)
         run: npm audit --audit-level=high
 
