@@ -115,9 +115,9 @@ stockpulse-watchlist/
 │   │   ├── db.ts                  # Prisma client singleton
 │   │   ├── asyncHandler.ts        # wraps async route handlers so errors don't hang
 │   │   ├── routes/
-│   │   │   ├── watchlist.ts               # GET/POST/DELETE, zod-validated
+│   │   │   ├── watchlist.ts               # GET/POST/DELETE, zod-validated (+ .routes.test.ts, real db)
 │   │   │   ├── watchlist.schemas.ts       # symbol/addItem schemas (+ .test.ts)
-│   │   │   ├── search.ts                  # Massive ticker search proxy + fallback list
+│   │   │   ├── search.ts                  # Massive ticker search proxy + fallback list (+ .routes.test.ts)
 │   │   │   └── search.schemas.ts          # query schema (+ .test.ts)
 │   │   ├── massive/
 │   │   │   ├── fallbackTickers.ts # static list used when there's no API key
@@ -128,8 +128,10 @@ stockpulse-watchlist/
 │   │   │   ├── MassiveLiveFeed.ts # real wss://socket.massive.com/stocks feed (+ .test.ts)
 │   │   │   ├── previousClose.ts   # shared REST helper for seeding base prices
 │   │   │   └── index.ts           # createPriceFeed() factory
+│   │   ├── test/
+│   │   │   └── globalSetup.ts     # spins up/tears down prisma/test.db for the route tests
 │   │   └── ws/
-│   │       └── broadcaster.ts     # WS server: subscribe/unsubscribe, rate + size limits
+│   │       └── broadcaster.ts     # WS server: subscribe/unsubscribe, rate + size limits (untested — see roadmap)
 │   ├── prisma/
 │   │   ├── schema.prisma          # Watchlist, WatchlistItem models
 │   │   └── migrations/
@@ -202,7 +204,7 @@ npm run dev                 # http://localhost:5173
 
 Then open `http://localhost:5173` — search a ticker, add it, and it should start ticking within a couple seconds on the simulated feed.
 
-Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, and `MassiveLiveFeed`'s full auth/fallback state machine, run against a mocked WebSocket so no real network calls happen).
+Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, and the watchlist/search routes themselves via `supertest` — the route tests hit a real throwaway SQLite database that's created before the run and torn down after, never the dev one. 51 tests total, no real network calls anywhere in the suite).
 
 The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Massive account to run or demo this.
 
@@ -296,8 +298,9 @@ Things that would make sense to add next, roughly in order of value:
 - [ ] Candlestick/OHLC chart on click-through for a single symbol, instead of just the row sparkline.
 - [ ] Price alerts (e.g. "notify me if AAPL crosses $200") — the WS broadcaster's per-symbol fanout makes this a natural extension.
 - [ ] Multi-user auth — the `Watchlist.userId` column already exists for this, no schema migration needed.
-- [x] ~~A real test suite~~ — done: Vitest covering the `PriceFeed` implementations, the Massive rate limiter, and the zod schemas (36 tests, wired into CI).
-- [ ] Test coverage for the Express routes and WS broadcaster themselves (currently only the pure logic underneath them — schemas, `PriceFeed`, rate limiter — is unit tested, not the HTTP/WS layer).
+- [x] ~~A real test suite~~ — done: Vitest covering the `PriceFeed` implementations, the Massive rate limiter, and the zod schemas.
+- [x] ~~Route-level test coverage~~ — done: the watchlist and search routes are now tested through `supertest` against a real (throwaway) SQLite db, not just the validation logic underneath them. 51 tests total, wired into CI.
+- [ ] Test coverage for the WS broadcaster itself (subscribe/unsubscribe fanout, the per-connection rate/size/subscription limits) — still untested; everything above it (`PriceFeed`) and below it (routes) is covered, but not the broadcaster in between.
 - [ ] Frontend test coverage — nothing there yet at all.
 - [ ] Swap the frontend's inline styles for a proper CSS approach (Tailwind or CSS modules) now that the component count has grown past what inline styles comfortably scale to.
 - [ ] Revisit the Vite 8 upgrade once its Rolldown bundler stabilizes on this toolchain (see the accepted-risk note above).
