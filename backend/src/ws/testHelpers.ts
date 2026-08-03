@@ -91,3 +91,19 @@ export class MessageCollector {
 export function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * Closes a client socket and waits for its own "close" event, rather than
+ * guessing a fixed delay is long enough for the close handshake to finish —
+ * a blind `wait(50)` after `ws.close()` was flaky under load since the
+ * server-side "close" handler (which does the actual cleanup) fires around
+ * the same time but isn't guaranteed to land within an arbitrary timeout.
+ * Still pairs with a tiny buffer afterward for that server-side handler to run.
+ */
+export async function closeAndSettle(ws: WebSocket): Promise<void> {
+  await new Promise<void>((resolve) => {
+    ws.once("close", () => resolve());
+    ws.close();
+  });
+  await wait(20);
+}

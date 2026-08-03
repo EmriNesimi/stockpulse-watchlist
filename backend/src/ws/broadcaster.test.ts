@@ -4,6 +4,7 @@ import type { WebSocket } from "ws";
 import {
   FakePriceFeed,
   MessageCollector,
+  closeAndSettle,
   connectClient,
   fakeTick,
   startTestServer,
@@ -150,8 +151,7 @@ describe("broadcaster — unsubscribing and disconnecting clean up correctly", (
     await wait(50);
     expect(feed.activeSymbols()).toContain("AAPL");
 
-    ws.close();
-    await wait(50);
+    await closeAndSettle(ws);
 
     expect(feed.activeSymbols()).not.toContain("AAPL");
   });
@@ -165,8 +165,7 @@ describe("broadcaster — unsubscribing and disconnecting clean up correctly", (
     b.ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
     await wait(50);
 
-    a.ws.close();
-    await wait(50);
+    await closeAndSettle(a.ws);
 
     expect(feed.activeSymbols()).toContain("AAPL"); // b is still connected and watching
   });
@@ -258,5 +257,56 @@ describe("broadcaster — per-connection symbol cap", () => {
     await wait(50);
 
     expect(feed.activeSymbols()).toHaveLength(MAX_SYMBOLS); // unchanged, not rejected either
+  });
+});
+
+describe("broadcaster — per-connection message rate limit", () => {
+  const MAX_MESSAGES_PER_MINUTE = 60;
+
+  it("rejects a message once the per-minute cap is exceeded", async () => {
+    const { port } = await setup();
+    const { ws, collector } = await client(port);
+
+    // Re-subscribing to the same symbol is a harmless no-op below the cap
+    // (no response either way), so every message here is "free" except the
+    // one that actually trips the limiter.
+    for (let i = 0; i < MAX_MESSAGES_PER_MINUTE + 1; i++) {
+      ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    }
+    await wait(100);
+
+    expect(collector.messages).toHaveLength(1);
+    expect(collector.messages[0]).toMatchObject({
+      type: "error",
+      message: "Too many messages, slow down",
+    });
+  });
+
+  it("doesn't reject a client staying right at the cap", async () => {
+    const { port } = await setup();
+    const { ws, collector } = await client(port);
+
+    for (let i = 0; i < MAX_MESSAGES_PER_MINUTE; i++) {
+      ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    }
+    await wait(100);
+
+    expect(collector.messages).toHaveLength(0);
+  });
+});
+
+describe("broadcaster — max message payload size", () => {
+  it("closes the connection if a client sends an oversized frame", async () => {
+    const { port } = await setup();
+    const { ws } = await client(port);
+
+    const closed = new Promise<number>((resolve) => ws.once("close", (code) => resolve(code)));
+
+    // MAX_PAYLOAD_BYTES is 2KB — this comfortably clears it.
+    const oversized = JSON.stringify({ action: "subscribe", symbols: ["AAPL"], padding: "x".repeat(3000) });
+    ws.send(oversized);
+
+    const code = await closed;
+    expect(code).toBe(1009); // RFC 6455 "message too big"
   });
 });
