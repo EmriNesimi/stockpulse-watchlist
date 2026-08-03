@@ -91,3 +91,83 @@ describe("broadcaster — subscribing and receiving ticks", () => {
     expect(msgB).toMatchObject({ symbol: "AAPL", price: 100.25 });
   });
 });
+
+describe("broadcaster — unsubscribing and disconnecting clean up correctly", () => {
+  it("stops delivering ticks once a client explicitly unsubscribes", async () => {
+    const { feed, port } = await setup();
+    const { ws, collector } = await client(port);
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    await wait(50);
+    ws.send(JSON.stringify({ action: "unsubscribe", symbols: ["AAPL"] }));
+    await wait(50);
+
+    feed.emit("AAPL", fakeTick("AAPL"));
+    await wait(50);
+
+    expect(collector.messages).toHaveLength(0);
+  });
+
+  it("tears down the upstream subscription once the last client unsubscribes", async () => {
+    const { feed, port } = await setup();
+    const { ws } = await client(port);
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    await wait(50);
+    expect(feed.activeSymbols()).toContain("AAPL");
+
+    ws.send(JSON.stringify({ action: "unsubscribe", symbols: ["AAPL"] }));
+    await wait(50);
+
+    expect(feed.activeSymbols()).not.toContain("AAPL");
+  });
+
+  it("keeps the upstream subscription alive if only one of several clients unsubscribes", async () => {
+    const { feed, port } = await setup();
+    const a = await client(port);
+    const b = await client(port);
+
+    a.ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    b.ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    await wait(50);
+
+    a.ws.send(JSON.stringify({ action: "unsubscribe", symbols: ["AAPL"] }));
+    await wait(50);
+
+    expect(feed.activeSymbols()).toContain("AAPL"); // b is still watching
+
+    feed.emit("AAPL", fakeTick("AAPL", { price: 42 }));
+    const msg = await b.collector.next();
+    expect(msg).toMatchObject({ symbol: "AAPL", price: 42 });
+    expect(a.collector.messages).toHaveLength(0); // a shouldn't get this one
+  });
+
+  it("tears down the upstream subscription when a client disconnects without unsubscribing first", async () => {
+    const { feed, port } = await setup();
+    const { ws } = await client(port);
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    await wait(50);
+    expect(feed.activeSymbols()).toContain("AAPL");
+
+    ws.close();
+    await wait(50);
+
+    expect(feed.activeSymbols()).not.toContain("AAPL");
+  });
+
+  it("keeps the upstream subscription alive if only one of several clients disconnects", async () => {
+    const { feed, port } = await setup();
+    const a = await client(port);
+    const b = await client(port);
+
+    a.ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    b.ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    await wait(50);
+
+    a.ws.close();
+    await wait(50);
+
+    expect(feed.activeSymbols()).toContain("AAPL"); // b is still connected and watching
+  });
+});
