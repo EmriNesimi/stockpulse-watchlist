@@ -131,7 +131,8 @@ stockpulse-watchlist/
 │   │   ├── test/
 │   │   │   └── globalSetup.ts     # spins up/tears down prisma/test.db for the route tests
 │   │   └── ws/
-│   │       └── broadcaster.ts     # WS server: subscribe/unsubscribe, rate + size limits (untested — see roadmap)
+│   │       ├── broadcaster.ts     # WS server: subscribe/unsubscribe, rate + size limits (+ .test.ts)
+│   │       └── testHelpers.ts     # FakePriceFeed, real server/client setup for the broadcaster tests
 │   ├── prisma/
 │   │   ├── schema.prisma          # Watchlist, WatchlistItem models
 │   │   └── migrations/
@@ -204,7 +205,7 @@ npm run dev                 # http://localhost:5173
 
 Then open `http://localhost:5173` — search a ticker, add it, and it should start ticking within a couple seconds on the simulated feed.
 
-Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, and the watchlist/search routes themselves via `supertest` — the route tests hit a real throwaway SQLite database that's created before the run and torn down after, never the dev one. 51 tests total, no real network calls anywhere in the suite).
+Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search routes via `supertest` against a real throwaway SQLite database, and the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits, and the shared-subscription cleanup logic. 70 tests total, no real network calls anywhere in the suite).
 
 The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Massive account to run or demo this.
 
@@ -299,9 +300,9 @@ Things that would make sense to add next, roughly in order of value:
 - [ ] Price alerts (e.g. "notify me if AAPL crosses $200") — the WS broadcaster's per-symbol fanout makes this a natural extension.
 - [ ] Multi-user auth — the `Watchlist.userId` column already exists for this, no schema migration needed.
 - [x] ~~A real test suite~~ — done: Vitest covering the `PriceFeed` implementations, the Massive rate limiter, and the zod schemas.
-- [x] ~~Route-level test coverage~~ — done: the watchlist and search routes are now tested through `supertest` against a real (throwaway) SQLite db, not just the validation logic underneath them. 51 tests total, wired into CI.
-- [ ] Test coverage for the WS broadcaster itself (subscribe/unsubscribe fanout, the per-connection rate/size/subscription limits) — still untested; everything above it (`PriceFeed`) and below it (routes) is covered, but not the broadcaster in between.
-- [ ] Frontend test coverage — nothing there yet at all.
+- [x] ~~Route-level test coverage~~ — done: the watchlist and search routes are tested through `supertest` against a real (throwaway) SQLite db, not just the validation logic underneath them.
+- [x] ~~WS broadcaster test coverage~~ — done: real socket connections (not mocked), covering shared-subscription fan-out, unsubscribe/disconnect cleanup, malformed input, and all three per-connection limits (symbol cap, message rate, payload size). 70 tests total across the whole backend suite now, wired into CI.
+- [ ] Frontend test coverage — nothing there yet at all. The backend is now fully covered end to end (schemas → `PriceFeed` → routes → WS broadcaster); the frontend is the one remaining gap.
 - [ ] Swap the frontend's inline styles for a proper CSS approach (Tailwind or CSS modules) now that the component count has grown past what inline styles comfortably scale to.
 - [ ] Revisit the Vite 8 upgrade once its Rolldown bundler stabilizes on this toolchain (see the accepted-risk note above).
 
