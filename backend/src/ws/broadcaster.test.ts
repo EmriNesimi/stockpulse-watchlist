@@ -171,3 +171,92 @@ describe("broadcaster — unsubscribing and disconnecting clean up correctly", (
     expect(feed.activeSymbols()).toContain("AAPL"); // b is still connected and watching
   });
 });
+
+describe("broadcaster — rejects bad input instead of crashing", () => {
+  it("responds with an error for malformed JSON", async () => {
+    const { port } = await setup();
+    const { ws, collector } = await client(port);
+
+    ws.send("this is not json{{{");
+
+    const msg = await collector.next();
+    expect(msg).toMatchObject({ type: "error", message: "Malformed JSON" });
+  });
+
+  it("responds with an error for an unrecognized action", async () => {
+    const { port } = await setup();
+    const { ws, collector } = await client(port);
+
+    ws.send(JSON.stringify({ action: "eavesdrop", symbols: ["AAPL"] }));
+
+    const msg = await collector.next();
+    expect(msg).toMatchObject({ type: "error", message: "Invalid subscribe/unsubscribe message" });
+  });
+
+  it("responds with an error for an empty symbols array", async () => {
+    const { port } = await setup();
+    const { ws, collector } = await client(port);
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols: [] }));
+
+    const msg = await collector.next();
+    expect(msg).toMatchObject({ type: "error" });
+  });
+
+  it("doesn't let a bad message crash the connection — it can still subscribe normally after", async () => {
+    const { feed, port } = await setup();
+    const { ws, collector } = await client(port);
+
+    ws.send("garbage");
+    await collector.next(); // the malformed-JSON error
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    await wait(50);
+    feed.emit("AAPL", fakeTick("AAPL", { price: 55 }));
+
+    const msg = await collector.next();
+    expect(msg).toMatchObject({ symbol: "AAPL", price: 55 });
+  });
+});
+
+describe("broadcaster — per-connection symbol cap", () => {
+  const MAX_SYMBOLS = 30;
+
+  it("allows subscribing up to the cap in a single message", async () => {
+    const { feed, port } = await setup();
+    const { ws } = await client(port);
+    const symbols = Array.from({ length: MAX_SYMBOLS }, (_, i) => `SYM${i}`);
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols }));
+    await wait(50);
+
+    expect(feed.activeSymbols()).toHaveLength(MAX_SYMBOLS);
+  });
+
+  it("rejects going over the cap across multiple messages, with an explanatory error", async () => {
+    const { port } = await setup();
+    const { ws, collector } = await client(port);
+    const symbols = Array.from({ length: MAX_SYMBOLS }, (_, i) => `SYM${i}`);
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols })); // exactly at the cap
+    await wait(50);
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols: ["EXTRA1"] })); // valid shape, just one over the cap
+
+    const msg = await collector.next();
+    expect(msg).toMatchObject({ type: "error", message: `Max ${MAX_SYMBOLS} symbols per connection` });
+  });
+
+  it("doesn't count a symbol twice toward the cap if subscribed again", async () => {
+    const { feed, port } = await setup();
+    const { ws } = await client(port);
+    const symbols = Array.from({ length: MAX_SYMBOLS }, (_, i) => `SYM${i}`);
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols }));
+    await wait(50);
+    ws.send(JSON.stringify({ action: "subscribe", symbols: ["SYM0"] })); // already subscribed
+    await wait(50);
+
+    expect(feed.activeSymbols()).toHaveLength(MAX_SYMBOLS); // unchanged, not rejected either
+  });
+});
