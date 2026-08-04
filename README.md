@@ -137,8 +137,7 @@ stockpulse-watchlist/
 │   ├── prisma/
 │   │   ├── schema.prisma          # Watchlist, WatchlistItem models
 │   │   └── migrations/
-│   ├── vitest.config.ts
-│   └── .env.example
+│   └── vitest.config.ts
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx
@@ -196,9 +195,8 @@ Requires Node 20+.
 # backend
 cd backend
 npm install
-cp .env.example .env       # optional edits — see below, works with zero edits
 npx prisma migrate dev
-npm run dev                 # http://localhost:4000
+npm run dev                 # http://localhost:4000 — works with zero config, see below
 
 # frontend, in a second terminal
 cd frontend
@@ -217,7 +215,11 @@ The backend works with **zero environment variables set** — it boots on the si
 ### 🔑 Getting a Massive API key (optional)
 
 1. Sign up for free at [massive.com](https://massive.com). (Massive is the market-data provider formerly branded Polygon.io — same company and API, they renamed in October 2025. Old `polygon.io` docs/links and existing accounts still work.)
-2. Copy your API key into `backend/.env` as `MASSIVE_API_KEY=...`.
+2. Create a `backend/.env` file yourself (there's no `.env.example` template committed to this repo, intentionally — see [Security notes](#-security-notes)) containing at minimum:
+   ```
+   MASSIVE_API_KEY=your-key-here
+   ```
+   See [Environment variables](#️-environment-variables-backendenv) below for the other optional vars.
 3. Restart the backend.
 
 With a free key, ticker search hits Massive's real REST API instead of the static fallback list — but free-tier accounts are capped at **5 REST calls/min**, so the backend runs a small sliding-window rate limiter (`backend/src/massive/rateLimiter.ts`) that caps itself at 4/min and quietly serves fallback data instead of eating a 429 once it's near the ceiling.
@@ -273,11 +275,11 @@ Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message s
 | `DATABASE_URL` | no | `file:./prisma/dev.db` | SQLite connection string |
 | `FRONTEND_ORIGIN` | no | `http://localhost:5173` | locks down CORS to this origin |
 
-`backend/.env` is gitignored — only `.env.example` (with blank/placeholder values) is committed. The API key never reaches the frontend; all Massive calls happen server-side.
+`backend/.env` is gitignored, and no `.env` file of any kind — not even an example/template with blank values — is committed to this repo, to keep the risk surface at zero. The API key never reaches the frontend; all Massive calls happen server-side.
 
 ## 🔒 Security notes
 
-- **Secrets**: `MASSIVE_API_KEY` lives only in `backend/.env` (gitignored). Never sent to the client. CI includes a grep-based backstop check for anything that looks like a committed key.
+- **Secrets**: `MASSIVE_API_KEY` lives only in `backend/.env` (gitignored). Never sent to the client. No `.env` file of any kind is committed — not even a blank `.env.example` template — and CI actively fails the build if one ever gets tracked, on top of a separate grep-based backstop for anything that looks like a committed key.
 - **Input validation**: every REST endpoint validates its input with `zod` before touching Prisma or building a Massive URL. WebSocket subscribe/unsubscribe messages are validated the same way.
 - **Rate limiting**: `express-rate-limit` on all `/api` routes (60 req/min); the WS broadcaster caps each connection at 30 subscribed symbols, 60 messages/min, and a 2KB max message size, so one misbehaving client can't exhaust server resources.
 - **Headers/CORS**: `helmet` for standard security headers; CORS locked to `FRONTEND_ORIGIN`, no wildcard.

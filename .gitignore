@@ -1,11 +1,13 @@
 # Dependencies
 node_modules/
 
-# Env / secrets
+# Env / secrets — no .env files at all in this repo, not even an example
+# template, to keep the risk surface at zero.
 .env
-.env.local
+.env.*
+*.env
 backend/.env
-backend/.env.local
+backend/.env.*
 
 # Database
 *.db

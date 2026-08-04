@@ -19,7 +19,7 @@ jobs:
           set -e
           # Backstop to GitHub's native secret scanning: fail if a real-looking
           # MASSIVE_API_KEY or generic API key assignment shows up in tracked files.
-          if git grep -nE "MASSIVE_API_KEY\s*=\s*[A-Za-z0-9_\-]{16,}" -- . ':!*.example' ':!.github/workflows/*'; then
+          if git grep -nE "MASSIVE_API_KEY\s*=\s*[A-Za-z0-9_\-]{16,}" -- . ':!.github/workflows/*'; then
             echo "::error::Possible committed secret matching MASSIVE_API_KEY=<value> pattern"
             exit 1
           fi
@@ -27,7 +27,13 @@ jobs:
             echo "::error::A .db file is tracked in the repo — SQLite data files must never be committed"
             exit 1
           fi
-          echo "No obvious secrets or database files found."
+          # No .env files at all in this repo, not even an example template —
+          # fail loudly if one ever gets committed, intentionally or not.
+          if git ls-files | grep -E '(^|/)\.env(\.[^/]*)?$'; then
+            echo "::error::A .env-pattern file is tracked in the repo — none are allowed, not even .env.example"
+            exit 1
+          fi
+          echo "No obvious secrets, database files, or .env files found."
 
   backend:
     name: Backend (typecheck, build, audit)
