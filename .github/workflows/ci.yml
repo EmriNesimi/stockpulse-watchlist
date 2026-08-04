@@ -54,7 +54,7 @@ jobs:
         run: npm audit --audit-level=high
 
   frontend:
-    name: Frontend (typecheck, build, audit)
+    name: Frontend (typecheck, build, test, audit)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -72,6 +72,8 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
+      - name: Test
+        run: npm test
       # Excludes devDependencies: Vite/esbuild currently carry dev-server-only
       # advisories (path traversal / fs.deny bypass in the local dev server)
       # with no fix except an unstable Vite 8 major that fails to build on
