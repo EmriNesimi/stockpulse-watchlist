@@ -2,6 +2,7 @@ import type { Server as HttpServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
 import type { PriceFeed, PriceTick, Unsubscribe } from "../priceFeed";
+import { checkAndTriggerAlerts, type AlertTrigger } from "../alerts/checkAndTriggerAlerts";
 
 const MAX_SYMBOLS_PER_CLIENT = 30;
 const MAX_MESSAGES_PER_MINUTE = 60;
@@ -36,7 +37,16 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
     if (fanout) return fanout;
 
     const clients = new Set<WebSocket>();
-    const unsub = priceFeed.subscribe(symbol, (tick: PriceTick) => broadcast(clients, tick));
+    const unsub = priceFeed.subscribe(symbol, (tick: PriceTick) => {
+      broadcast(clients, tick);
+      // Fire-and-forget: alert evaluation shouldn't block tick delivery, and
+      // a failure here (e.g. a db hiccup) shouldn't take the price feed down.
+      checkAndTriggerAlerts(tick)
+        .then((triggered) => {
+          for (const alert of triggered) broadcastAlert(clients, alert);
+        })
+        .catch((err) => console.error(`Failed to check price alerts for ${symbol}:`, err));
+    });
     fanout = { unsub, clients };
     fanouts.set(symbol, fanout);
     return fanout;
@@ -44,6 +54,13 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
 
   function broadcast(clients: Set<WebSocket>, tick: PriceTick) {
     const payload = JSON.stringify({ type: "tick", ...tick });
+    for (const client of clients) {
+      if (client.readyState === WebSocket.OPEN) client.send(payload);
+    }
+  }
+
+  function broadcastAlert(clients: Set<WebSocket>, alert: AlertTrigger) {
+    const payload = JSON.stringify({ type: "alert", ...alert });
     for (const client of clients) {
       if (client.readyState === WebSocket.OPEN) client.send(payload);
     }

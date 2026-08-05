@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 import type { Server as HttpServer } from "node:http";
 import type { WebSocket } from "ws";
 import {
@@ -10,6 +10,8 @@ import {
   startTestServer,
   wait,
 } from "./testHelpers";
+import { prisma } from "../db";
+import { DEFAULT_USER_ID, getOrCreateWatchlist } from "../watchlistHelper";
 
 // These are real integration tests: a real http server, a real WebSocketServer
 // via attachBroadcaster, and real `ws` client connections — not mocks. The
@@ -22,7 +24,19 @@ afterEach(async () => {
   clients.length = 0;
   await new Promise<void>((resolve) => server?.close(() => resolve()));
   server = undefined;
+  await prisma.priceAlert.deleteMany();
+  await prisma.watchlistItem.deleteMany();
+  await prisma.watchlist.deleteMany();
 });
+
+afterAll(async () => {
+  await prisma.$disconnect();
+});
+
+async function createAlert(data: { symbol: string; threshold: number; direction: string }) {
+  const watchlist = await getOrCreateWatchlist(DEFAULT_USER_ID);
+  return prisma.priceAlert.create({ data: { ...data, watchlistId: watchlist.id } });
+}
 
 async function setup() {
   const feed = new FakePriceFeed();
@@ -308,5 +322,78 @@ describe("broadcaster — max message payload size", () => {
 
     const code = await closed;
     expect(code).toBe(1009); // RFC 6455 "message too big"
+  });
+});
+
+describe("broadcaster — price alerts", () => {
+  it("sends an alert message to a subscribed client when a tick crosses the threshold", async () => {
+    await createAlert({ symbol: "AAPL", threshold: 200, direction: "above" });
+    const { feed, port } = await setup();
+    const { ws, collector } = await client(port);
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    await wait(50);
+
+    feed.emit("AAPL", fakeTick("AAPL", { price: 210 }));
+
+    const tickMsg = await collector.next();
+    expect(tickMsg).toMatchObject({ type: "tick", price: 210 });
+
+    const alertMsg = await collector.next();
+    expect(alertMsg).toMatchObject({ type: "alert", symbol: "AAPL", threshold: 200, direction: "above", price: 210 });
+  });
+
+  it("doesn't send an alert message when the tick doesn't cross any threshold", async () => {
+    await createAlert({ symbol: "AAPL", threshold: 200, direction: "above" });
+    const { feed, port } = await setup();
+    const { ws, collector } = await client(port);
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    await wait(50);
+
+    feed.emit("AAPL", fakeTick("AAPL", { price: 150 }));
+    await collector.next(); // the regular tick
+
+    await wait(50); // give the (fire-and-forget) alert check a chance to run
+    expect(collector.messages).toHaveLength(0); // no alert queued up behind it
+  });
+
+  it("only fires an alert once, not on every subsequent tick past the threshold", async () => {
+    await createAlert({ symbol: "AAPL", threshold: 200, direction: "above" });
+    const { feed, port } = await setup();
+    const { ws, collector } = await client(port);
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    await wait(50);
+
+    feed.emit("AAPL", fakeTick("AAPL", { price: 210 }));
+    await collector.next(); // tick
+    await collector.next(); // alert
+
+    feed.emit("AAPL", fakeTick("AAPL", { price: 220 }));
+    await collector.next(); // just the tick this time
+    await wait(50);
+    expect(collector.messages).toHaveLength(0); // no second alert message
+  });
+
+  it("delivers the alert to every client subscribed to that symbol, not just one", async () => {
+    await createAlert({ symbol: "AAPL", threshold: 200, direction: "above" });
+    const { feed, port } = await setup();
+    const a = await client(port);
+    const b = await client(port);
+
+    a.ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    b.ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    await wait(50);
+
+    feed.emit("AAPL", fakeTick("AAPL", { price: 210 }));
+
+    await a.collector.next(); // tick
+    const alertA = await a.collector.next();
+    await b.collector.next(); // tick
+    const alertB = await b.collector.next();
+
+    expect(alertA).toMatchObject({ type: "alert", symbol: "AAPL" });
+    expect(alertB).toMatchObject({ type: "alert", symbol: "AAPL" });
   });
 });
