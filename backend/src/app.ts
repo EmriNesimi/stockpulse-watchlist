@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import { env } from "./env";
 import watchlistRouter from "./routes/watchlist";
 import searchRouter from "./routes/search";
+import alertsRouter from "./routes/alerts";
 
 export function createApp() {
   const app = express();
@@ -34,6 +35,7 @@ export function createApp() {
 
   app.use("/api/watchlist", watchlistRouter);
   app.use("/api/search", searchRouter);
+  app.use("/api/alerts", alertsRouter);
 
   // Keep error details out of responses — log server-side, send something generic.
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

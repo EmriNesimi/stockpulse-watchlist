@@ -2,27 +2,14 @@ import { Router } from "express";
 import { prisma } from "../db";
 import { asyncHandler } from "../asyncHandler";
 import { symbolSchema, addItemSchema } from "./watchlist.schemas";
+import { DEFAULT_USER_ID, getOrCreateWatchlist } from "../watchlistHelper";
 
 const router = Router();
 
-async function getOrCreateWatchlist(userId: string) {
-  const existing = await prisma.watchlist.findUnique({
-    where: { userId },
-    include: { items: true },
-  });
-  if (existing) return existing;
-
-  return prisma.watchlist.create({
-    data: { userId },
-    include: { items: true },
-  });
-}
-
-const DEFAULT_USER_ID = "default-user";
-
 router.get("/", asyncHandler(async (_req, res) => {
   const watchlist = await getOrCreateWatchlist(DEFAULT_USER_ID);
-  res.json({ items: watchlist.items });
+  const items = await prisma.watchlistItem.findMany({ where: { watchlistId: watchlist.id } });
+  res.json({ items });
 }));
 
 router.post("/", asyncHandler(async (req, res) => {

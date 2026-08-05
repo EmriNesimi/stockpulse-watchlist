@@ -14,6 +14,7 @@ model Watchlist {
   userId    String          @default("default-user")
   createdAt DateTime        @default(now())
   items     WatchlistItem[]
+  alerts    PriceAlert[]
 
   @@unique([userId])
 }
@@ -28,4 +29,21 @@ model WatchlistItem {
 
   @@unique([watchlistId, symbol])
   @@index([watchlistId])
+}
+
+// One-shot price alerts: "notify me when AAPL crosses $200". Fires once
+// when the price crosses the threshold in the given direction, then stays
+// triggered — it doesn't re-fire on every subsequent tick above/below it.
+model PriceAlert {
+  id          String    @id @default(cuid())
+  symbol      String
+  threshold   Float
+  direction   String // "above" | "below" — enforced by zod at the API boundary, not the db
+  createdAt   DateTime  @default(now())
+  triggeredAt DateTime?
+  watchlistId String
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+
+  @@index([watchlistId])
+  @@index([symbol])
 }
