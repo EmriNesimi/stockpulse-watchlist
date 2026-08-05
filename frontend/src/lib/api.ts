@@ -12,6 +12,15 @@ export interface WatchlistItem {
   addedAt: string;
 }
 
+export interface PriceAlert {
+  id: string;
+  symbol: string;
+  threshold: number;
+  direction: "above" | "below";
+  createdAt: string;
+  triggeredAt: string | null;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -42,4 +51,23 @@ export function addToWatchlist(symbol: string, name?: string): Promise<{ item: W
 
 export function removeFromWatchlist(symbol: string): Promise<void> {
   return request(`/api/watchlist/${encodeURIComponent(symbol)}`, { method: "DELETE" });
+}
+
+export function getAlerts(): Promise<{ alerts: PriceAlert[] }> {
+  return request("/api/alerts");
+}
+
+export function createAlert(
+  symbol: string,
+  threshold: number,
+  direction: "above" | "below"
+): Promise<{ alert: PriceAlert }> {
+  return request("/api/alerts", {
+    method: "POST",
+    body: JSON.stringify({ symbol, threshold, direction }),
+  });
+}
+
+export function removeAlert(id: string): Promise<void> {
+  return request(`/api/alerts/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

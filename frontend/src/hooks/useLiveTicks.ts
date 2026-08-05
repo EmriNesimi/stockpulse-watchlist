@@ -8,6 +8,8 @@ const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 15_000;
 const HISTORY_LENGTH = 30;
 
+const MAX_ALERT_EVENTS = 20;
+
 interface TickMessage {
   type: "tick";
   symbol: string;
@@ -16,9 +18,27 @@ interface TickMessage {
   source: "live" | "simulated";
 }
 
+export interface AlertEvent {
+  id: string;
+  symbol: string;
+  threshold: number;
+  direction: "above" | "below";
+  price: number;
+  triggeredAt: string;
+}
+
+interface AlertMessage extends AlertEvent {
+  type: "alert";
+}
+
 export function useLiveTicks(symbols: string[]) {
   const [prices, setPrices] = useState<Record<string, PriceState>>({});
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
+  const [alertEvents, setAlertEvents] = useState<AlertEvent[]>([]);
+
+  function dismissAlert(id: string) {
+    setAlertEvents((prev) => prev.filter((a) => a.id !== id));
+  }
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttempt = useRef(0);
@@ -74,12 +94,19 @@ export function useLiveTicks(symbols: string[]) {
       };
 
       ws.onmessage = (event) => {
-        let msg: TickMessage;
+        let msg: TickMessage | AlertMessage;
         try {
           msg = JSON.parse(event.data);
         } catch {
           return;
         }
+
+        if (msg.type === "alert") {
+          const { type: _type, ...alertEvent } = msg;
+          setAlertEvents((prev) => [...prev, alertEvent].slice(-MAX_ALERT_EVENTS));
+          return;
+        }
+
         if (msg.type !== "tick") return;
 
         setPrices((prev) => {
@@ -126,5 +153,5 @@ export function useLiveTicks(symbols: string[]) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(syncSubscriptions, [symbols.join(",")]);
 
-  return { prices, status };
+  return { prices, status, alertEvents, dismissAlert };
 }

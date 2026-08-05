@@ -250,3 +250,120 @@ describe("useLiveTicks — reconnecting after a dropped connection", () => {
     expect(FakeWebSocket.instances).toHaveLength(1); // no reconnect after unmount
   });
 });
+
+describe("useLiveTicks — price alerts", () => {
+  beforeEach(() => {
+    FakeWebSocket.instances = [];
+  });
+
+  it("records an alert event when an alert message arrives", () => {
+    const { result } = renderHook(() => useLiveTicks(["AAPL"]));
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+
+    act(() => {
+      socket.triggerMessage({
+        type: "alert",
+        id: "alert-1",
+        symbol: "AAPL",
+        threshold: 200,
+        direction: "above",
+        price: 210,
+        triggeredAt: "2026-01-01T00:00:00.000Z",
+      });
+    });
+
+    expect(result.current.alertEvents).toHaveLength(1);
+    expect(result.current.alertEvents[0]).toMatchObject({
+      id: "alert-1",
+      symbol: "AAPL",
+      threshold: 200,
+      direction: "above",
+      price: 210,
+    });
+  });
+
+  it("keeps alert events separate from price state — doesn't affect prices", () => {
+    const { result } = renderHook(() => useLiveTicks(["AAPL"]));
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+
+    act(() => {
+      socket.triggerMessage({
+        type: "alert",
+        id: "alert-1",
+        symbol: "AAPL",
+        threshold: 200,
+        direction: "above",
+        price: 210,
+        triggeredAt: "2026-01-01T00:00:00.000Z",
+      });
+    });
+
+    expect(result.current.prices).toEqual({});
+  });
+
+  it("accumulates multiple alert events in order", () => {
+    const { result } = renderHook(() => useLiveTicks(["AAPL", "MSFT"]));
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+
+    act(() => {
+      socket.triggerMessage({
+        type: "alert",
+        id: "alert-1",
+        symbol: "AAPL",
+        threshold: 200,
+        direction: "above",
+        price: 210,
+        triggeredAt: "2026-01-01T00:00:00.000Z",
+      });
+    });
+    act(() => {
+      socket.triggerMessage({
+        type: "alert",
+        id: "alert-2",
+        symbol: "MSFT",
+        threshold: 300,
+        direction: "below",
+        price: 290,
+        triggeredAt: "2026-01-01T00:00:01.000Z",
+      });
+    });
+
+    expect(result.current.alertEvents.map((a) => a.id)).toEqual(["alert-1", "alert-2"]);
+  });
+
+  it("dismissAlert removes just that one alert", () => {
+    const { result } = renderHook(() => useLiveTicks(["AAPL"]));
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+
+    act(() => {
+      socket.triggerMessage({
+        type: "alert",
+        id: "alert-1",
+        symbol: "AAPL",
+        threshold: 200,
+        direction: "above",
+        price: 210,
+        triggeredAt: "2026-01-01T00:00:00.000Z",
+      });
+    });
+    act(() => {
+      socket.triggerMessage({
+        type: "alert",
+        id: "alert-2",
+        symbol: "AAPL",
+        threshold: 250,
+        direction: "above",
+        price: 260,
+        triggeredAt: "2026-01-01T00:00:01.000Z",
+      });
+    });
+
+    act(() => result.current.dismissAlert("alert-1"));
+
+    expect(result.current.alertEvents.map((a) => a.id)).toEqual(["alert-2"]);
+  });
+});

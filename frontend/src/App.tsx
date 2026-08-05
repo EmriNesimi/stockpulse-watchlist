@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import Search from "./components/Search";
 import WatchlistTable from "./components/WatchlistTable";
 import ConnectionBadge from "./components/ConnectionBadge";
+import AlertToast from "./components/AlertToast";
 import { useLiveTicks } from "./hooks/useLiveTicks";
 import { useThrottledAnnouncement } from "./hooks/useThrottledAnnouncement";
 import {
   addToWatchlist,
+  createAlert,
   getWatchlist,
   removeFromWatchlist,
   type TickerResult,
@@ -15,14 +17,14 @@ import {
 export default function App() {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const symbols = useMemo(() => items.map((i) => i.symbol), [items]);
-  const { prices, status } = useLiveTicks(symbols);
+  const { prices, status, alertEvents, dismissAlert } = useLiveTicks(symbols);
   const announcement = useThrottledAnnouncement(items, prices);
 
   useEffect(() => {
     getWatchlist()
       .then(({ items }) => setItems(items))
       .catch(() => {
-        /* error state lands with the WS/live-data commit */
+        /* error state lands with a future toast/error-banner pass */
       });
   }, []);
 
@@ -31,7 +33,7 @@ export default function App() {
       const { item } = await addToWatchlist(ticker.symbol, ticker.name);
       setItems((prev) => [...prev, item]);
     } catch {
-      // surfaced properly once there's a toast/error UI
+      // surfaced properly once there's a toast/error UI for this path too
     }
   }
 
@@ -42,6 +44,15 @@ export default function App() {
       await removeFromWatchlist(symbol);
     } catch {
       setItems(previous); // roll back if the backend rejected it
+    }
+  }
+
+  async function handleCreateAlert(symbol: string, threshold: number, direction: "above" | "below") {
+    try {
+      await createAlert(symbol, threshold, direction);
+    } catch {
+      // the alert just silently didn't get created — a toast for this
+      // specific failure path is a reasonable follow-up, not done yet
     }
   }
 
@@ -59,6 +70,8 @@ export default function App() {
       <div role="status" aria-live="polite" className="sr-only">
         {announcement}
       </div>
+
+      <AlertToast alerts={alertEvents} onDismiss={dismissAlert} />
 
       <header
         style={{
@@ -81,7 +94,12 @@ export default function App() {
       </header>
 
       <main id="main-content" tabIndex={-1} style={{ flex: 1, padding: "var(--space-5)" }}>
-        <WatchlistTable items={items} prices={prices} onRemove={handleRemove} />
+        <WatchlistTable
+          items={items}
+          prices={prices}
+          onRemove={handleRemove}
+          onCreateAlert={handleCreateAlert}
+        />
       </main>
     </div>
   );

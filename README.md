@@ -44,6 +44,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - 📡 **Live prices over WebSocket** — every row updates in place as ticks arrive, with a subtle color-and-icon flash on change (never color alone).
 - 📈 **Sparklines** — a rolling 30-point price history per symbol, rendered as inline SVG, no charting library needed for something this small.
 - 🟢 **Transparent data source** — a LIVE/SIM badge on every price and a connection-status indicator in the header, so it's never a mystery whether you're looking at real trades or the simulated fallback.
+- 🔔 **Price alerts** — set a one-shot "notify me when AAPL crosses $200" alert per symbol (the bell icon on each row); fires once as soon as a tick crosses the threshold, delivered over the same WebSocket connection as an `{"type":"alert"}` message and shown as a dismissible toast.
 - 🔌 **Works with zero setup** — no API key, no account, no config required to run it and see it working end to end.
 - ♿ **Accessible by default** — throttled screen-reader announcements, keyboard support, visible focus states, and full `prefers-reduced-motion` compliance.
 
@@ -55,7 +56,7 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
 - **Backend**: Express API, Prisma/SQLite watchlist persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), and a WebSocket broadcaster that fans price ticks out to connected clients with per-connection rate/size/subscription limits.
 - **Frontend**: Vite + React + TS app in the dark trading-terminal design system — debounced ticker search wired to the real API, a watchlist table with sparklines and a working remove button, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, and a header connection-status indicator.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
-- **Testing**: 100 tests total — 70 on the backend (schemas → `PriceFeed` → routes → WS broadcaster, all wired into CI) and 30 on the frontend (hooks + API client). See [Setup](#-setup) for how to run them.
+- **Testing**: 140 tests total — 102 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts, all wired into CI) and 38 on the frontend (hooks + API client). See [Setup](#-setup) for how to run them.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
 
 **⚠️ One caveat**: this was built in a terminal-only environment with no browser available to visually render the app. Everything's been verified end-to-end at the protocol level (REST calls, WebSocket messages, database round-trips, via real test scripts — not guesses), and the code has been read through carefully, but nobody has actually looked at it rendered in a browser yet. If you're picking this up: that's the one thing worth doing first.
@@ -115,11 +116,16 @@ stockpulse-watchlist/
 │   │   ├── env.ts                 # env var loading with sane defaults
 │   │   ├── db.ts                  # Prisma client singleton
 │   │   ├── asyncHandler.ts        # wraps async route handlers so errors don't hang
+│   │   ├── watchlistHelper.ts     # shared getOrCreateWatchlist(), used by watchlist + alerts routes
 │   │   ├── routes/
 │   │   │   ├── watchlist.ts               # GET/POST/DELETE, zod-validated (+ .routes.test.ts, real db)
 │   │   │   ├── watchlist.schemas.ts       # symbol/addItem schemas (+ .test.ts)
 │   │   │   ├── search.ts                  # Massive ticker search proxy + fallback list (+ .routes.test.ts)
-│   │   │   └── search.schemas.ts          # query schema (+ .test.ts)
+│   │   │   ├── search.schemas.ts          # query schema (+ .test.ts)
+│   │   │   ├── alerts.ts                  # GET/POST/DELETE price alerts (+ .routes.test.ts)
+│   │   │   └── alerts.schemas.ts          # symbol/threshold/direction schema (+ .test.ts)
+│   │   ├── alerts/
+│   │   │   └── checkAndTriggerAlerts.ts   # evaluates a tick against active alerts, marks fired ones (+ .test.ts)
 │   │   ├── massive/
 │   │   │   ├── fallbackTickers.ts # static list used when there's no API key
 │   │   │   └── rateLimiter.ts     # sliding-window limiter for the free-tier 5/min cap (+ .test.ts)
@@ -132,10 +138,10 @@ stockpulse-watchlist/
 │   │   ├── test/
 │   │   │   └── globalSetup.ts     # spins up/tears down prisma/test.db for the route tests
 │   │   └── ws/
-│   │       ├── broadcaster.ts     # WS server: subscribe/unsubscribe, rate + size limits (+ .test.ts)
+│   │       ├── broadcaster.ts     # WS server: subscribe/unsubscribe, rate + size limits, alert delivery (+ .test.ts)
 │   │       └── testHelpers.ts     # FakePriceFeed, real server/client setup for the broadcaster tests
 │   ├── prisma/
-│   │   ├── schema.prisma          # Watchlist, WatchlistItem models
+│   │   ├── schema.prisma          # Watchlist, WatchlistItem, PriceAlert models
 │   │   └── migrations/
 │   └── vitest.config.ts
 ├── frontend/
@@ -147,13 +153,15 @@ stockpulse-watchlist/
 │   │   ├── styles/tokens.css            # design system CSS variables
 │   │   ├── components/
 │   │   │   ├── Search.tsx               # debounced ticker search
-│   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove
+│   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell
 │   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash
 │   │   │   ├── Sparkline.tsx            # inline SVG price history
-│   │   │   └── ConnectionBadge.tsx      # WS connection status indicator
+│   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator
+│   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon
+│   │   │   └── AlertToast.tsx           # dismissible toast for fired price alerts
 │   │   ├── hooks/
 │   │   │   ├── useDebouncedValue.ts     # (+ .test.ts)
-│   │   │   ├── useLiveTicks.ts          # WS client: subscribe diffing, reconnect/backoff (+ .test.ts)
+│   │   │   ├── useLiveTicks.ts          # WS client: subscribe diffing, reconnect/backoff, alert events (+ .test.ts)
 │   │   │   └── useThrottledAnnouncement.ts  # aria-live summary, throttled to 1/8s (+ .test.ts)
 │   │   ├── lib/
 │   │   │   ├── api.ts                   # fetch wrappers for the backend REST API (+ .test.ts)
@@ -206,9 +214,9 @@ npm run dev                 # http://localhost:5173
 
 Then open `http://localhost:5173` — search a ticker, add it, and it should start ticking within a couple seconds on the simulated feed.
 
-Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search routes via `supertest` against a real throwaway SQLite database, and the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits, and the shared-subscription cleanup logic. 70 tests total, no real network calls anywhere in the suite).
+Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts routes via `supertest` against a real throwaway SQLite database, price-alert triggering logic, and the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits, shared-subscription cleanup, and alert delivery. 102 tests total, no real network calls anywhere in the suite).
 
-Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, and `useLiveTicks` — the WebSocket client hook — against a hand-built fake matching the browser `WebSocket` API, covering subscription diffing and reconnect-with-backoff. 30 tests total.)
+Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, and `useLiveTicks` — the WebSocket client hook — against a hand-built fake matching the browser `WebSocket` API, covering subscription diffing, reconnect-with-backoff, and alert-message handling. 38 tests total.)
 
 The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Massive account to run or demo this.
 
@@ -249,6 +257,9 @@ You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,
 | `GET` | `/api/watchlist` | — | `{ items: [{ id, symbol, name, addedAt }] }` |
 | `POST` | `/api/watchlist` | `{ symbol, name? }` | `201` `{ item }` · `409` if already on the list · `400` on a bad symbol |
 | `DELETE` | `/api/watchlist/:symbol` | — | `204` on success · `404` if it wasn't there |
+| `GET` | `/api/alerts` | — | `{ alerts: [{ id, symbol, threshold, direction, createdAt, triggeredAt }] }` |
+| `POST` | `/api/alerts` | `{ symbol, threshold, direction: "above" \| "below" }` | `201` `{ alert }` · `400` on a bad symbol/threshold/direction |
+| `DELETE` | `/api/alerts/:id` | — | `204` on success · `404` if it wasn't there |
 
 ### WebSocket (`/ws`)
 
@@ -261,8 +272,11 @@ You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,
 **Server → client**
 ```json
 { "type": "tick",  "symbol": "AAPL", "price": 231.42, "changePercent": 0.87, "timestamp": 1730000000000, "source": "live" }
+{ "type": "alert", "id": "cabc123", "symbol": "AAPL", "threshold": 200, "direction": "above", "price": 201.5, "triggeredAt": "2026-01-01T00:00:00.000Z" }
 { "type": "error", "message": "Max 30 symbols per connection" }
 ```
+
+Alerts are one-shot — once fired, an alert won't fire again on later ticks unless removed and re-created. They're evaluated per tick against every still-active alert on that symbol and pushed to every client currently subscribed to it, not just the one that created the alert.
 
 Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message size — see [Security notes](#-security-notes).
 
@@ -304,7 +318,7 @@ Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message s
 Things that would make sense to add next, roughly in order of value:
 
 - [ ] Candlestick/OHLC chart on click-through for a single symbol, instead of just the row sparkline.
-- [ ] Price alerts (e.g. "notify me if AAPL crosses $200") — the WS broadcaster's per-symbol fanout makes this a natural extension.
+- [x] ~~Price alerts~~ — done: one-shot "notify me when AAPL crosses $200" alerts, evaluated per tick in the WS broadcaster and delivered as a dismissible toast. No test coverage gap left behind either — schema, route, trigger logic, and broadcaster delivery are all covered.
 - [ ] Multi-user auth — the `Watchlist.userId` column already exists for this, no schema migration needed.
 - [x] ~~A real test suite~~ — done: Vitest covering the `PriceFeed` implementations, the Massive rate limiter, and the zod schemas.
 - [x] ~~Route-level test coverage~~ — done: the watchlist and search routes are tested through `supertest` against a real (throwaway) SQLite db, not just the validation logic underneath them.

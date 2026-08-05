@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   API_BASE,
   addToWatchlist,
+  createAlert,
+  getAlerts,
   getWatchlist,
+  removeAlert,
   removeFromWatchlist,
   searchTickers,
 } from "./api";
@@ -106,5 +109,56 @@ describe("removeFromWatchlist", () => {
     } as unknown as Response);
 
     await expect(removeFromWatchlist("AAPL")).resolves.toBeUndefined();
+  });
+});
+
+describe("getAlerts", () => {
+  it("GETs /api/alerts and returns the alerts", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ alerts: [{ id: "1", symbol: "AAPL", threshold: 200, direction: "above" }] })
+    );
+
+    const result = await getAlerts();
+
+    expect(fetch).toHaveBeenCalledWith(`${API_BASE}/api/alerts`, expect.anything());
+    expect(result.alerts).toHaveLength(1);
+  });
+});
+
+describe("createAlert", () => {
+  it("POSTs symbol, threshold, and direction as JSON", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse(
+        { alert: { id: "1", symbol: "AAPL", threshold: 200, direction: "above", createdAt: "now", triggeredAt: null } },
+        { status: 201 }
+      )
+    );
+
+    await createAlert("AAPL", 200, "above");
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toBe(`${API_BASE}/api/alerts`);
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(init?.body as string)).toEqual({ symbol: "AAPL", threshold: 200, direction: "above" });
+  });
+
+  it("throws with the server's error message on a non-ok response", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ error: "Not a valid ticker symbol" }, { ok: false, status: 400 })
+    );
+
+    await expect(createAlert("NOT_VALID", 200, "above")).rejects.toThrow("Not a valid ticker symbol");
+  });
+});
+
+describe("removeAlert", () => {
+  it("DELETEs the URL-encoded alert id", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(undefined, { status: 204 }));
+
+    await removeAlert("alert-1");
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toBe(`${API_BASE}/api/alerts/alert-1`);
+    expect(init?.method).toBe("DELETE");
   });
 });
