@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import WatchlistTable from "./WatchlistTable";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
@@ -111,5 +112,39 @@ describe("WatchlistTable — rendering rows", () => {
     // MSFT has no price entry — its row shows the placeholder, not AAPL's price
     const dashes = screen.getAllByText("—");
     expect(dashes.length).toBeGreaterThan(0);
+  });
+});
+
+describe("WatchlistTable — removing a symbol", () => {
+  it("calls onRemove with the right symbol when its remove button is clicked", async () => {
+    const user = userEvent.setup();
+    const onRemove = vi.fn();
+    render(
+      <WatchlistTable
+        items={[item({ id: "1", symbol: "AAPL" }), item({ id: "2", symbol: "MSFT" })]}
+        prices={{}}
+        onRemove={onRemove}
+        onCreateAlert={noop}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Remove MSFT from watchlist" }));
+
+    expect(onRemove).toHaveBeenCalledWith("MSFT");
+    expect(onRemove).not.toHaveBeenCalledWith("AAPL");
+  });
+
+  it("has a distinct, correctly-labeled remove button per row", () => {
+    render(
+      <WatchlistTable
+        items={[item({ id: "1", symbol: "AAPL" }), item({ id: "2", symbol: "MSFT" })]}
+        prices={{}}
+        onRemove={noop}
+        onCreateAlert={noop}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Remove AAPL from watchlist" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove MSFT from watchlist" })).toBeInTheDocument();
   });
 });
