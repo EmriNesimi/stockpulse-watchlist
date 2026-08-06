@@ -243,3 +243,80 @@ describe("WatchlistTable — setting an alert", () => {
     expect(screen.queryByRole("form", { name: "Set a price alert for AAPL" })).not.toBeInTheDocument();
   });
 });
+
+describe("WatchlistTable — trend column and sparkline integration", () => {
+  it("passes bullish through to the sparkline so its trend label matches the row", () => {
+    render(
+      <WatchlistTable
+        items={[item({ symbol: "AAPL" })]}
+        prices={{ AAPL: price({ changePercent: 1.5, history: [100, 105, 110] }) }}
+        onRemove={noop}
+        onCreateAlert={noop}
+      />
+    );
+    expect(screen.getByRole("img", { name: /trending up/i })).toBeInTheDocument();
+  });
+
+  it("passes bearish through to the sparkline when the change is negative", () => {
+    render(
+      <WatchlistTable
+        items={[item({ symbol: "AAPL" })]}
+        prices={{ AAPL: price({ changePercent: -1.5, history: [110, 105, 100] }) }}
+        onRemove={noop}
+        onCreateAlert={noop}
+      />
+    );
+    expect(screen.getByRole("img", { name: /trending down/i })).toBeInTheDocument();
+  });
+
+  it("treats exactly zero change as bullish (matches the '+' prefix behavior)", () => {
+    render(
+      <WatchlistTable
+        items={[item({ symbol: "AAPL" })]}
+        prices={{ AAPL: price({ changePercent: 0, history: [100, 100, 100] }) }}
+        onRemove={noop}
+        onCreateAlert={noop}
+      />
+    );
+    expect(screen.getByText("+0.00%")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /trending up/i })).toBeInTheDocument();
+  });
+
+  it("gives each row its own independent sparkline reflecting its own history", () => {
+    render(
+      <WatchlistTable
+        items={[item({ id: "1", symbol: "AAPL" }), item({ id: "2", symbol: "MSFT" })]}
+        prices={{
+          AAPL: price({ changePercent: 1, history: [100, 105, 110] }),
+          MSFT: price({ changePercent: -1, history: [400, 395, 390] }),
+        }}
+        onRemove={noop}
+        onCreateAlert={noop}
+      />
+    );
+    expect(screen.getByRole("img", { name: /trending up/i })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /trending down/i })).toBeInTheDocument();
+  });
+});
+
+describe("WatchlistTable — edge cases", () => {
+  it("doesn't crash when an item has no name", () => {
+    render(
+      <WatchlistTable
+        items={[item({ symbol: "AAPL", name: null })]}
+        prices={{}}
+        onRemove={noop}
+        onCreateAlert={noop}
+      />
+    );
+    expect(screen.getByText("AAPL")).toBeInTheDocument();
+  });
+
+  it("keeps every row's remove/alert controls independently addressable with 10+ items", () => {
+    const items = Array.from({ length: 12 }, (_, i) => item({ id: String(i), symbol: `SYM${i}` }));
+    render(<WatchlistTable items={items} prices={{}} onRemove={noop} onCreateAlert={noop} />);
+
+    expect(screen.getByRole("button", { name: "Remove SYM0 from watchlist" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove SYM11 from watchlist" })).toBeInTheDocument();
+  });
+});
