@@ -148,3 +148,98 @@ describe("WatchlistTable — removing a symbol", () => {
     expect(screen.getByRole("button", { name: "Remove MSFT from watchlist" })).toBeInTheDocument();
   });
 });
+
+describe("WatchlistTable — setting an alert", () => {
+  it("opens the inline alert form when the bell is clicked", async () => {
+    const user = userEvent.setup();
+    render(
+      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />
+    );
+
+    expect(screen.queryByRole("form", { name: "Set a price alert for AAPL" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
+
+    expect(screen.getByRole("form", { name: "Set a price alert for AAPL" })).toBeInTheDocument();
+  });
+
+  it("closes the form again if the bell is clicked a second time", async () => {
+    const user = userEvent.setup();
+    render(
+      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />
+    );
+
+    const bell = screen.getByRole("button", { name: "Set a price alert for AAPL" });
+    await user.click(bell);
+    expect(screen.getByRole("form", { name: "Set a price alert for AAPL" })).toBeInTheDocument();
+
+    await user.click(bell);
+    expect(screen.queryByRole("form", { name: "Set a price alert for AAPL" })).not.toBeInTheDocument();
+  });
+
+  it("only shows one row's alert form at a time", async () => {
+    const user = userEvent.setup();
+    render(
+      <WatchlistTable
+        items={[item({ id: "1", symbol: "AAPL" }), item({ id: "2", symbol: "MSFT" })]}
+        prices={{}}
+        onRemove={noop}
+        onCreateAlert={noop}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
+    expect(screen.getByRole("form", { name: "Set a price alert for AAPL" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Set a price alert for MSFT" }));
+
+    expect(screen.queryByRole("form", { name: "Set a price alert for AAPL" })).not.toBeInTheDocument();
+    expect(screen.getByRole("form", { name: "Set a price alert for MSFT" })).toBeInTheDocument();
+  });
+
+  it("pre-fills the alert threshold with the current price when available", async () => {
+    const user = userEvent.setup();
+    render(
+      <WatchlistTable
+        items={[item({ symbol: "AAPL" })]}
+        prices={{ AAPL: price({ price: 231.5 }) }}
+        onRemove={noop}
+        onCreateAlert={noop}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
+
+    expect(screen.getByLabelText("Price threshold for AAPL alert")).toHaveValue(231.5);
+  });
+
+  it("calls onCreateAlert with the symbol, threshold, and direction, then closes the form", async () => {
+    const user = userEvent.setup();
+    const onCreateAlert = vi.fn();
+    render(
+      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={onCreateAlert} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
+    await user.type(screen.getByLabelText("Price threshold for AAPL alert"), "200");
+    await user.selectOptions(screen.getByLabelText("Alert direction"), "below");
+    await user.click(screen.getByRole("button", { name: "Set" }));
+
+    expect(onCreateAlert).toHaveBeenCalledWith("AAPL", 200, "below");
+    expect(screen.queryByRole("form", { name: "Set a price alert for AAPL" })).not.toBeInTheDocument();
+  });
+
+  it("closes the form without calling onCreateAlert when cancelled", async () => {
+    const user = userEvent.setup();
+    const onCreateAlert = vi.fn();
+    render(
+      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={onCreateAlert} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
+    await user.click(screen.getByRole("button", { name: "Cancel setting alert" }));
+
+    expect(onCreateAlert).not.toHaveBeenCalled();
+    expect(screen.queryByRole("form", { name: "Set a price alert for AAPL" })).not.toBeInTheDocument();
+  });
+});
