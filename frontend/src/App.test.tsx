@@ -194,3 +194,48 @@ describe("App — search and add to watchlist", () => {
     });
   }, 10000);
 });
+
+describe("App — removing from the watchlist", () => {
+  it("removes the item from the table (optimistically) when removeFromWatchlist succeeds", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue({ items: [watchlistItem({ symbol: "AAPL" })] });
+    vi.mocked(removeFromWatchlist).mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole("button", { name: "Remove AAPL from watchlist" }));
+
+    expect(removeFromWatchlist).toHaveBeenCalledWith("AAPL");
+    await waitFor(() => expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument());
+  });
+
+  it("rolls the item back into the table if removeFromWatchlist fails", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue({ items: [watchlistItem({ symbol: "AAPL" })] });
+    vi.mocked(removeFromWatchlist).mockRejectedValue(new Error("server error"));
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole("button", { name: "Remove AAPL from watchlist" }));
+
+    // Optimistically removed first...
+    await waitFor(() => expect(removeFromWatchlist).toHaveBeenCalled());
+    // ...then rolled back once the rejection comes through.
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+  });
+
+  it("removing one item doesn't affect the others", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue({
+      items: [watchlistItem({ id: "1", symbol: "AAPL" }), watchlistItem({ id: "2", symbol: "MSFT" })],
+    });
+    vi.mocked(removeFromWatchlist).mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole("button", { name: "Remove AAPL from watchlist" }));
+
+    await waitFor(() => expect(screen.queryByText("AAPL")).not.toBeInTheDocument());
+    expect(screen.getByText("MSFT")).toBeInTheDocument();
+  });
+});
