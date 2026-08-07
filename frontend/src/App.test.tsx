@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import App from "./App";
 import {
   getWatchlist,
@@ -135,4 +136,61 @@ describe("App — initial load", () => {
     render(<App />);
     expect(FakeWebSocket.instances).toHaveLength(1);
   });
+});
+
+describe("App — search and add to watchlist", () => {
+  it("adds a searched ticker to the watchlist when clicked", async () => {
+    vi.mocked(searchTickers).mockResolvedValue({
+      results: [{ symbol: "AAPL", name: "Apple Inc." }],
+      source: "massive",
+    });
+    vi.mocked(addToWatchlist).mockResolvedValue({ item: watchlistItem({ symbol: "AAPL" }) });
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument());
+
+    await user.type(screen.getByLabelText(/search for a stock ticker/i), "apple");
+    await waitFor(() => screen.getByRole("option", { name: /AAPL/ }), { timeout: 2000 });
+    await user.click(screen.getByRole("option", { name: /AAPL/ }));
+
+    expect(addToWatchlist).toHaveBeenCalledWith("AAPL", "Apple Inc.");
+    await waitFor(() => expect(screen.queryByText(/nothing on your watchlist yet/i)).not.toBeInTheDocument());
+    expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0); // in the table now
+  }, 10000);
+
+  it("doesn't add anything to the table if addToWatchlist fails", async () => {
+    vi.mocked(searchTickers).mockResolvedValue({
+      results: [{ symbol: "AAPL", name: "Apple Inc." }],
+      source: "massive",
+    });
+    vi.mocked(addToWatchlist).mockRejectedValue(new Error("AAPL is already on the watchlist"));
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument());
+
+    await user.type(screen.getByLabelText(/search for a stock ticker/i), "apple");
+    await waitFor(() => screen.getByRole("option", { name: /AAPL/ }), { timeout: 2000 });
+    await user.click(screen.getByRole("option", { name: /AAPL/ }));
+
+    await waitFor(() => expect(addToWatchlist).toHaveBeenCalled());
+    // The empty state should still be showing — the add never actually landed.
+    expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument();
+  }, 10000);
+
+  it("marks an already-added symbol as disabled in future search results", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue({ items: [watchlistItem({ symbol: "AAPL" })] });
+    vi.mocked(searchTickers).mockResolvedValue({
+      results: [{ symbol: "AAPL", name: "Apple Inc." }],
+      source: "massive",
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+
+    await user.type(screen.getByLabelText(/search for a stock ticker/i), "apple");
+
+    await waitFor(() => expect(screen.getByRole("option", { name: /AAPL/ })).toBeDisabled(), {
+      timeout: 2000,
+    });
+  }, 10000);
 });
