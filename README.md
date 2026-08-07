@@ -56,7 +56,7 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
 - **Backend**: Express API, Prisma/SQLite watchlist persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), and a WebSocket broadcaster that fans price ticks out to connected clients with per-connection rate/size/subscription limits.
 - **Frontend**: Vite + React + TS app in the dark trading-terminal design system — debounced ticker search wired to the real API, a watchlist table with sparklines and a working remove button, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, and a header connection-status indicator.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
-- **Testing**: 140 tests total — 102 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts, all wired into CI) and 38 on the frontend (hooks + API client). See [Setup](#-setup) for how to run them.
+- **Testing**: 200 tests total — 102 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts, all wired into CI) and 98 on the frontend (hooks, API client, and every component). See [Setup](#-setup) for how to run them.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
 
 **⚠️ One caveat**: this was built in a terminal-only environment with no browser available to visually render the app. Everything's been verified end-to-end at the protocol level (REST calls, WebSocket messages, database round-trips, via real test scripts — not guesses), and the code has been read through carefully, but nobody has actually looked at it rendered in a browser yet. If you're picking this up: that's the one thing worth doing first.
@@ -151,7 +151,7 @@ stockpulse-watchlist/
 │   │   ├── types.ts                     # shared PriceState type
 │   │   ├── index.css                    # global styles, tabular-nums, sr-only, reduced-motion
 │   │   ├── styles/tokens.css            # design system CSS variables
-│   │   ├── components/
+│   │   ├── components/          # every component here has a matching .test.tsx
 │   │   │   ├── Search.tsx               # debounced ticker search
 │   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell
 │   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash
@@ -216,7 +216,7 @@ Then open `http://localhost:5173` — search a ticker, add it, and it should sta
 
 Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts routes via `supertest` against a real throwaway SQLite database, price-alert triggering logic, and the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits, shared-subscription cleanup, and alert delivery. 102 tests total, no real network calls anywhere in the suite).
 
-Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, and `useLiveTicks` — the WebSocket client hook — against a hand-built fake matching the browser `WebSocket` API, covering subscription diffing, reconnect-with-backoff, and alert-message handling. 38 tests total.)
+Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, and every component — `Search`'s debounced async flow with a mocked API and real timers, `AlertForm`/`AlertToast`'s interactions via `userEvent`, and `WatchlistTable` end to end: rendering, remove, the alert bell/form, and trend/sparkline integration. 98 tests total.)
 
 The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Massive account to run or demo this.
 
@@ -324,7 +324,7 @@ Things that would make sense to add next, roughly in order of value:
 - [x] ~~Route-level test coverage~~ — done: the watchlist and search routes are tested through `supertest` against a real (throwaway) SQLite db, not just the validation logic underneath them.
 - [x] ~~WS broadcaster test coverage~~ — done: real socket connections (not mocked), covering shared-subscription fan-out, unsubscribe/disconnect cleanup, malformed input, and all three per-connection limits (symbol cap, message rate, payload size). 70 tests total across the whole backend suite now, wired into CI.
 - [x] ~~Frontend hook/logic test coverage~~ — done: `useDebouncedValue`, `useThrottledAnnouncement`, the API client, and `useLiveTicks` (the WS client hook, tested against a fake browser `WebSocket`) are all covered. 30 tests, wired into CI.
-- [ ] Frontend *component* test coverage — the hooks and logic underneath the UI are tested, but the React components themselves (`WatchlistTable`, `Search`, `Sparkline`, `PriceCell`, `ConnectionBadge`, `App`) don't have rendering tests yet.
+- [x] ~~Frontend component test coverage~~ — done: every component has rendering/interaction tests now (`Search`, `WatchlistTable`, `AlertForm`, `AlertToast`, `Sparkline`, `PriceCell`, `ConnectionBadge`). `App.tsx` itself is the one thing still untested — it's mostly wiring at this point (state + prop-drilling between the already-tested pieces), so a true end-to-end/integration test there would be the natural next step rather than another unit test.
 - [ ] Swap the frontend's inline styles for a proper CSS approach (Tailwind or CSS modules) now that the component count has grown past what inline styles comfortably scale to.
 - [ ] Revisit the Vite 8 upgrade once its Rolldown bundler stabilizes on this toolchain (see the accepted-risk note above).
 
