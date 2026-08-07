@@ -318,3 +318,142 @@ describe("App — live connection status and price updates", () => {
     await waitFor(() => expect(screen.getByText("Reconnecting…")).toBeInTheDocument());
   });
 });
+
+describe("App — creating a price alert", () => {
+  it("calls createAlert with the right symbol/threshold/direction from the bell form", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue({ items: [watchlistItem({ symbol: "AAPL" })] });
+    vi.mocked(createAlert).mockResolvedValue({
+      alert: {
+        id: "a1",
+        symbol: "AAPL",
+        threshold: 200,
+        direction: "above",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        triggeredAt: null,
+      },
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
+    await user.type(screen.getByLabelText("Price threshold for AAPL alert"), "200");
+    await user.click(screen.getByRole("button", { name: "Set" }));
+
+    expect(createAlert).toHaveBeenCalledWith("AAPL", 200, "above");
+  });
+
+  it("closes the inline form after submitting, even though createAlert doesn't update the table", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue({ items: [watchlistItem({ symbol: "AAPL" })] });
+    vi.mocked(createAlert).mockResolvedValue({
+      alert: {
+        id: "a1",
+        symbol: "AAPL",
+        threshold: 200,
+        direction: "above",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        triggeredAt: null,
+      },
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
+    await user.type(screen.getByLabelText("Price threshold for AAPL alert"), "200");
+    await user.click(screen.getByRole("button", { name: "Set" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("form", { name: "Set a price alert for AAPL" })).not.toBeInTheDocument()
+    );
+  });
+
+  it("doesn't crash the app if createAlert fails", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue({ items: [watchlistItem({ symbol: "AAPL" })] });
+    vi.mocked(createAlert).mockRejectedValue(new Error("server error"));
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
+    await user.type(screen.getByLabelText("Price threshold for AAPL alert"), "200");
+    await user.click(screen.getByRole("button", { name: "Set" }));
+
+    await waitFor(() => expect(createAlert).toHaveBeenCalled());
+    // The app is still usable afterward — the watchlist row is still there.
+    expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0);
+  });
+});
+
+describe("App — receiving fired alerts", () => {
+  it("shows a toast when an alert message arrives over the websocket", async () => {
+    render(<App />);
+    act(() => FakeWebSocket.instances[0].triggerOpen());
+
+    act(() => {
+      FakeWebSocket.instances[0].triggerMessage({
+        type: "alert",
+        id: "a1",
+        symbol: "AAPL",
+        threshold: 200,
+        direction: "above",
+        price: 210,
+        triggeredAt: "2026-01-01T00:00:00.000Z",
+      });
+    });
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("AAPL"));
+  });
+
+  it("dismisses the toast when its dismiss button is clicked", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    act(() => FakeWebSocket.instances[0].triggerOpen());
+    act(() => {
+      FakeWebSocket.instances[0].triggerMessage({
+        type: "alert",
+        id: "a1",
+        symbol: "AAPL",
+        threshold: 200,
+        direction: "above",
+        price: 210,
+        triggeredAt: "2026-01-01T00:00:00.000Z",
+      });
+    });
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: "Dismiss AAPL alert" }));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows multiple fired alerts as separate toasts", async () => {
+    render(<App />);
+    act(() => FakeWebSocket.instances[0].triggerOpen());
+
+    act(() => {
+      FakeWebSocket.instances[0].triggerMessage({
+        type: "alert",
+        id: "a1",
+        symbol: "AAPL",
+        threshold: 200,
+        direction: "above",
+        price: 210,
+        triggeredAt: "2026-01-01T00:00:00.000Z",
+      });
+    });
+    act(() => {
+      FakeWebSocket.instances[0].triggerMessage({
+        type: "alert",
+        id: "a2",
+        symbol: "MSFT",
+        threshold: 300,
+        direction: "below",
+        price: 290,
+        triggeredAt: "2026-01-01T00:00:01.000Z",
+      });
+    });
+
+    await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(2));
+  });
+});
