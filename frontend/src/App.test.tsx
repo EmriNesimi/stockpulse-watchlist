@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import {
@@ -237,5 +237,84 @@ describe("App — removing from the watchlist", () => {
 
     await waitFor(() => expect(screen.queryByText("AAPL")).not.toBeInTheDocument());
     expect(screen.getByText("MSFT")).toBeInTheDocument();
+  });
+});
+
+describe("App — live connection status and price updates", () => {
+  it("shows 'Connected' once the websocket opens", async () => {
+    render(<App />);
+    expect(screen.getByText("Connecting…")).toBeInTheDocument();
+
+    act(() => FakeWebSocket.instances[0].triggerOpen());
+
+    await waitFor(() => expect(screen.getByText("Connected")).toBeInTheDocument());
+  });
+
+  it("subscribes to every watchlist symbol once connected", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue({
+      items: [watchlistItem({ id: "1", symbol: "AAPL" }), watchlistItem({ id: "2", symbol: "MSFT" })],
+    });
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+
+    act(() => FakeWebSocket.instances[0].triggerOpen());
+
+    const sent = FakeWebSocket.instances[0].sent.map((s) => JSON.parse(s));
+    expect(sent).toContainEqual({ action: "subscribe", symbols: ["AAPL", "MSFT"] });
+  });
+
+  it("updates the price shown in the table when a tick arrives", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue({ items: [watchlistItem({ symbol: "AAPL" })] });
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+    act(() => FakeWebSocket.instances[0].triggerOpen());
+
+    act(() => {
+      FakeWebSocket.instances[0].triggerMessage({
+        type: "tick",
+        symbol: "AAPL",
+        price: 231.5,
+        changePercent: 1.2,
+        source: "live",
+      });
+    });
+
+    await waitFor(() => expect(screen.getByText("$231.50")).toBeInTheDocument());
+  });
+
+  it("only updates the row for the symbol the tick is for", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue({
+      items: [watchlistItem({ id: "1", symbol: "AAPL" }), watchlistItem({ id: "2", symbol: "MSFT" })],
+    });
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+    act(() => FakeWebSocket.instances[0].triggerOpen());
+
+    act(() => {
+      FakeWebSocket.instances[0].triggerMessage({
+        type: "tick",
+        symbol: "AAPL",
+        price: 200,
+        changePercent: 0,
+        source: "live",
+      });
+    });
+
+    await waitFor(() => expect(screen.getByText("$200.00")).toBeInTheDocument());
+    // MSFT never got a tick — still showing its placeholder dash somewhere.
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
+  });
+
+  it("shows 'Reconnecting…' if the connection drops", async () => {
+    render(<App />);
+    act(() => FakeWebSocket.instances[0].triggerOpen());
+    await waitFor(() => expect(screen.getByText("Connected")).toBeInTheDocument());
+
+    act(() => {
+      FakeWebSocket.instances[0].readyState = FakeWebSocket.CLOSED;
+      FakeWebSocket.instances[0].onclose?.();
+    });
+
+    await waitFor(() => expect(screen.getByText("Reconnecting…")).toBeInTheDocument());
   });
 });
