@@ -1,5 +1,6 @@
 import type { PriceFeed, PriceTick, Unsubscribe } from "./PriceFeed";
 import { fetchPreviousClose } from "./previousClose";
+import { deterministicBasePrice as fallbackBasePrice } from "./deterministicBasePrice";
 
 const TICK_INTERVAL_MS = 1500;
 const MAX_STEP_PCT = 0.002; // 0.2% per tick, keeps the walk plausible-looking
@@ -9,16 +10,6 @@ interface SymbolState {
   price: number;
   subscribers: Set<(tick: PriceTick) => void>;
   timer: ReturnType<typeof setInterval>;
-}
-
-// Deterministic per-symbol starting price so the same ticker always starts
-// in a sane, plausible range across restarts (no API key needed for this).
-function fallbackBasePrice(symbol: string): number {
-  let hash = 0;
-  for (const char of symbol) {
-    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  }
-  return 20 + (hash % 480); // roughly $20-$500
 }
 
 export class SimulatedFeed implements PriceFeed {

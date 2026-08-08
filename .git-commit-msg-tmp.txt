@@ -1,0 +1,31 @@
+candlestick chart backend: history endpoint, real + simulated
+
+GET /api/history/:symbol?days=30 returns daily OHLC candles. Tries
+Massive's real aggregates endpoint first (rate-limit-checked same as
+search), falls back to a simulated candle generator if there's no
+key, the quota's tapped out, or the request fails for any reason -
+same resilience pattern as everything else in this app.
+
+Pulled the per-symbol deterministic base price hash out of
+SimulatedFeed into its own deterministicBasePrice.ts so the simulated
+candles and the simulated live ticks agree with each other for the
+same symbol instead of using two independently-seeded numbers.
+
+The simulated generator chains each day's open to the previous day's
+close (so it actually looks like a continuous series, not random
+disconnected days), keeps high/low as the max/min of that day's
+open-close range, and is deterministic per symbol+day-count so
+re-requesting the same chart doesn't reshuffle it.
+
+Found something worth flagging while manually testing this against
+the real API: the Massive key that's been working in every previous
+session now gets "Unknown API Key" (401) on every REST endpoint I
+tried - search, previousClose, and this new history endpoint. Not a
+code bug, looks like the key itself got revoked or expired on
+Massive's end. The fallback logic handled it exactly as designed
+(silently served simulated data instead of breaking), which is a
+decent real-world validation of the whole resilience approach, but
+worth checking the Massive dashboard for the key status.
+
+14 new tests (8 simulated-history + 6 schema), 116 total on the
+backend. Clean npm ci, build passes.
