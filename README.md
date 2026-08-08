@@ -56,7 +56,7 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
 - **Backend**: Express API, Prisma/SQLite watchlist persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), and a WebSocket broadcaster that fans price ticks out to connected clients with per-connection rate/size/subscription limits.
 - **Frontend**: Vite + React + TS app in the dark trading-terminal design system — debounced ticker search wired to the real API, a watchlist table with sparklines and a working remove button, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, and a header connection-status indicator.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
-- **Testing**: 222 tests total — 102 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts, all wired into CI) and 120 on the frontend (hooks, API client, every component, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
+- **Testing**: 245 tests total — 125 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history, all wired into CI) and 120 on the frontend (hooks, API client, every component, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
 
 **⚠️ One caveat**: this was built in a terminal-only environment with no browser available to visually render the app. Everything's been verified end-to-end at the protocol level (REST calls, WebSocket messages, database round-trips, via real test scripts — not guesses), and the code has been read through carefully, but nobody has actually looked at it rendered in a browser yet. If you're picking this up: that's the one thing worth doing first.
@@ -123,18 +123,23 @@ stockpulse-watchlist/
 │   │   │   ├── search.ts                  # Massive ticker search proxy + fallback list (+ .routes.test.ts)
 │   │   │   ├── search.schemas.ts          # query schema (+ .test.ts)
 │   │   │   ├── alerts.ts                  # GET/POST/DELETE price alerts (+ .routes.test.ts)
-│   │   │   └── alerts.schemas.ts          # symbol/threshold/direction schema (+ .test.ts)
+│   │   │   ├── alerts.schemas.ts          # symbol/threshold/direction schema (+ .test.ts)
+│   │   │   ├── history.ts                 # GET OHLC candles per symbol (+ .routes.test.ts)
+│   │   │   └── history.schemas.ts         # days-range schema (+ .test.ts)
 │   │   ├── alerts/
 │   │   │   └── checkAndTriggerAlerts.ts   # evaluates a tick against active alerts, marks fired ones (+ .test.ts)
 │   │   ├── massive/
 │   │   │   ├── fallbackTickers.ts # static list used when there's no API key
+│   │   │   ├── fetchHistory.ts    # real Massive aggregates endpoint for OHLC candles
 │   │   │   └── rateLimiter.ts     # sliding-window limiter for the free-tier 5/min cap (+ .test.ts)
 │   │   ├── priceFeed/
-│   │   │   ├── PriceFeed.ts       # the interface
-│   │   │   ├── SimulatedFeed.ts   # default — random walk, no key needed (+ .test.ts)
-│   │   │   ├── MassiveLiveFeed.ts # real wss://socket.massive.com/stocks feed (+ .test.ts)
-│   │   │   ├── previousClose.ts   # shared REST helper for seeding base prices
-│   │   │   └── index.ts           # createPriceFeed() factory
+│   │   │   ├── PriceFeed.ts               # the interface
+│   │   │   ├── SimulatedFeed.ts           # default — random walk, no key needed (+ .test.ts)
+│   │   │   ├── MassiveLiveFeed.ts         # real wss://socket.massive.com/stocks feed (+ .test.ts)
+│   │   │   ├── previousClose.ts           # shared REST helper for seeding base prices
+│   │   │   ├── deterministicBasePrice.ts  # per-symbol seed shared by SimulatedFeed + simulatedHistory
+│   │   │   ├── simulatedHistory.ts        # simulated OHLC candle generator (+ .test.ts)
+│   │   │   └── index.ts                   # createPriceFeed() factory
 │   │   ├── test/
 │   │   │   └── globalSetup.ts     # spins up/tears down prisma/test.db for the route tests
 │   │   └── ws/
@@ -214,7 +219,7 @@ npm run dev                 # http://localhost:5173
 
 Then open `http://localhost:5173` — search a ticker, add it, and it should start ticking within a couple seconds on the simulated feed.
 
-Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts routes via `supertest` against a real throwaway SQLite database, price-alert triggering logic, and the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits, shared-subscription cleanup, and alert delivery. 102 tests total, no real network calls anywhere in the suite).
+Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts/history routes via `supertest` against a real throwaway SQLite database, price-alert triggering logic, the simulated OHLC candle generator, and the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits, shared-subscription cleanup, and alert delivery. 125 tests total, no real network calls anywhere in the suite).
 
 Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load, search → add, optimistic remove + rollback, live connection status and price updates, and both halves of the alert feature end to end. 120 tests total.)
 
@@ -260,6 +265,7 @@ You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,
 | `GET` | `/api/alerts` | — | `{ alerts: [{ id, symbol, threshold, direction, createdAt, triggeredAt }] }` |
 | `POST` | `/api/alerts` | `{ symbol, threshold, direction: "above" \| "below" }` | `201` `{ alert }` · `400` on a bad symbol/threshold/direction |
 | `DELETE` | `/api/alerts/:id` | — | `204` on success · `404` if it wasn't there |
+| `GET` | `/api/history/:symbol` | `?days=<7-365, default 30>` | `{ candles: [{ time, open, high, low, close, volume }], source: "massive" \| "simulated" }` |
 
 ### WebSocket (`/ws`)
 
@@ -317,7 +323,7 @@ Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message s
 
 Things that would make sense to add next, roughly in order of value:
 
-- [ ] Candlestick/OHLC chart on click-through for a single symbol, instead of just the row sparkline.
+- [ ] Candlestick/OHLC chart on click-through for a single symbol, instead of just the row sparkline. Backend's done — `GET /api/history/:symbol` (real Massive aggregates with a simulated fallback, same resilience pattern as everything else, fully tested). The frontend chart component itself (picking a charting approach, wiring click-through, rendering) is the remaining piece.
 - [x] ~~Price alerts~~ — done: one-shot "notify me when AAPL crosses $200" alerts, evaluated per tick in the WS broadcaster and delivered as a dismissible toast. No test coverage gap left behind either — schema, route, trigger logic, and broadcaster delivery are all covered.
 - [ ] Multi-user auth — the `Watchlist.userId` column already exists for this, no schema migration needed.
 - [x] ~~A real test suite~~ — done: Vitest covering the `PriceFeed` implementations, the Massive rate limiter, and the zod schemas.
