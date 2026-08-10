@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { asyncHandler } from "../asyncHandler";
 import { symbolSchema, addItemSchema } from "./watchlist.schemas";
@@ -29,9 +30,9 @@ router.post("/", asyncHandler(async (req, res) => {
       },
     });
     res.status(201).json({ item });
-  } catch (err: any) {
+  } catch (err) {
     // Prisma unique constraint violation -> symbol's already on the list
-    if (err?.code === "P2002") {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return res.status(409).json({ error: `${parsed.data.symbol} is already on the watchlist` });
     }
     throw err;
