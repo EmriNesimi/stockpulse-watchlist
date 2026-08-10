@@ -20,19 +20,12 @@ async function searchMassive(query: string): Promise<TickerResult[]> {
   url.searchParams.set("limit", "10");
   url.searchParams.set("apiKey", env.massiveApiKey!);
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
-
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    if (!res.ok) {
-      throw new Error(`Massive search failed with status ${res.status}`);
-    }
-    const body = (await res.json()) as { results?: Array<{ ticker: string; name: string }> };
-    return (body.results ?? []).map((r) => ({ symbol: r.ticker, name: r.name }));
-  } finally {
-    clearTimeout(timeout);
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+  if (!res.ok) {
+    throw new Error(`Massive search failed with status ${res.status}`);
   }
+  const body = (await res.json()) as { results?: Array<{ ticker: string; name: string }> };
+  return (body.results ?? []).map((r) => ({ symbol: r.ticker, name: r.name }));
 }
 
 function searchFallback(query: string): TickerResult[] {
