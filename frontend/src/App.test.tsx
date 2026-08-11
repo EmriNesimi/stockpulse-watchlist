@@ -100,6 +100,24 @@ describe("App — initial load", () => {
     await waitFor(() => expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument());
   });
 
+  it("shows a loading state while getWatchlist is in flight, then swaps to the loaded items", async () => {
+    let resolveWatchlist: (value: { items: WatchlistItem[] }) => void;
+    vi.mocked(getWatchlist).mockReturnValue(
+      new Promise((resolve) => {
+        resolveWatchlist = resolve;
+      })
+    );
+    render(<App />);
+
+    expect(screen.getByText(/loading your watchlist/i)).toBeInTheDocument();
+    expect(screen.queryByText(/nothing on your watchlist yet/i)).not.toBeInTheDocument();
+
+    act(() => resolveWatchlist({ items: [watchlistItem({ symbol: "AAPL" })] }));
+
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+    expect(screen.queryByText(/loading your watchlist/i)).not.toBeInTheDocument();
+  });
+
   it("renders items returned from getWatchlist", async () => {
     vi.mocked(getWatchlist).mockResolvedValue({
       items: [watchlistItem({ symbol: "AAPL" }), watchlistItem({ symbol: "MSFT", id: "2", name: "Microsoft" })],
