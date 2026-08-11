@@ -166,11 +166,13 @@ stockpulse-watchlist/
 │   │   │   ├── CandlestickChart.tsx     # inline SVG OHLC chart, click-through from the symbol
 │   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator
 │   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon
-│   │   │   └── AlertToast.tsx           # dismissible toast for fired price alerts
+│   │   │   ├── AlertToast.tsx           # dismissible toast for fired price alerts
+│   │   │   └── ErrorToast.tsx           # dismissible toast for failed load/add/alert-create
 │   │   ├── hooks/
 │   │   │   ├── useDebouncedValue.ts     # (+ .test.ts)
 │   │   │   ├── useLiveTicks.ts          # WS client: subscribe diffing, reconnect/backoff, alert events (+ .test.ts)
 │   │   │   ├── useHistory.ts            # fetches candle data for the expanded chart row (+ .test.ts)
+│   │   │   ├── useErrorToasts.ts        # generic dismissible/auto-expiring error toast state (+ .test.ts)
 │   │   │   └── useThrottledAnnouncement.ts  # aria-live summary, throttled to 1/8s (+ .test.ts)
 │   │   ├── lib/
 │   │   │   ├── api.ts                   # fetch wrappers for the backend REST API (+ .test.ts)
