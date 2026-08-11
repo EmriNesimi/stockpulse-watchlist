@@ -1,0 +1,105 @@
+.placeholder {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  text-align: center;
+  opacity: 0.7;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.headerRow {
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.th {
+  padding: var(--space-2) var(--space-3);
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.row {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rowNoBorder {
+  border-bottom: none;
+}
+
+.td {
+  padding: var(--space-3);
+}
+
+.symbolButton {
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
+  color: inherit;
+}
+
+.symbolText {
+  text-decoration: underline dotted;
+}
+
+.symbolName {
+  font-size: 0.8125rem;
+  opacity: 0.6;
+}
+
+.changeCell {
+  padding: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.changeBullish {
+  color: var(--color-bullish);
+}
+
+.changeBearish {
+  color: var(--color-bearish);
+}
+
+.actionsCell {
+  padding: var(--space-3);
+  display: flex;
+  gap: var(--space-1);
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-foreground);
+  opacity: 0.6;
+}
+
+.iconButtonActive {
+  color: var(--color-accent);
+  opacity: 1;
+}
+
+.expandedCell {
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+.chartWrapper {
+  padding-top: var(--space-2);
+}
+
+.chartLabel {
+  font-size: 0.8125rem;
+  opacity: 0.6;
+  margin-bottom: var(--space-1);
+}

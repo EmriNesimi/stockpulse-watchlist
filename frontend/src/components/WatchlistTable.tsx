@@ -7,6 +7,7 @@ import CandlestickChart from "./CandlestickChart";
 import { useHistory } from "../hooks/useHistory";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
+import styles from "./WatchlistTable.module.css";
 
 interface WatchlistTableProps {
   items: WatchlistItem[];
@@ -19,10 +20,8 @@ interface WatchlistTableProps {
 function ChartRow({ symbol }: { symbol: string }) {
   const { candles, loading, error } = useHistory(symbol);
   return (
-    <div style={{ paddingTop: "var(--space-2)" }}>
-      <div style={{ fontSize: "0.8125rem", opacity: 0.6, marginBottom: "var(--space-1)" }}>
-        {symbol} · last 30 days
-      </div>
+    <div className={styles.chartWrapper}>
+      <div className={styles.chartLabel}>{symbol} · last 30 days</div>
       <CandlestickChart candles={candles} loading={loading} error={error} />
     </div>
   );
@@ -34,51 +33,25 @@ export default function WatchlistTable({ items, prices, loading = false, onRemov
 
   if (loading) {
     return (
-      <div
-        role="status"
-        style={{
-          border: "1px dashed var(--color-border)",
-          borderRadius: "var(--radius-md)",
-          padding: "var(--space-6)",
-          textAlign: "center",
-          opacity: 0.7,
-        }}
-      >
+      <div role="status" className={styles.placeholder}>
         Loading your watchlist…
       </div>
     );
   }
 
   if (items.length === 0) {
-    return (
-      <div
-        style={{
-          border: "1px dashed var(--color-border)",
-          borderRadius: "var(--radius-md)",
-          padding: "var(--space-6)",
-          textAlign: "center",
-          opacity: 0.7,
-        }}
-      >
-        Nothing on your watchlist yet — search above to add a ticker.
-      </div>
-    );
+    return <div className={styles.placeholder}>Nothing on your watchlist yet — search above to add a ticker.</div>;
   }
 
   return (
-    <table
-      style={{
-        width: "100%",
-        borderCollapse: "collapse",
-      }}
-    >
+    <table className={styles.table}>
       <thead>
-        <tr style={{ textAlign: "left", borderBottom: "1px solid var(--color-border)" }}>
-          <th style={{ padding: "var(--space-2) var(--space-3)", fontWeight: 500, opacity: 0.7 }}>Symbol</th>
-          <th style={{ padding: "var(--space-2) var(--space-3)", fontWeight: 500, opacity: 0.7 }}>Price</th>
-          <th style={{ padding: "var(--space-2) var(--space-3)", fontWeight: 500, opacity: 0.7 }}>Change</th>
-          <th style={{ padding: "var(--space-2) var(--space-3)", fontWeight: 500, opacity: 0.7 }}>Trend</th>
-          <th style={{ padding: "var(--space-2) var(--space-3)" }} />
+        <tr className={styles.headerRow}>
+          <th className={styles.th}>Symbol</th>
+          <th className={styles.th}>Price</th>
+          <th className={styles.th}>Change</th>
+          <th className={styles.th}>Trend</th>
+          <th className={styles.th} />
         </tr>
       </thead>
       <tbody>
@@ -87,11 +60,12 @@ export default function WatchlistTable({ items, prices, loading = false, onRemov
           const bullish = (state?.changePercent ?? 0) >= 0;
           const alertFormOpen = alertFormSymbol === item.symbol;
           const chartOpen = chartSymbol === item.symbol;
+          const rowClass = alertFormOpen || chartOpen ? styles.rowNoBorder : styles.row;
 
           return (
             <Fragment key={item.id}>
-              <tr style={{ borderBottom: alertFormOpen || chartOpen ? "none" : "1px solid var(--color-border)" }}>
-                <td style={{ padding: "var(--space-3)" }}>
+              <tr className={rowClass}>
+                <td className={styles.td}>
                   <button
                     onClick={() => {
                       setChartSymbol(chartOpen ? null : item.symbol);
@@ -99,32 +73,19 @@ export default function WatchlistTable({ items, prices, loading = false, onRemov
                     }}
                     aria-label={`${chartOpen ? "Hide" : "Show"} price chart for ${item.symbol}`}
                     aria-expanded={chartOpen}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      padding: 0,
-                      textAlign: "left",
-                      color: "inherit",
-                    }}
+                    className={styles.symbolButton}
                   >
-                    <strong className="tabular-nums" style={{ textDecoration: "underline dotted" }}>
-                      {item.symbol}
-                    </strong>
-                    <div style={{ fontSize: "0.8125rem", opacity: 0.6 }}>{item.name}</div>
+                    <strong className={`tabular-nums ${styles.symbolText}`}>{item.symbol}</strong>
+                    <div className={styles.symbolName}>{item.name}</div>
                   </button>
                 </td>
-                <td style={{ padding: "var(--space-3)" }}>
+                <td className={styles.td}>
                   <PriceCell state={state} />
                 </td>
                 <td
-                  className="tabular-nums"
-                  style={{
-                    padding: "var(--space-3)",
-                    color: state ? (bullish ? "var(--color-bullish)" : "var(--color-bearish)") : undefined,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-1)",
-                  }}
+                  className={`tabular-nums ${styles.changeCell} ${
+                    state ? (bullish ? styles.changeBullish : styles.changeBearish) : ""
+                  }`}
                 >
                   {state ? (
                     <>
@@ -136,10 +97,10 @@ export default function WatchlistTable({ items, prices, loading = false, onRemov
                     "—"
                   )}
                 </td>
-                <td style={{ padding: "var(--space-3)" }}>
+                <td className={styles.td}>
                   <Sparkline values={state?.history ?? []} bullish={bullish} />
                 </td>
-                <td style={{ padding: "var(--space-3)", display: "flex", gap: "var(--space-1)" }}>
+                <td className={styles.actionsCell}>
                   <button
                     onClick={() => {
                       setAlertFormSymbol(alertFormOpen ? null : item.symbol);
@@ -147,44 +108,22 @@ export default function WatchlistTable({ items, prices, loading = false, onRemov
                     }}
                     aria-label={`Set a price alert for ${item.symbol}`}
                     aria-expanded={alertFormOpen}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minWidth: 44,
-                      minHeight: 44,
-                      background: "transparent",
-                      border: "none",
-                      borderRadius: "var(--radius-sm)",
-                      color: alertFormOpen ? "var(--color-accent)" : "var(--color-foreground)",
-                      opacity: alertFormOpen ? 1 : 0.6,
-                    }}
+                    className={`${styles.iconButton} ${alertFormOpen ? styles.iconButtonActive : ""}`}
                   >
                     <Bell size={18} weight={alertFormOpen ? "fill" : "regular"} aria-hidden />
                   </button>
                   <button
                     onClick={() => onRemove(item.symbol)}
                     aria-label={`Remove ${item.symbol} from watchlist`}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      minWidth: 44,
-                      minHeight: 44,
-                      background: "transparent",
-                      border: "none",
-                      borderRadius: "var(--radius-sm)",
-                      color: "var(--color-foreground)",
-                      opacity: 0.6,
-                    }}
+                    className={styles.iconButton}
                   >
                     <X size={18} aria-hidden />
                   </button>
                 </td>
               </tr>
               {alertFormOpen && (
-                <tr style={{ borderBottom: chartOpen ? "none" : "1px solid var(--color-border)" }}>
-                  <td colSpan={5} style={{ padding: "0 var(--space-3) var(--space-3)" }}>
+                <tr className={chartOpen ? styles.rowNoBorder : styles.row}>
+                  <td colSpan={5} className={styles.expandedCell}>
                     <AlertForm
                       symbol={item.symbol}
                       defaultThreshold={state?.price}
@@ -198,8 +137,8 @@ export default function WatchlistTable({ items, prices, loading = false, onRemov
                 </tr>
               )}
               {chartOpen && (
-                <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
-                  <td colSpan={5} style={{ padding: "0 var(--space-3) var(--space-3)" }}>
+                <tr className={styles.row}>
+                  <td colSpan={5} className={styles.expandedCell}>
                     <ChartRow symbol={item.symbol} />
                   </td>
                 </tr>
