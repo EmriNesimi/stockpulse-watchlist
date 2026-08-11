@@ -118,6 +118,13 @@ describe("App — initial load", () => {
     await waitFor(() => expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument());
   });
 
+  it("shows an error toast if the initial watchlist fetch fails", async () => {
+    vi.mocked(getWatchlist).mockRejectedValue(new Error("network down"));
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/couldn't load your watchlist/i));
+  });
+
   it("renders the StockPulse header and connection badge", async () => {
     render(<App />);
     expect(screen.getByText("StockPulse")).toBeInTheDocument();
@@ -175,6 +182,7 @@ describe("App — search and add to watchlist", () => {
     await waitFor(() => expect(addToWatchlist).toHaveBeenCalled());
     // The empty state should still be showing — the add never actually landed.
     expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(/couldn't add aapl/i);
   }, 10000);
 
   it("marks an already-added symbol as disabled in future search results", async () => {
@@ -382,6 +390,22 @@ describe("App — creating a price alert", () => {
     await waitFor(() => expect(createAlert).toHaveBeenCalled());
     // The app is still usable afterward — the watchlist row is still there.
     expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0);
+  });
+
+  it("shows an error toast if createAlert fails", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue({ items: [watchlistItem({ symbol: "AAPL" })] });
+    vi.mocked(createAlert).mockRejectedValue(new Error("server error"));
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
+    await user.type(screen.getByLabelText("Price threshold for AAPL alert"), "200");
+    await user.click(screen.getByRole("button", { name: "Set" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(/couldn't create the alert for aapl/i)
+    );
   });
 });
 
