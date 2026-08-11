@@ -3,8 +3,10 @@ import Search from "./components/Search";
 import WatchlistTable from "./components/WatchlistTable";
 import ConnectionBadge from "./components/ConnectionBadge";
 import AlertToast from "./components/AlertToast";
+import ErrorToast from "./components/ErrorToast";
 import { useLiveTicks } from "./hooks/useLiveTicks";
 import { useThrottledAnnouncement } from "./hooks/useThrottledAnnouncement";
+import { useErrorToasts } from "./hooks/useErrorToasts";
 import {
   addToWatchlist,
   createAlert,
@@ -19,13 +21,14 @@ export default function App() {
   const symbols = useMemo(() => items.map((i) => i.symbol), [items]);
   const { prices, status, alertEvents, dismissAlert } = useLiveTicks(symbols);
   const announcement = useThrottledAnnouncement(items, prices);
+  const { errors, pushError, dismissError } = useErrorToasts();
 
   useEffect(() => {
     getWatchlist()
       .then(({ items }) => setItems(items))
-      .catch(() => {
-        /* error state lands with a future toast/error-banner pass */
-      });
+      .catch(() => pushError("Couldn't load your watchlist — check your connection and refresh."));
+    // pushError is stable for the lifetime of the hook, no need to re-run on identity churn
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleAdd(ticker: TickerResult) {
@@ -33,7 +36,7 @@ export default function App() {
       const { item } = await addToWatchlist(ticker.symbol, ticker.name);
       setItems((prev) => [...prev, item]);
     } catch {
-      // surfaced properly once there's a toast/error UI for this path too
+      pushError(`Couldn't add ${ticker.symbol} — try again.`);
     }
   }
 
@@ -51,8 +54,7 @@ export default function App() {
     try {
       await createAlert(symbol, threshold, direction);
     } catch {
-      // the alert just silently didn't get created — a toast for this
-      // specific failure path is a reasonable follow-up, not done yet
+      pushError(`Couldn't create the alert for ${symbol} — try again.`);
     }
   }
 
@@ -72,6 +74,7 @@ export default function App() {
       </div>
 
       <AlertToast alerts={alertEvents} onDismiss={dismissAlert} />
+      <ErrorToast errors={errors} onDismiss={dismissError} />
 
       <header
         style={{
