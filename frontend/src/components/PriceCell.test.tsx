@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import PriceCell from "./PriceCell";
+import styles from "./PriceCell.module.css";
 import type { PriceState } from "../types";
 
 function state(overrides: Partial<PriceState> = {}): PriceState {
@@ -45,7 +46,8 @@ describe("PriceCell", () => {
   it("doesn't flash on the very first render (nothing to compare against)", () => {
     const { container } = render(<PriceCell state={state({ price: 100 })} />);
     const cell = container.firstElementChild as HTMLElement;
-    expect(cell.style.backgroundColor).toBe("transparent");
+    expect(cell.className).not.toContain(styles.flashUp);
+    expect(cell.className).not.toContain(styles.flashDown);
   });
 
   it("flashes bullish when the price goes up, then fades back", () => {
@@ -53,10 +55,10 @@ describe("PriceCell", () => {
     rerender(<PriceCell state={state({ price: 105 })} />);
 
     const cell = container.firstElementChild as HTMLElement;
-    expect(cell.style.backgroundColor).toContain("var(--color-bullish)");
+    expect(cell.className).toContain(styles.flashUp);
 
     act(() => vi.advanceTimersByTime(500));
-    expect(cell.style.backgroundColor).toBe("transparent");
+    expect(cell.className).not.toContain(styles.flashUp);
   });
 
   it("flashes bearish when the price goes down", () => {
@@ -64,7 +66,7 @@ describe("PriceCell", () => {
     rerender(<PriceCell state={state({ price: 95 })} />);
 
     const cell = container.firstElementChild as HTMLElement;
-    expect(cell.style.backgroundColor).toContain("var(--color-bearish)");
+    expect(cell.className).toContain(styles.flashDown);
   });
 
   it("doesn't flash again if the price stays the same", () => {
@@ -72,6 +74,7 @@ describe("PriceCell", () => {
     rerender(<PriceCell state={state({ price: 100 })} />);
 
     const cell = container.firstElementChild as HTMLElement;
-    expect(cell.style.backgroundColor).toBe("transparent");
+    expect(cell.className).not.toContain(styles.flashUp);
+    expect(cell.className).not.toContain(styles.flashDown);
   });
 });

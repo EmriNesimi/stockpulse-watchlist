@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { PriceState } from "../types";
+import styles from "./PriceCell.module.css";
 
 interface PriceCellProps {
   state?: PriceState;
@@ -25,25 +26,10 @@ export default function PriceCell({ state }: PriceCellProps) {
     previousPrice.current = state.price;
   }, [state?.price]);
 
+  const flashClass = flash === "up" ? styles.flashUp : flash === "down" ? styles.flashDown : "";
+
   return (
-    <div
-      className="tabular-nums"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--space-2)",
-        padding: "2px var(--space-2)",
-        margin: "-2px calc(var(--space-2) * -1)",
-        borderRadius: "var(--radius-sm)",
-        transition: "background-color 500ms ease-out",
-        backgroundColor:
-          flash === "up"
-            ? "color-mix(in srgb, var(--color-bullish) 25%, transparent)"
-            : flash === "down"
-              ? "color-mix(in srgb, var(--color-bearish) 25%, transparent)"
-              : "transparent",
-      }}
-    >
+    <div className={`tabular-nums ${styles.cell} ${flashClass}`}>
       {state ? `$${state.price.toFixed(2)}` : "—"}
       {state && (
         <span
@@ -52,16 +38,7 @@ export default function PriceCell({ state }: PriceCellProps) {
               ? "Streaming real trades from Massive"
               : "Simulated — no real-time Massive entitlement configured"
           }
-          style={{
-            fontSize: "0.6875rem",
-            fontWeight: 600,
-            letterSpacing: "0.02em",
-            padding: "1px 6px",
-            borderRadius: "var(--radius-sm)",
-            color: state.source === "live" ? "var(--color-bullish)" : "var(--color-foreground)",
-            border: `1px solid ${state.source === "live" ? "var(--color-bullish)" : "var(--color-border)"}`,
-            opacity: state.source === "live" ? 1 : 0.6,
-          }}
+          className={`${styles.badge} ${state.source === "live" ? styles.live : ""}`}
         >
           {state.source === "live" ? "LIVE" : "SIM"}
         </span>
