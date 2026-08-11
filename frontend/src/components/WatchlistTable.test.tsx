@@ -287,6 +287,22 @@ describe("WatchlistTable — candlestick chart toggle", () => {
     expect(screen.queryByRole("img", { name: /candlestick chart/i })).not.toBeInTheDocument();
   });
 
+  it("closes the alert form when the chart is opened on the same row", async () => {
+    vi.spyOn(api, "getHistory").mockResolvedValue({
+      candles: [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }],
+      source: "simulated",
+    });
+    const user = userEvent.setup();
+    render(<WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
+
+    await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
+    expect(screen.getByRole("form", { name: "Set a price alert for AAPL" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Show price chart for AAPL" }));
+    expect(screen.queryByRole("form", { name: "Set a price alert for AAPL" })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("img", { name: /candlestick chart/i })).toBeInTheDocument());
+  });
+
   it("only shows one chart at a time across rows", async () => {
     vi.spyOn(api, "getHistory").mockResolvedValue({
       candles: [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }],

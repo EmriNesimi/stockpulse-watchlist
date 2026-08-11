@@ -75,7 +75,10 @@ export default function WatchlistTable({ items, prices, onRemove, onCreateAlert 
               <tr style={{ borderBottom: alertFormOpen || chartOpen ? "none" : "1px solid var(--color-border)" }}>
                 <td style={{ padding: "var(--space-3)" }}>
                   <button
-                    onClick={() => setChartSymbol(chartOpen ? null : item.symbol)}
+                    onClick={() => {
+                      setChartSymbol(chartOpen ? null : item.symbol);
+                      setAlertFormSymbol(null);
+                    }}
                     aria-label={`${chartOpen ? "Hide" : "Show"} price chart for ${item.symbol}`}
                     aria-expanded={chartOpen}
                     style={{
@@ -120,7 +123,10 @@ export default function WatchlistTable({ items, prices, onRemove, onCreateAlert 
                 </td>
                 <td style={{ padding: "var(--space-3)", display: "flex", gap: "var(--space-1)" }}>
                   <button
-                    onClick={() => setAlertFormSymbol(alertFormOpen ? null : item.symbol)}
+                    onClick={() => {
+                      setAlertFormSymbol(alertFormOpen ? null : item.symbol);
+                      setChartSymbol(null);
+                    }}
                     aria-label={`Set a price alert for ${item.symbol}`}
                     aria-expanded={alertFormOpen}
                     style={{
