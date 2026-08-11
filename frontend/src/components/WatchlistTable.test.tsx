@@ -30,6 +30,35 @@ describe("WatchlistTable — empty state", () => {
   });
 });
 
+describe("WatchlistTable — loading state", () => {
+  it("shows a loading message instead of the empty-state message while loading", () => {
+    render(<WatchlistTable items={[]} prices={{}} loading={true} onRemove={noop} onCreateAlert={noop} />);
+    expect(screen.getByRole("status")).toHaveTextContent(/loading your watchlist/i);
+    expect(screen.queryByText(/nothing on your watchlist yet/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("shows the table, not the loading message, once items have arrived even if loading is still true", () => {
+    // Belt-and-suspenders: real usage never holds loading=true with items
+    // present, but the table should still win if that ever happens.
+    render(
+      <WatchlistTable
+        items={[item({ symbol: "AAPL" })]}
+        prices={{}}
+        loading={true}
+        onRemove={noop}
+        onCreateAlert={noop}
+      />
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(/loading your watchlist/i);
+  });
+
+  it("defaults to not loading when the prop is omitted", () => {
+    render(<WatchlistTable items={[]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
+    expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument();
+  });
+});
+
 describe("WatchlistTable — rendering rows", () => {
   it("renders the symbol and name for each item", () => {
     render(
