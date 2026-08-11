@@ -153,16 +153,16 @@ stockpulse-watchlist/
 │   └── vitest.config.ts
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx                      # (+ .test.tsx — integration suite, real component tree)
+│   │   ├── App.tsx                      # (+ .test.tsx, .module.css — integration suite, real component tree)
 │   │   ├── main.tsx
 │   │   ├── types.ts                     # shared PriceState type
 │   │   ├── index.css                    # global styles, tabular-nums, sr-only, reduced-motion
 │   │   ├── styles/tokens.css            # design system CSS variables
-│   │   ├── components/          # every component here has a matching .test.tsx
+│   │   ├── components/          # every component here has a matching .test.tsx and .module.css
 │   │   │   ├── Search.tsx               # debounced ticker search
 │   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell
 │   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash
-│   │   │   ├── Sparkline.tsx            # inline SVG price history
+│   │   │   ├── Sparkline.tsx            # inline SVG price history (SVG presentation attrs, not CSS Modules — nothing to scope)
 │   │   │   ├── CandlestickChart.tsx     # inline SVG OHLC chart, click-through from the symbol
 │   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator
 │   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon
@@ -346,7 +346,7 @@ Things that would make sense to add next, roughly in order of value:
 
 ## 🧰 Tech stack
 
-- **Frontend**: React 18, TypeScript, Vite
+- **Frontend**: React 18, TypeScript, Vite, CSS Modules
 - **Backend**: Node.js, Express 4, TypeScript, `ws`
 - **Database**: SQLite via Prisma
 - **Validation**: Zod
