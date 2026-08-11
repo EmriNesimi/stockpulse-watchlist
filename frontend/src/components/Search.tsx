@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { MagnifyingGlass, Plus, CircleNotch } from "@phosphor-icons/react";
 import { searchTickers, type TickerResult } from "../lib/api";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import styles from "./Search.module.css";
 
 interface SearchProps {
   onAdd: (ticker: TickerResult) => void;
@@ -43,18 +44,8 @@ export default function Search({ onAdd, alreadyAdded }: SearchProps) {
   }, [debouncedQuery]);
 
   return (
-    <div style={{ position: "relative", width: "min(360px, 100%)" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--space-2)",
-          background: "var(--color-muted)",
-          border: "1px solid var(--color-border)",
-          borderRadius: "var(--radius-md)",
-          padding: "var(--space-2) var(--space-3)",
-        }}
-      >
+    <div className={styles.wrapper}>
+      <div className={styles.inputRow}>
         <MagnifyingGlass size={18} weight="regular" aria-hidden />
         <input
           type="text"
@@ -67,43 +58,20 @@ export default function Search({ onAdd, alreadyAdded }: SearchProps) {
           aria-label="Search for a stock ticker to add to your watchlist"
           aria-expanded={debouncedQuery.length > 0}
           aria-controls="search-results"
-          style={{
-            flex: 1,
-            background: "transparent",
-            border: "none",
-            outline: "none",
-            minHeight: "24px",
-          }}
+          className={styles.input}
         />
         {status === "loading" && (
-          <CircleNotch size={16} className="spin" aria-hidden style={{ opacity: 0.6 }} />
+          <CircleNotch size={16} className={`spin ${styles.spinner}`} aria-hidden />
         )}
       </div>
 
       {debouncedQuery && (
-        <div
-          id="search-results"
-          role="listbox"
-          aria-label="Ticker search results"
-          style={{
-            position: "absolute",
-            top: "calc(100% + var(--space-2))",
-            left: 0,
-            right: 0,
-            background: "var(--color-secondary)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-md)",
-            overflow: "hidden",
-            zIndex: 10,
-          }}
-        >
+        <div id="search-results" role="listbox" aria-label="Ticker search results" className={styles.results}>
           {status === "error" && (
-            <div style={{ padding: "var(--space-3)", color: "var(--color-bearish)" }}>
-              Couldn't reach search right now. Try again in a moment.
-            </div>
+            <div className={styles.resultsError}>Couldn't reach search right now. Try again in a moment.</div>
           )}
           {status === "idle" && results.length === 0 && (
-            <div style={{ padding: "var(--space-3)", opacity: 0.7 }}>No matches for "{debouncedQuery}"</div>
+            <div className={styles.resultsEmpty}>No matches for "{debouncedQuery}"</div>
           )}
           {results.map((ticker) => {
             const added = alreadyAdded(ticker.symbol);
@@ -114,24 +82,11 @@ export default function Search({ onAdd, alreadyAdded }: SearchProps) {
                 aria-selected={false}
                 disabled={added}
                 onClick={() => onAdd(ticker)}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "var(--space-3)",
-                  padding: "var(--space-3)",
-                  background: "transparent",
-                  border: "none",
-                  borderBottom: "1px solid var(--color-border)",
-                  textAlign: "left",
-                  minHeight: "44px",
-                  opacity: added ? 0.5 : 1,
-                }}
+                className={`${styles.option} ${added ? styles.optionAdded : ""}`}
               >
                 <span>
                   <strong className="tabular-nums">{ticker.symbol}</strong>{" "}
-                  <span style={{ opacity: 0.7 }}>{ticker.name}</span>
+                  <span className={styles.optionName}>{ticker.name}</span>
                 </span>
                 <Plus size={18} aria-hidden />
               </button>
