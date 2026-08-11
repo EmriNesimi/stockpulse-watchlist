@@ -43,6 +43,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - ⭐ **Watchlist** — add/remove tickers, persisted server-side in a real database (not `localStorage`), so it survives a refresh or a new browser.
 - 📡 **Live prices over WebSocket** — every row updates in place as ticks arrive, with a subtle color-and-icon flash on change (never color alone).
 - 📈 **Sparklines** — a rolling 30-point price history per symbol, rendered as inline SVG, no charting library needed for something this small.
+- 🕯️ **Candlestick chart** — click a symbol to expand a full OHLC candlestick chart for the last 30 days, same no-dependency SVG approach as the sparkline.
 - 🟢 **Transparent data source** — a LIVE/SIM badge on every price and a connection-status indicator in the header, so it's never a mystery whether you're looking at real trades or the simulated fallback.
 - 🔔 **Price alerts** — set a one-shot "notify me when AAPL crosses $200" alert per symbol (the bell icon on each row); fires once as soon as a tick crosses the threshold, delivered over the same WebSocket connection as an `{"type":"alert"}` message and shown as a dismissible toast.
 - 🔌 **Works with zero setup** — no API key, no account, no config required to run it and see it working end to end.
@@ -56,7 +57,7 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
 - **Backend**: Express API, Prisma/SQLite watchlist persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), and a WebSocket broadcaster that fans price ticks out to connected clients with per-connection rate/size/subscription limits.
 - **Frontend**: Vite + React + TS app in the dark trading-terminal design system — debounced ticker search wired to the real API, a watchlist table with sparklines and a working remove button, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, and a header connection-status indicator.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
-- **Testing**: 245 tests total — 125 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history, all wired into CI) and 120 on the frontend (hooks, API client, every component, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
+- **Testing**: 262 tests total — 125 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history, all wired into CI) and 137 on the frontend (hooks, API client, every component including the new candlestick chart, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
 
 **⚠️ One caveat**: this was built in a terminal-only environment with no browser available to visually render the app. Everything's been verified end-to-end at the protocol level (REST calls, WebSocket messages, database round-trips, via real test scripts — not guesses), and the code has been read through carefully, but nobody has actually looked at it rendered in a browser yet. If you're picking this up: that's the one thing worth doing first.
@@ -161,12 +162,14 @@ stockpulse-watchlist/
 │   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell
 │   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash
 │   │   │   ├── Sparkline.tsx            # inline SVG price history
+│   │   │   ├── CandlestickChart.tsx     # inline SVG OHLC chart, click-through from the symbol
 │   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator
 │   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon
 │   │   │   └── AlertToast.tsx           # dismissible toast for fired price alerts
 │   │   ├── hooks/
 │   │   │   ├── useDebouncedValue.ts     # (+ .test.ts)
 │   │   │   ├── useLiveTicks.ts          # WS client: subscribe diffing, reconnect/backoff, alert events (+ .test.ts)
+│   │   │   ├── useHistory.ts            # fetches candle data for the expanded chart row (+ .test.ts)
 │   │   │   └── useThrottledAnnouncement.ts  # aria-live summary, throttled to 1/8s (+ .test.ts)
 │   │   ├── lib/
 │   │   │   ├── api.ts                   # fetch wrappers for the backend REST API (+ .test.ts)
@@ -221,7 +224,7 @@ Then open `http://localhost:5173` — search a ticker, add it, and it should sta
 
 Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts/history routes via `supertest` against a real throwaway SQLite database, price-alert triggering logic, the simulated OHLC candle generator, and the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits, shared-subscription cleanup, and alert delivery. 125 tests total, no real network calls anywhere in the suite).
 
-Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load, search → add, optimistic remove + rollback, live connection status and price updates, and both halves of the alert feature end to end. 120 tests total.)
+Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, `useHistory` and the `CandlestickChart` it feeds, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load, search → add, optimistic remove + rollback, live connection status and price updates, and both halves of the alert feature end to end. 137 tests total.)
 
 The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Massive account to run or demo this.
 
@@ -324,7 +327,7 @@ Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message s
 
 Things that would make sense to add next, roughly in order of value:
 
-- [ ] Candlestick/OHLC chart on click-through for a single symbol, instead of just the row sparkline. Backend's done — `GET /api/history/:symbol` (real Massive aggregates with a simulated fallback, same resilience pattern as everything else, fully tested). The frontend chart component itself (picking a charting approach, wiring click-through, rendering) is the remaining piece.
+- [x] ~~Candlestick/OHLC chart on click-through for a single symbol~~ — done: clicking a symbol expands a hand-rolled SVG candlestick chart (same no-dependency approach as the sparkline) fed by a new `useHistory` hook against the existing `/api/history/:symbol` endpoint. Loading/error/empty states covered, and only one chart fetches/renders at a time.
 - [x] ~~Price alerts~~ — done: one-shot "notify me when AAPL crosses $200" alerts, evaluated per tick in the WS broadcaster and delivered as a dismissible toast. No test coverage gap left behind either — schema, route, trigger logic, and broadcaster delivery are all covered.
 - [ ] Multi-user auth — the `Watchlist.userId` column already exists for this, no schema migration needed.
 - [x] ~~A real test suite~~ — done: Vitest covering the `PriceFeed` implementations, the Massive rate limiter, and the zod schemas.
