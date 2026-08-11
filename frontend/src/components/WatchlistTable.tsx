@@ -3,6 +3,8 @@ import { TrendUp, TrendDown, X, Bell } from "@phosphor-icons/react";
 import Sparkline from "./Sparkline";
 import PriceCell from "./PriceCell";
 import AlertForm from "./AlertForm";
+import CandlestickChart from "./CandlestickChart";
+import { useHistory } from "../hooks/useHistory";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 
@@ -13,8 +15,14 @@ interface WatchlistTableProps {
   onCreateAlert: (symbol: string, threshold: number, direction: "above" | "below") => void;
 }
 
+function ChartRow({ symbol }: { symbol: string }) {
+  const { candles, loading, error } = useHistory(symbol);
+  return <CandlestickChart candles={candles} loading={loading} error={error} />;
+}
+
 export default function WatchlistTable({ items, prices, onRemove, onCreateAlert }: WatchlistTableProps) {
   const [alertFormSymbol, setAlertFormSymbol] = useState<string | null>(null);
+  const [chartSymbol, setChartSymbol] = useState<string | null>(null);
 
   if (items.length === 0) {
     return (
@@ -53,13 +61,29 @@ export default function WatchlistTable({ items, prices, onRemove, onCreateAlert 
           const state = prices[item.symbol];
           const bullish = (state?.changePercent ?? 0) >= 0;
           const alertFormOpen = alertFormSymbol === item.symbol;
+          const chartOpen = chartSymbol === item.symbol;
 
           return (
             <Fragment key={item.id}>
-              <tr style={{ borderBottom: alertFormOpen ? "none" : "1px solid var(--color-border)" }}>
+              <tr style={{ borderBottom: alertFormOpen || chartOpen ? "none" : "1px solid var(--color-border)" }}>
                 <td style={{ padding: "var(--space-3)" }}>
-                  <strong className="tabular-nums">{item.symbol}</strong>
-                  <div style={{ fontSize: "0.8125rem", opacity: 0.6 }}>{item.name}</div>
+                  <button
+                    onClick={() => setChartSymbol(chartOpen ? null : item.symbol)}
+                    aria-label={`${chartOpen ? "Hide" : "Show"} price chart for ${item.symbol}`}
+                    aria-expanded={chartOpen}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                      textAlign: "left",
+                      color: "inherit",
+                    }}
+                  >
+                    <strong className="tabular-nums" style={{ textDecoration: "underline dotted" }}>
+                      {item.symbol}
+                    </strong>
+                    <div style={{ fontSize: "0.8125rem", opacity: 0.6 }}>{item.name}</div>
+                  </button>
                 </td>
                 <td style={{ padding: "var(--space-3)" }}>
                   <PriceCell state={state} />
@@ -128,7 +152,7 @@ export default function WatchlistTable({ items, prices, onRemove, onCreateAlert 
                 </td>
               </tr>
               {alertFormOpen && (
-                <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
+                <tr style={{ borderBottom: chartOpen ? "none" : "1px solid var(--color-border)" }}>
                   <td colSpan={5} style={{ padding: "0 var(--space-3) var(--space-3)" }}>
                     <AlertForm
                       symbol={item.symbol}
@@ -139,6 +163,13 @@ export default function WatchlistTable({ items, prices, onRemove, onCreateAlert 
                       }}
                       onCancel={() => setAlertFormSymbol(null)}
                     />
+                  </td>
+                </tr>
+              )}
+              {chartOpen && (
+                <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
+                  <td colSpan={5} style={{ padding: "0 var(--space-3) var(--space-3)" }}>
+                    <ChartRow symbol={item.symbol} />
                   </td>
                 </tr>
               )}
