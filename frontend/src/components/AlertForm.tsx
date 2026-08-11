@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X } from "@phosphor-icons/react";
+import styles from "./AlertForm.module.css";
 
 interface AlertFormProps {
   symbol: string;
@@ -20,32 +21,13 @@ export default function AlertForm({ symbol, defaultThreshold, onSubmit, onCancel
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      aria-label={`Set a price alert for ${symbol}`}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--space-2)",
-        padding: "var(--space-2)",
-        background: "var(--color-muted)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-sm)",
-      }}
-    >
-      <span style={{ fontSize: "0.8125rem", opacity: 0.7 }}>Alert when</span>
+    <form onSubmit={handleSubmit} aria-label={`Set a price alert for ${symbol}`} className={styles.form}>
+      <span className={styles.label}>Alert when</span>
       <select
         value={direction}
         onChange={(e) => setDirection(e.target.value as "above" | "below")}
         aria-label="Alert direction"
-        style={{
-          background: "var(--color-secondary)",
-          color: "var(--color-foreground)",
-          border: "1px solid var(--color-border)",
-          borderRadius: "var(--radius-sm)",
-          padding: "var(--space-1) var(--space-2)",
-          minHeight: 44,
-        }}
+        className={styles.select}
       >
         <option value="above">above</option>
         <option value="below">below</option>
@@ -59,47 +41,12 @@ export default function AlertForm({ symbol, defaultThreshold, onSubmit, onCancel
         onChange={(e) => setThreshold(e.target.value)}
         placeholder="200.00"
         aria-label={`Price threshold for ${symbol} alert`}
-        className="tabular-nums"
-        style={{
-          width: "5rem",
-          background: "var(--color-secondary)",
-          color: "var(--color-foreground)",
-          border: "1px solid var(--color-border)",
-          borderRadius: "var(--radius-sm)",
-          padding: "var(--space-1) var(--space-2)",
-          minHeight: 44,
-        }}
+        className={`tabular-nums ${styles.input}`}
       />
-      <button
-        type="submit"
-        style={{
-          background: "var(--color-accent)",
-          color: "var(--color-on-primary)",
-          border: "none",
-          borderRadius: "var(--radius-sm)",
-          padding: "var(--space-1) var(--space-3)",
-          minHeight: 44,
-          fontWeight: 500,
-        }}
-      >
+      <button type="submit" className={styles.submitButton}>
         Set
       </button>
-      <button
-        type="button"
-        onClick={onCancel}
-        aria-label="Cancel setting alert"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minWidth: 44,
-          minHeight: 44,
-          background: "transparent",
-          border: "none",
-          color: "var(--color-foreground)",
-          opacity: 0.6,
-        }}
-      >
+      <button type="button" onClick={onCancel} aria-label="Cancel setting alert" className={styles.cancelButton}>
         <X size={16} aria-hidden />
       </button>
     </form>
