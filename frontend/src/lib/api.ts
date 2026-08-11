@@ -12,6 +12,15 @@ export interface WatchlistItem {
   addedAt: string;
 }
 
+export interface Candle {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
 export interface PriceAlert {
   id: string;
   symbol: string;
@@ -70,4 +79,8 @@ export function createAlert(
 
 export function removeAlert(id: string): Promise<void> {
   return request(`/api/alerts/${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export function getHistory(symbol: string, days = 30): Promise<{ candles: Candle[]; source: string }> {
+  return request(`/api/history/${encodeURIComponent(symbol)}?days=${days}`);
 }

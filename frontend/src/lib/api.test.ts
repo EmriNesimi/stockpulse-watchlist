@@ -4,6 +4,7 @@ import {
   addToWatchlist,
   createAlert,
   getAlerts,
+  getHistory,
   getWatchlist,
   removeAlert,
   removeFromWatchlist,
@@ -160,5 +161,26 @@ describe("removeAlert", () => {
     const [url, init] = vi.mocked(fetch).mock.calls[0];
     expect(url).toBe(`${API_BASE}/api/alerts/alert-1`);
     expect(init?.method).toBe("DELETE");
+  });
+});
+
+describe("getHistory", () => {
+  it("GETs the history endpoint with a default 30-day range", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ candles: [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }], source: "simulated" })
+    );
+
+    const result = await getHistory("AAPL");
+
+    expect(fetch).toHaveBeenCalledWith(`${API_BASE}/api/history/AAPL?days=30`, expect.anything());
+    expect(result.candles).toHaveLength(1);
+  });
+
+  it("passes a custom days value and URL-encodes the symbol", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ candles: [], source: "simulated" }));
+
+    await getHistory("BRK.B", 90);
+
+    expect(fetch).toHaveBeenCalledWith(`${API_BASE}/api/history/BRK.B?days=90`, expect.anything());
   });
 });
