@@ -1,4 +1,5 @@
 import type { Candle } from "../lib/api";
+import styles from "./CandlestickChart.module.css";
 
 interface CandlestickChartProps {
   candles: Candle[];
@@ -13,7 +14,7 @@ const PADDING_Y = 12;
 export default function CandlestickChart({ candles, loading, error }: CandlestickChartProps) {
   if (loading) {
     return (
-      <div role="status" style={{ padding: "var(--space-4)", opacity: 0.7 }}>
+      <div role="status" className={styles.status}>
         Loading chart…
       </div>
     );
@@ -21,16 +22,14 @@ export default function CandlestickChart({ candles, loading, error }: Candlestic
 
   if (error) {
     return (
-      <div role="alert" style={{ padding: "var(--space-4)", color: "var(--color-bearish)" }}>
+      <div role="alert" className={styles.error}>
         Couldn't load price history: {error}
       </div>
     );
   }
 
   if (candles.length === 0) {
-    return (
-      <div style={{ padding: "var(--space-4)", opacity: 0.7 }}>No price history available yet.</div>
-    );
+    return <div className={styles.status}>No price history available yet.</div>;
   }
 
   const low = Math.min(...candles.map((c) => c.low));
@@ -53,21 +52,15 @@ export default function CandlestickChart({ candles, loading, error }: Candlestic
     >
       {candles.map((candle, i) => {
         const bullish = candle.close >= candle.open;
-        const color = bullish ? "var(--color-bullish)" : "var(--color-bearish)";
+        const colorClass = bullish ? styles.bullish : styles.bearish;
         const cx = i * candleWidth + candleWidth / 2;
         const bodyTop = y(Math.max(candle.open, candle.close));
         const bodyBottom = y(Math.min(candle.open, candle.close));
 
         return (
-          <g key={candle.time}>
-            <line x1={cx} x2={cx} y1={y(candle.high)} y2={y(candle.low)} stroke={color} strokeWidth={1} />
-            <rect
-              x={cx - bodyWidth / 2}
-              y={bodyTop}
-              width={bodyWidth}
-              height={Math.max(1, bodyBottom - bodyTop)}
-              fill={color}
-            />
+          <g key={candle.time} className={colorClass}>
+            <line x1={cx} x2={cx} y1={y(candle.high)} y2={y(candle.low)} strokeWidth={1} />
+            <rect x={cx - bodyWidth / 2} y={bodyTop} width={bodyWidth} height={Math.max(1, bodyBottom - bodyTop)} />
           </g>
         );
       })}

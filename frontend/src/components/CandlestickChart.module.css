@@ -1,0 +1,19 @@
+.status {
+  padding: var(--space-4);
+  opacity: 0.7;
+}
+
+.error {
+  padding: var(--space-4);
+  color: var(--color-bearish);
+}
+
+.bullish {
+  stroke: var(--color-bullish);
+  fill: var(--color-bullish);
+}
+
+.bearish {
+  stroke: var(--color-bearish);
+  fill: var(--color-bearish);
+}
