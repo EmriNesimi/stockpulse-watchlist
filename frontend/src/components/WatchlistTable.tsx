@@ -17,7 +17,14 @@ interface WatchlistTableProps {
 
 function ChartRow({ symbol }: { symbol: string }) {
   const { candles, loading, error } = useHistory(symbol);
-  return <CandlestickChart candles={candles} loading={loading} error={error} />;
+  return (
+    <div style={{ paddingTop: "var(--space-2)" }}>
+      <div style={{ fontSize: "0.8125rem", opacity: 0.6, marginBottom: "var(--space-1)" }}>
+        {symbol} · last 30 days
+      </div>
+      <CandlestickChart candles={candles} loading={loading} error={error} />
+    </div>
+  );
 }
 
 export default function WatchlistTable({ items, prices, onRemove, onCreateAlert }: WatchlistTableProps) {
