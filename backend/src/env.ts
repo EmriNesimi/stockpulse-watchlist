@@ -1,7 +1,12 @@
 import "dotenv/config";
 
-function required(name: string, fallback?: string): string {
-  const value = process.env[name] ?? fallback;
+const isProduction = process.env.NODE_ENV === "production";
+
+// The fallback is a dev convenience only — in production a missing var
+// should fail loudly at boot, not silently start against the wrong
+// database or CORS origin.
+function required(name: string, devFallback?: string): string {
+  const value = process.env[name] ?? (isProduction ? undefined : devFallback);
   if (value === undefined) {
     throw new Error(`Missing required env var: ${name}`);
   }
