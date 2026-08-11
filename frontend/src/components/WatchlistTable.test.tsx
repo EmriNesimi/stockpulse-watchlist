@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import WatchlistTable from "./WatchlistTable";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
+import * as api from "../lib/api";
 
 function item(overrides: Partial<WatchlistItem> = {}): WatchlistItem {
   return {
@@ -241,6 +242,71 @@ describe("WatchlistTable — setting an alert", () => {
 
     expect(onCreateAlert).not.toHaveBeenCalled();
     expect(screen.queryByRole("form", { name: "Set a price alert for AAPL" })).not.toBeInTheDocument();
+  });
+});
+
+describe("WatchlistTable — candlestick chart toggle", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("does not fetch history or show a chart until the symbol is clicked", () => {
+    const spy = vi.spyOn(api, "getHistory");
+    render(<WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(screen.queryByRole("img", { name: /candlestick chart/i })).not.toBeInTheDocument();
+  });
+
+  it("fetches and renders the chart when the symbol is clicked", async () => {
+    vi.spyOn(api, "getHistory").mockResolvedValueOnce({
+      candles: [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }],
+      source: "simulated",
+    });
+    const user = userEvent.setup();
+    render(<WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
+
+    await user.click(screen.getByRole("button", { name: "Show price chart for AAPL" }));
+
+    await waitFor(() => expect(screen.getByRole("img", { name: /candlestick chart/i })).toBeInTheDocument());
+  });
+
+  it("hides the chart again when the symbol is clicked a second time", async () => {
+    vi.spyOn(api, "getHistory").mockResolvedValue({
+      candles: [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }],
+      source: "simulated",
+    });
+    const user = userEvent.setup();
+    render(<WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
+
+    const toggle = screen.getByRole("button", { name: "Show price chart for AAPL" });
+    await user.click(toggle);
+    await waitFor(() => expect(screen.getByRole("img", { name: /candlestick chart/i })).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: "Hide price chart for AAPL" }));
+    expect(screen.queryByRole("img", { name: /candlestick chart/i })).not.toBeInTheDocument();
+  });
+
+  it("only shows one chart at a time across rows", async () => {
+    vi.spyOn(api, "getHistory").mockResolvedValue({
+      candles: [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }],
+      source: "simulated",
+    });
+    const user = userEvent.setup();
+    render(
+      <WatchlistTable
+        items={[item({ id: "1", symbol: "AAPL" }), item({ id: "2", symbol: "MSFT" })]}
+        prices={{}}
+        onRemove={noop}
+        onCreateAlert={noop}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show price chart for AAPL" }));
+    await waitFor(() => expect(screen.getByRole("img", { name: /candlestick chart/i })).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: "Show price chart for MSFT" }));
+    await waitFor(() => expect(screen.getAllByRole("img", { name: /candlestick chart/i })).toHaveLength(1));
   });
 });
 
