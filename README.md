@@ -298,10 +298,12 @@ Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message s
 |---|---|---|---|
 | `PORT` | no | `4000` | |
 | `MASSIVE_API_KEY` | no | — | app runs on the simulated feed without it; free tier is rate-limited (5 REST calls/min) and doesn't include real-time WS |
-| `DATABASE_URL` | no | `file:./prisma/dev.db` | SQLite connection string |
-| `FRONTEND_ORIGIN` | no | `http://localhost:5173` | locks down CORS to this origin |
+| `DATABASE_URL` | in production | `file:./prisma/dev.db` outside production | SQLite connection string |
+| `FRONTEND_ORIGIN` | in production | `http://localhost:5173` outside production | locks down CORS to this origin |
 
 `backend/.env` is gitignored, and no `.env` file of any kind — not even an example/template with blank values — is committed to this repo, to keep the risk surface at zero. The API key never reaches the frontend; all Massive calls happen server-side.
+
+`DATABASE_URL` and `FRONTEND_ORIGIN` only fall back to their dev defaults when `NODE_ENV` isn't `production`. With `NODE_ENV=production` set, a missing value for either throws at startup instead of silently booting against the wrong database or CORS origin — see `backend/src/env.ts`.
 
 ## 🔒 Security notes
 
