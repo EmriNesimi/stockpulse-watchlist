@@ -11,6 +11,7 @@ import type { PriceState } from "../types";
 interface WatchlistTableProps {
   items: WatchlistItem[];
   prices: Record<string, PriceState>;
+  loading?: boolean;
   onRemove: (symbol: string) => void;
   onCreateAlert: (symbol: string, threshold: number, direction: "above" | "below") => void;
 }
@@ -27,9 +28,26 @@ function ChartRow({ symbol }: { symbol: string }) {
   );
 }
 
-export default function WatchlistTable({ items, prices, onRemove, onCreateAlert }: WatchlistTableProps) {
+export default function WatchlistTable({ items, prices, loading = false, onRemove, onCreateAlert }: WatchlistTableProps) {
   const [alertFormSymbol, setAlertFormSymbol] = useState<string | null>(null);
   const [chartSymbol, setChartSymbol] = useState<string | null>(null);
+
+  if (loading) {
+    return (
+      <div
+        role="status"
+        style={{
+          border: "1px dashed var(--color-border)",
+          borderRadius: "var(--radius-md)",
+          padding: "var(--space-6)",
+          textAlign: "center",
+          opacity: 0.7,
+        }}
+      >
+        Loading your watchlist…
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

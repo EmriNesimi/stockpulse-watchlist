@@ -132,10 +132,11 @@ describe("App — initial load", () => {
     // the ARIA name-computation rules (that's only for roles like button/
     // link/heading), so `getByRole("status", { name: ... })` can't find it
     // by its visible text — confirmed by checking testing-library's role
-    // dump, not an app bug. Two status regions exist (this badge + the
-    // aria-live announcer in App), so just confirm both are present and
-    // check the badge's text directly.
-    expect(screen.getAllByRole("status")).toHaveLength(2);
+    // dump, not an app bug. Three status regions exist at this point (the
+    // connection badge, the aria-live announcer, and WatchlistTable's
+    // "Loading your watchlist…" placeholder before the fetch settles), so
+    // just confirm they're present and check the badge's text directly.
+    expect(screen.getAllByRole("status")).toHaveLength(3);
     expect(screen.getByText("Connecting…")).toBeInTheDocument();
   });
 

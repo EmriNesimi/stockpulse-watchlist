@@ -18,6 +18,7 @@ import {
 
 export default function App() {
   const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
   const symbols = useMemo(() => items.map((i) => i.symbol), [items]);
   const { prices, status, alertEvents, dismissAlert } = useLiveTicks(symbols);
   const announcement = useThrottledAnnouncement(items, prices);
@@ -26,7 +27,8 @@ export default function App() {
   useEffect(() => {
     getWatchlist()
       .then(({ items }) => setItems(items))
-      .catch(() => pushError("Couldn't load your watchlist — check your connection and refresh."));
+      .catch(() => pushError("Couldn't load your watchlist — check your connection and refresh."))
+      .finally(() => setIsLoadingWatchlist(false));
     // pushError is stable for the lifetime of the hook, no need to re-run on identity churn
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -100,6 +102,7 @@ export default function App() {
         <WatchlistTable
           items={items}
           prices={prices}
+          loading={isLoadingWatchlist}
           onRemove={handleRemove}
           onCreateAlert={handleCreateAlert}
         />
