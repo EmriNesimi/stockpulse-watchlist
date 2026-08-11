@@ -49,7 +49,7 @@ export default function ErrorToast({ errors, onDismiss }: ErrorToastProps) {
           <div style={{ flex: 1, fontSize: "0.875rem" }}>{error.message}</div>
           <button
             onClick={() => onDismiss(error.id)}
-            aria-label="Dismiss error"
+            aria-label={`Dismiss error: ${error.message}`}
             style={{
               display: "flex",
               alignItems: "center",
