@@ -15,6 +15,7 @@ import {
   type TickerResult,
   type WatchlistItem,
 } from "./lib/api";
+import styles from "./App.module.css";
 
 export default function App() {
   const [items, setItems] = useState<WatchlistItem[]>([]);
@@ -61,13 +62,7 @@ export default function App() {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100dvh",
-      }}
-    >
+    <div className={styles.app}>
       <a href="#main-content" className="skip-link">
         Skip to watchlist
       </a>
@@ -78,27 +73,15 @@ export default function App() {
       <AlertToast alerts={alertEvents} onDismiss={dismissAlert} />
       <ErrorToast errors={errors} onDismiss={dismissError} />
 
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "var(--space-4)",
-          padding: "var(--space-3) var(--space-5)",
-          borderBottom: "1px solid var(--color-border)",
-          background: "var(--color-primary)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-          <span style={{ fontWeight: 600, fontSize: "1.125rem", letterSpacing: "-0.01em" }}>
-            StockPulse
-          </span>
+      <header className={styles.header}>
+        <div className={styles.headerLeft}>
+          <span className={styles.brand}>StockPulse</span>
           <ConnectionBadge status={status} />
         </div>
         <Search onAdd={handleAdd} alreadyAdded={(symbol) => items.some((i) => i.symbol === symbol)} />
       </header>
 
-      <main id="main-content" tabIndex={-1} style={{ flex: 1, padding: "var(--space-5)" }}>
+      <main id="main-content" tabIndex={-1} className={styles.main}>
         <WatchlistTable
           items={items}
           prices={prices}
