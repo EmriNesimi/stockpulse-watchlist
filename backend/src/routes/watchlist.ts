@@ -3,12 +3,15 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { asyncHandler } from "../asyncHandler";
 import { symbolSchema, addItemSchema } from "./watchlist.schemas";
-import { DEFAULT_USER_ID, getOrCreateWatchlist } from "../watchlistHelper";
+import { getOrCreateWatchlist } from "../watchlistHelper";
 
 const router = Router();
 
-router.get("/", asyncHandler(async (_req, res) => {
-  const watchlist = await getOrCreateWatchlist(DEFAULT_USER_ID);
+// requireAuth runs in front of this whole router (see app.ts), so
+// req.userId is always set here.
+
+router.get("/", asyncHandler(async (req, res) => {
+  const watchlist = await getOrCreateWatchlist(req.userId!);
   const items = await prisma.watchlistItem.findMany({ where: { watchlistId: watchlist.id } });
   res.json({ items });
 }));
@@ -19,7 +22,7 @@ router.post("/", asyncHandler(async (req, res) => {
     return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
   }
 
-  const watchlist = await getOrCreateWatchlist(DEFAULT_USER_ID);
+  const watchlist = await getOrCreateWatchlist(req.userId!);
 
   try {
     const item = await prisma.watchlistItem.create({
@@ -45,7 +48,7 @@ router.delete("/:symbol", asyncHandler(async (req, res) => {
     return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid symbol" });
   }
 
-  const watchlist = await getOrCreateWatchlist(DEFAULT_USER_ID);
+  const watchlist = await getOrCreateWatchlist(req.userId!);
   const result = await prisma.watchlistItem.deleteMany({
     where: { watchlistId: watchlist.id, symbol: parsed.data },
   });

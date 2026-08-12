@@ -19,3 +19,12 @@ export function attachUserId(req: Request, _res: Response, next: NextFunction) {
   req.userId = verifySessionCookieValue(req.cookies?.[SESSION_COOKIE_NAME]) ?? undefined;
   next();
 }
+
+// Blocks with 401 unless attachUserId already resolved a valid session -
+// put this in front of any router that needs a signed-in user.
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.userId) {
+    return res.status(401).json({ error: "Not signed in" });
+  }
+  next();
+}

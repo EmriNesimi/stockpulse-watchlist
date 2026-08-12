@@ -4,7 +4,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import { env } from "./env";
-import { attachUserId } from "./auth/middleware";
+import { attachUserId, requireAuth } from "./auth/middleware";
 import authRouter from "./routes/auth";
 import watchlistRouter from "./routes/watchlist";
 import searchRouter from "./routes/search";
@@ -41,9 +41,9 @@ export function createApp() {
   });
 
   app.use("/api/auth", authRouter);
-  app.use("/api/watchlist", watchlistRouter);
+  app.use("/api/watchlist", requireAuth, watchlistRouter);
   app.use("/api/search", searchRouter);
-  app.use("/api/alerts", alertsRouter);
+  app.use("/api/alerts", requireAuth, alertsRouter);
   app.use("/api/history", historyRouter);
 
   // Keep error details out of responses — log server-side, send something generic.

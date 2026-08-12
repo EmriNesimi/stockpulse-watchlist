@@ -1,9 +1,9 @@
 import { prisma } from "./db";
 
-// "default-user" until there's ever a real login — every route that needs
-// the single watchlist (items, alerts) shares this instead of each
-// reimplementing get-or-create.
-export const DEFAULT_USER_ID = "default-user";
+// No longer used by routes now that auth is real (see src/routes/auth.ts,
+// which passes the signed-in user's own id) — kept only as a stand-in
+// user id for tests that need a watchlist but aren't testing auth itself.
+export const DEFAULT_USER_ID = "test-fixture-user";
 
 export async function getOrCreateWatchlist(userId: string) {
   const existing = await prisma.watchlist.findUnique({ where: { userId } });
