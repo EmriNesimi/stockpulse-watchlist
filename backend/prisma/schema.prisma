@@ -7,11 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Single-user app for now, but userId is here so this doesn't need a
-// migration if we ever bolt on auth later.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+// userId isn't a Prisma relation to User.id on purpose - it's kept as a
+// loose string like it always was, just without the "default-user"
+// fallback now that every watchlist belongs to a real signed-up user.
 model Watchlist {
   id        String          @id @default(cuid())
-  userId    String          @default("default-user")
+  userId    String
   createdAt DateTime        @default(now())
   items     WatchlistItem[]
   alerts    PriceAlert[]
