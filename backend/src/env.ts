@@ -20,4 +20,8 @@ export const env = {
   massiveApiKey: process.env.MASSIVE_API_KEY?.trim() || undefined,
   databaseUrl: required("DATABASE_URL", "file:./prisma/dev.db"),
   frontendOrigin: required("FRONTEND_ORIGIN", "http://localhost:5173"),
+  // Signs the session cookie (see src/auth/session.ts). Dev fallback is
+  // fine for local use, but a fixed value would let anyone forge a session
+  // in production, hence the same production fail-fast as the vars above.
+  sessionSecret: required("SESSION_SECRET", "dev-only-session-secret-do-not-use-in-production"),
 };

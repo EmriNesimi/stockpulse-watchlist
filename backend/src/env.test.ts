@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const ENV_KEYS = ["NODE_ENV", "DATABASE_URL", "FRONTEND_ORIGIN"] as const;
+const ENV_KEYS = ["NODE_ENV", "DATABASE_URL", "FRONTEND_ORIGIN", "SESSION_SECRET"] as const;
 
 describe("env", () => {
   const original: Record<string, string | undefined> = {};
@@ -23,34 +23,68 @@ describe("env", () => {
   }
 
   it("throws at import time if DATABASE_URL is missing in production", async () => {
-    snapshotAndSet({ NODE_ENV: "production", DATABASE_URL: undefined, FRONTEND_ORIGIN: "https://example.com" });
+    snapshotAndSet({
+      NODE_ENV: "production",
+      DATABASE_URL: undefined,
+      FRONTEND_ORIGIN: "https://example.com",
+      SESSION_SECRET: "prod-secret",
+    });
     vi.resetModules();
 
     await expect(import("./env")).rejects.toThrow("Missing required env var: DATABASE_URL");
   });
 
   it("throws at import time if FRONTEND_ORIGIN is missing in production", async () => {
-    snapshotAndSet({ NODE_ENV: "production", DATABASE_URL: "postgres://prod", FRONTEND_ORIGIN: undefined });
+    snapshotAndSet({
+      NODE_ENV: "production",
+      DATABASE_URL: "postgres://prod",
+      FRONTEND_ORIGIN: undefined,
+      SESSION_SECRET: "prod-secret",
+    });
     vi.resetModules();
 
     await expect(import("./env")).rejects.toThrow("Missing required env var: FRONTEND_ORIGIN");
   });
 
-  it("does not throw in production when both vars are set", async () => {
-    snapshotAndSet({ NODE_ENV: "production", DATABASE_URL: "postgres://prod", FRONTEND_ORIGIN: "https://example.com" });
+  it("throws at import time if SESSION_SECRET is missing in production", async () => {
+    snapshotAndSet({
+      NODE_ENV: "production",
+      DATABASE_URL: "postgres://prod",
+      FRONTEND_ORIGIN: "https://example.com",
+      SESSION_SECRET: undefined,
+    });
+    vi.resetModules();
+
+    await expect(import("./env")).rejects.toThrow("Missing required env var: SESSION_SECRET");
+  });
+
+  it("does not throw in production when all three vars are set", async () => {
+    snapshotAndSet({
+      NODE_ENV: "production",
+      DATABASE_URL: "postgres://prod",
+      FRONTEND_ORIGIN: "https://example.com",
+      SESSION_SECRET: "prod-secret",
+    });
     vi.resetModules();
 
     const { env } = await import("./env");
     expect(env.databaseUrl).toBe("postgres://prod");
     expect(env.frontendOrigin).toBe("https://example.com");
+    expect(env.sessionSecret).toBe("prod-secret");
   });
 
-  it("falls back to the dev defaults when DATABASE_URL/FRONTEND_ORIGIN are unset and NODE_ENV isn't production", async () => {
-    snapshotAndSet({ NODE_ENV: "development", DATABASE_URL: undefined, FRONTEND_ORIGIN: undefined });
+  it("falls back to the dev defaults when unset and NODE_ENV isn't production", async () => {
+    snapshotAndSet({
+      NODE_ENV: "development",
+      DATABASE_URL: undefined,
+      FRONTEND_ORIGIN: undefined,
+      SESSION_SECRET: undefined,
+    });
     vi.resetModules();
 
     const { env } = await import("./env");
     expect(env.databaseUrl).toBe("file:./prisma/dev.db");
     expect(env.frontendOrigin).toBe("http://localhost:5173");
+    expect(env.sessionSecret).toBe("dev-only-session-secret-do-not-use-in-production");
   });
 });
