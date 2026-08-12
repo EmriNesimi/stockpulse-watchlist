@@ -4,11 +4,15 @@ import {
   addToWatchlist,
   createAlert,
   getAlerts,
+  getCurrentUser,
   getHistory,
   getWatchlist,
+  login,
+  logout,
   removeAlert,
   removeFromWatchlist,
   searchTickers,
+  signup,
 } from "./api";
 
 function jsonResponse(body: unknown, init: Partial<Response> = {}): Response {
@@ -182,5 +186,91 @@ describe("getHistory", () => {
     await getHistory("BRK.B", 90);
 
     expect(fetch).toHaveBeenCalledWith(`${API_BASE}/api/history/BRK.B?days=90`, expect.anything());
+  });
+});
+
+describe("every request", () => {
+  it("sends credentials: include so the session cookie round-trips cross-origin", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ items: [] }));
+
+    await getWatchlist();
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ credentials: "include" })
+    );
+  });
+});
+
+describe("signup", () => {
+  it("POSTs the email and password", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ user: { id: "1", email: "a@example.com" } }, { status: 201 })
+    );
+
+    await signup("a@example.com", "hunter22");
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toBe(`${API_BASE}/api/auth/signup`);
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(init?.body as string)).toEqual({ email: "a@example.com", password: "hunter22" });
+  });
+
+  it("throws with the server's error message on a non-ok response", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ error: "An account with that email already exists" }, { ok: false, status: 409 })
+    );
+
+    await expect(signup("a@example.com", "hunter22")).rejects.toThrow("An account with that email already exists");
+  });
+});
+
+describe("login", () => {
+  it("POSTs the email and password", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ user: { id: "1", email: "a@example.com" } }));
+
+    await login("a@example.com", "hunter22");
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toBe(`${API_BASE}/api/auth/login`);
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(init?.body as string)).toEqual({ email: "a@example.com", password: "hunter22" });
+  });
+
+  it("throws with the server's error message on invalid credentials", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ error: "Invalid email or password" }, { ok: false, status: 401 })
+    );
+
+    await expect(login("a@example.com", "wrong")).rejects.toThrow("Invalid email or password");
+  });
+});
+
+describe("logout", () => {
+  it("POSTs to /api/auth/logout", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(undefined, { status: 204 }));
+
+    await logout();
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toBe(`${API_BASE}/api/auth/logout`);
+    expect(init?.method).toBe("POST");
+  });
+});
+
+describe("getCurrentUser", () => {
+  it("GETs /api/auth/me and returns the user", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ user: { id: "1", email: "a@example.com" } }));
+
+    const result = await getCurrentUser();
+
+    expect(fetch).toHaveBeenCalledWith(`${API_BASE}/api/auth/me`, expect.anything());
+    expect(result.user.email).toBe("a@example.com");
+  });
+
+  it("throws when there's no session", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ error: "Not signed in" }, { ok: false, status: 401 }));
+
+    await expect(getCurrentUser()).rejects.toThrow("Not signed in");
   });
 });

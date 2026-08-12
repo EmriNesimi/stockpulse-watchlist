@@ -30,9 +30,17 @@ export interface PriceAlert {
   triggeredAt: string | null;
 }
 
+export interface AuthUser {
+  id: string;
+  email: string;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
+    // The session cookie is set by the backend as a cross-origin cookie
+    // (different port in dev) - without this, fetch never sends it back.
+    credentials: "include",
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   if (!res.ok) {
@@ -83,4 +91,20 @@ export function removeAlert(id: string): Promise<void> {
 
 export function getHistory(symbol: string, days = 30): Promise<{ candles: Candle[]; source: string }> {
   return request(`/api/history/${encodeURIComponent(symbol)}?days=${days}`);
+}
+
+export function signup(email: string, password: string): Promise<{ user: AuthUser }> {
+  return request("/api/auth/signup", { method: "POST", body: JSON.stringify({ email, password }) });
+}
+
+export function login(email: string, password: string): Promise<{ user: AuthUser }> {
+  return request("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+}
+
+export function logout(): Promise<void> {
+  return request("/api/auth/logout", { method: "POST" });
+}
+
+export function getCurrentUser(): Promise<{ user: AuthUser }> {
+  return request("/api/auth/me");
 }
