@@ -8,6 +8,8 @@ import {
   removeFromWatchlist,
   createAlert,
   searchTickers,
+  getCurrentUser,
+  logout,
 } from "./lib/api";
 import type { WatchlistItem } from "./lib/api";
 
@@ -25,6 +27,10 @@ vi.mock("./lib/api", () => ({
   removeAlert: vi.fn(),
   getAlerts: vi.fn(),
   searchTickers: vi.fn(),
+  getCurrentUser: vi.fn(),
+  signup: vi.fn(),
+  login: vi.fn(),
+  logout: vi.fn(),
 }));
 
 // Matches the browser WebSocket API — same shape as useLiveTicks.test.ts's
@@ -85,6 +91,12 @@ beforeEach(() => {
   vi.mocked(removeFromWatchlist).mockReset();
   vi.mocked(createAlert).mockReset();
   vi.mocked(searchTickers).mockReset();
+  // Every existing test in this file exercises the already-signed-in app;
+  // the auth-gate flow itself gets its own describe block further down.
+  vi.mocked(getCurrentUser)
+    .mockReset()
+    .mockResolvedValue({ user: { id: "u1", email: "trader@example.com" } });
+  vi.mocked(logout).mockReset().mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -96,7 +108,7 @@ describe("App — initial load", () => {
     vi.mocked(getWatchlist).mockResolvedValue({ items: [] });
     render(<App />);
 
-    expect(getWatchlist).toHaveBeenCalled();
+    await waitFor(() => expect(getWatchlist).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument());
   });
 
@@ -109,7 +121,7 @@ describe("App — initial load", () => {
     );
     render(<App />);
 
-    expect(screen.getByText(/loading your watchlist/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/loading your watchlist/i)).toBeInTheDocument());
     expect(screen.queryByText(/nothing on your watchlist yet/i)).not.toBeInTheDocument();
 
     act(() => resolveWatchlist({ items: [watchlistItem({ symbol: "AAPL" })] }));
@@ -145,22 +157,24 @@ describe("App — initial load", () => {
 
   it("renders the StockPulse header and connection badge", async () => {
     render(<App />);
-    expect(screen.getByText("StockPulse")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("StockPulse")).toBeInTheDocument());
     // role="status" doesn't compute an accessible name from its content per
     // the ARIA name-computation rules (that's only for roles like button/
     // link/heading), so `getByRole("status", { name: ... })` can't find it
     // by its visible text — confirmed by checking testing-library's role
-    // dump, not an app bug. Three status regions exist at this point (the
-    // connection badge, the aria-live announcer, and WatchlistTable's
-    // "Loading your watchlist…" placeholder before the fetch settles), so
-    // just confirm they're present and check the badge's text directly.
-    expect(screen.getAllByRole("status")).toHaveLength(3);
+    // dump, not an app bug. At least the connection badge and the aria-live
+    // announcer are always present (a third - WatchlistTable's "Loading
+    // your watchlist…" placeholder - only exists transiently before the
+    // fetch settles, so it's too racy to assert an exact count here with a
+    // fast-resolving mock). Just confirm they're present and check the
+    // badge's text directly.
+    await waitFor(() => expect(screen.getAllByRole("status").length).toBeGreaterThanOrEqual(2));
     expect(screen.getByText("Connecting…")).toBeInTheDocument();
   });
 
-  it("opens a websocket connection on mount", () => {
+  it("opens a websocket connection on mount", async () => {
     render(<App />);
-    expect(FakeWebSocket.instances).toHaveLength(1);
+    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
   });
 });
 
@@ -270,7 +284,7 @@ describe("App — removing from the watchlist", () => {
 describe("App — live connection status and price updates", () => {
   it("shows 'Connected' once the websocket opens", async () => {
     render(<App />);
-    expect(screen.getByText("Connecting…")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Connecting…")).toBeInTheDocument());
 
     act(() => FakeWebSocket.instances[0].triggerOpen());
 

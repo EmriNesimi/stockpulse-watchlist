@@ -1,0 +1,86 @@
+.wrapper {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+}
+
+.card {
+  width: 100%;
+  max-width: 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--color-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.brand {
+  font-weight: 600;
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label {
+  font-size: 0.8125rem;
+  opacity: 0.7;
+}
+
+.input {
+  background: var(--color-muted);
+  color: var(--color-foreground);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  min-height: 44px;
+}
+
+.submitButton {
+  background: var(--color-accent);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  min-height: 44px;
+  font-weight: 500;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+}
+
+.error {
+  color: var(--color-bearish);
+  font-size: 0.8125rem;
+}
+
+.toggle {
+  text-align: center;
+  font-size: 0.8125rem;
+  opacity: 0.7;
+}
+
+.toggleButton {
+  background: transparent;
+  border: none;
+  color: var(--color-accent);
+  padding: 0;
+  text-decoration: underline;
+  font-size: inherit;
+}
