@@ -1,8 +1,11 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import { env } from "./env";
+import { attachUserId } from "./auth/middleware";
+import authRouter from "./routes/auth";
 import watchlistRouter from "./routes/watchlist";
 import searchRouter from "./routes/search";
 import alertsRouter from "./routes/alerts";
@@ -16,9 +19,12 @@ export function createApp() {
     cors({
       origin: env.frontendOrigin,
       methods: ["GET", "POST", "DELETE"],
+      credentials: true, // session cookie needs to cross the cors boundary
     })
   );
   app.use(express.json({ limit: "10kb" })); // watchlist payloads are tiny, no reason to allow more
+  app.use(cookieParser());
+  app.use(attachUserId);
 
   // Generous but real limits — this is a portfolio project, not a public API,
   // but the search/watchlist routes still shouldn't be hammerable.
@@ -34,6 +40,7 @@ export function createApp() {
     res.json({ status: "ok" });
   });
 
+  app.use("/api/auth", authRouter);
   app.use("/api/watchlist", watchlistRouter);
   app.use("/api/search", searchRouter);
   app.use("/api/alerts", alertsRouter);
