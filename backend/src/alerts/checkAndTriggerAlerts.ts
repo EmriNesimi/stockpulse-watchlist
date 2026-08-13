@@ -8,6 +8,10 @@ export interface AlertTrigger {
   direction: "above" | "below";
   price: number;
   triggeredAt: string;
+  // Whoever's watchlist this alert belongs to - the broadcaster uses this
+  // to deliver the alert only to that user's own connection(s), not to
+  // every client subscribed to the symbol.
+  userId: string;
 }
 
 /**
@@ -19,6 +23,7 @@ export interface AlertTrigger {
 export async function checkAndTriggerAlerts(tick: PriceTick): Promise<AlertTrigger[]> {
   const candidates = await prisma.priceAlert.findMany({
     where: { symbol: tick.symbol, triggeredAt: null },
+    include: { watchlist: true },
   });
   if (candidates.length === 0) return [];
 
@@ -39,6 +44,7 @@ export async function checkAndTriggerAlerts(tick: PriceTick): Promise<AlertTrigg
       direction: alert.direction as "above" | "below",
       price: tick.price,
       triggeredAt: triggeredAt.toISOString(),
+      userId: alert.watchlist.userId,
     });
   }
 

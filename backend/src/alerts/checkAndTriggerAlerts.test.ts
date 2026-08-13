@@ -105,4 +105,12 @@ describe("checkAndTriggerAlerts", () => {
     const stillActive = await prisma.priceAlert.findUniqueOrThrow({ where: { id: below.id } });
     expect(stillActive.triggeredAt).toBeNull();
   });
+
+  it("includes the owning user's id so the broadcaster can route the alert to just them", async () => {
+    await createAlert({ symbol: "AAPL", threshold: 200, direction: "above" });
+
+    const result = await checkAndTriggerAlerts(tick({ symbol: "AAPL", price: 210 }));
+
+    expect(result[0].userId).toBe(DEFAULT_USER_ID);
+  });
 });
