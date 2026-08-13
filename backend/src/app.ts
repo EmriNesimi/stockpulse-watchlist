@@ -36,6 +36,23 @@ export function createApp() {
   });
   app.use("/api", apiLimiter);
 
+  // Login/signup need a much tighter cap than the general API limit - 60
+  // attempts/min against a login endpoint is a brute-force budget, not a
+  // real usage pattern. Stacks with apiLimiter above; this is just the
+  // stricter of the two on this specific path. Skipped under test - the
+  // route test files each share one app instance across a dozen-plus
+  // requests well past this limit, which has nothing to do with what those
+  // tests are actually checking (see auth.ratelimit.test.ts for a test
+  // that exercises this limiter directly, with NODE_ENV overridden).
+  const authLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: () => process.env.NODE_ENV === "test",
+  });
+  app.use("/api/auth", authLimiter);
+
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
   });
