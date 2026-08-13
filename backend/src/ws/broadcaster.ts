@@ -1,8 +1,10 @@
 import type { Server as HttpServer } from "http";
+import { parse as parseCookies } from "cookie";
 import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
 import type { PriceFeed, PriceTick, Unsubscribe } from "../priceFeed";
 import { checkAndTriggerAlerts, type AlertTrigger } from "../alerts/checkAndTriggerAlerts";
+import { SESSION_COOKIE_NAME, verifySessionCookieValue } from "../auth/session";
 
 const MAX_SYMBOLS_PER_CLIENT = 30;
 const MAX_MESSAGES_PER_MINUTE = 60;
@@ -22,6 +24,19 @@ interface ClientState {
   symbols: Set<string>;
   messageCount: number;
   windowStart: number;
+  // Ticks are public market data - connecting doesn't require a session.
+  // Price alerts aren't, though: this is undefined for an unauthenticated
+  // connection, and such a connection just never receives alert messages
+  // (see broadcastAlert). The WS upgrade request sits outside the Express
+  // middleware chain entirely, so the cookie has to be parsed by hand here
+  // rather than reusing attachUserId.
+  userId: string | undefined;
+}
+
+function resolveUserId(cookieHeader: string | undefined): string | undefined {
+  if (!cookieHeader) return undefined;
+  const cookies = parseCookies(cookieHeader);
+  return verifySessionCookieValue(cookies[SESSION_COOKIE_NAME]) ?? undefined;
 }
 
 export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
@@ -91,8 +106,13 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
     for (const symbol of [...state.symbols]) unsubscribeClientFrom(ws, state, symbol);
   }
 
-  wss.on("connection", (ws) => {
-    const state: ClientState = { symbols: new Set(), messageCount: 0, windowStart: Date.now() };
+  wss.on("connection", (ws, req) => {
+    const state: ClientState = {
+      symbols: new Set(),
+      messageCount: 0,
+      windowStart: Date.now(),
+      userId: resolveUserId(req.headers.cookie),
+    };
     clientStates.set(ws, state);
 
     ws.on("message", (raw) => {
