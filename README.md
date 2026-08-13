@@ -49,19 +49,18 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - 🔌 **Works with zero setup** — no API key, no account, no config required to run it and see it working end to end.
 - ♿ **Accessible by default** — throttled screen-reader announcements, keyboard support, visible focus states, and full `prefers-reduced-motion` compliance.
 - ⚠️ **Visible failure states** — a failed watchlist load, ticker add, or alert creation now surfaces as a dismissible error toast instead of failing silently, and the watchlist table distinguishes "loading" from "genuinely empty" on first load.
+- 🔐 **Real multi-user accounts** — email/password signup and login (scrypt-hashed, signed session cookie), each user gets their own private watchlist and alerts. Price ticks stay public over the WebSocket (they're just market data), but price-alert notifications are routed only to the connection belonging to the alert's owner.
 
 ## 📍 Status
 
 Feature-complete for the initial build. Built incrementally, commit by commit — full history on the repo shows each piece landing and getting manually tested before the next one started.
 
 **✅ Done**
-- **Backend**: Express API, Prisma/SQLite watchlist persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), and a WebSocket broadcaster that fans price ticks out to connected clients with per-connection rate/size/subscription limits.
-- **Frontend**: Vite + React + TS app in the dark trading-terminal design system — debounced ticker search wired to the real API, a watchlist table with sparklines and a working remove button, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, and a header connection-status indicator.
+- **Backend**: Express API, Prisma/SQLite persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), a WebSocket broadcaster that fans price ticks out to connected clients with per-connection rate/size/subscription limits, and real multi-user auth (scrypt password hashing, signed session cookies, per-user watchlists/alerts).
+- **Frontend**: Vite + React + TS app in the dark trading-terminal design system — a login/signup gate in front of the app, debounced ticker search wired to the real API, a watchlist table with sparklines and a working remove button, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, and a header connection-status indicator.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
-- **Testing**: 284 tests total — 129 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior, all wired into CI) and 155 on the frontend (hooks, API client, every component including the candlestick chart and the new error-toast/loading-state work, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
+- **Testing**: 336 tests total — 162 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping, all wired into CI) and 174 on the frontend (hooks, API client, every component including the login/signup gate, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
-
-**⚠️ One caveat**: this was built in a terminal-only environment with no browser available to visually render the app. Everything's been verified end-to-end at the protocol level (REST calls, WebSocket messages, database round-trips, via real test scripts — not guesses), and the code has been read through carefully, but nobody has actually looked at it rendered in a browser yet. If you're picking this up: that's the one thing worth doing first.
 
 ## 🏗️ Architecture
 
@@ -334,7 +333,7 @@ Things that would make sense to add next, roughly in order of value:
 
 - [x] ~~Candlestick/OHLC chart on click-through for a single symbol~~ — done: clicking a symbol expands a hand-rolled SVG candlestick chart (same no-dependency approach as the sparkline) fed by a new `useHistory` hook against the existing `/api/history/:symbol` endpoint. Loading/error/empty states covered, and only one chart fetches/renders at a time.
 - [x] ~~Price alerts~~ — done: one-shot "notify me when AAPL crosses $200" alerts, evaluated per tick in the WS broadcaster and delivered as a dismissible toast. No test coverage gap left behind either — schema, route, trigger logic, and broadcaster delivery are all covered.
-- [ ] Multi-user auth — the `Watchlist.userId` column already exists for this, no schema migration needed.
+- [x] ~~Multi-user auth~~ — done: email/password signup and login, scrypt-hashed passwords, signed session cookies. `/api/watchlist` and `/api/alerts` require a signed-in user and are scoped to `req.userId`; the WebSocket broadcaster resolves the connecting user from the same session cookie (parsed by hand, since the WS upgrade request sits outside the Express middleware chain) so price-alert notifications - unlike ticks, which stay public - are only delivered to the alert's actual owner. Out of scope for now: password reset and email verification.
 - [x] ~~A real test suite~~ — done: Vitest covering the `PriceFeed` implementations, the Massive rate limiter, and the zod schemas.
 - [x] ~~Route-level test coverage~~ — done: the watchlist and search routes are tested through `supertest` against a real (throwaway) SQLite db, not just the validation logic underneath them.
 - [x] ~~WS broadcaster test coverage~~ — done: real socket connections (not mocked), covering shared-subscription fan-out, unsubscribe/disconnect cleanup, malformed input, and all three per-connection limits (symbol cap, message rate, payload size). 70 tests total across the whole backend suite now, wired into CI.
