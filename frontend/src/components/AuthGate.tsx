@@ -12,12 +12,19 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("Passwords don't match");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { user } = mode === "login" ? await login(email, password) : await signup(email, password);
@@ -27,6 +34,12 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function switchMode() {
+    setMode(mode === "login" ? "signup" : "login");
+    setError(null);
+    setConfirmPassword("");
   }
 
   return (
@@ -63,6 +76,22 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
               className={styles.input}
             />
           </div>
+          {mode === "signup" && (
+            <div className={styles.field}>
+              <label htmlFor="auth-confirm-password" className={styles.label}>
+                Confirm password
+              </label>
+              <input
+                id="auth-confirm-password"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={styles.input}
+              />
+            </div>
+          )}
           {error && (
             <div role="alert" className={styles.error}>
               {error}
@@ -74,14 +103,7 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
         </form>
         <div className={styles.toggle}>
           {mode === "login" ? "New here? " : "Already have an account? "}
-          <button
-            type="button"
-            onClick={() => {
-              setMode(mode === "login" ? "signup" : "login");
-              setError(null);
-            }}
-            className={styles.toggleButton}
-          >
+          <button type="button" onClick={switchMode} className={styles.toggleButton}>
             {mode === "login" ? "Sign up" : "Log in"}
           </button>
         </div>
