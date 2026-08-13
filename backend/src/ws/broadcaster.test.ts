@@ -12,6 +12,9 @@ import {
 } from "./testHelpers";
 import { prisma } from "../db";
 import { DEFAULT_USER_ID, getOrCreateWatchlist } from "../watchlistHelper";
+import { createSessionCookieValue, SESSION_COOKIE_NAME } from "../auth/session";
+
+const OTHER_USER_ID = "some-other-user";
 
 // These are real integration tests: a real http server, a real WebSocketServer
 // via attachBroadcaster, and real `ws` client connections — not mocks. The
@@ -45,8 +48,9 @@ async function setup() {
   return { feed, port };
 }
 
-async function client(port: number) {
-  const ws = await connectClient(port);
+async function client(port: number, userId?: string) {
+  const cookie = userId ? `${SESSION_COOKIE_NAME}=${createSessionCookieValue(userId)}` : undefined;
+  const ws = await connectClient(port, cookie);
   clients.push(ws);
   return { ws, collector: new MessageCollector(ws) };
 }
@@ -326,10 +330,10 @@ describe("broadcaster — max message payload size", () => {
 });
 
 describe("broadcaster — price alerts", () => {
-  it("sends an alert message to a subscribed client when a tick crosses the threshold", async () => {
+  it("sends an alert message to the owning user's subscribed client when a tick crosses the threshold", async () => {
     await createAlert({ symbol: "AAPL", threshold: 200, direction: "above" });
     const { feed, port } = await setup();
-    const { ws, collector } = await client(port);
+    const { ws, collector } = await client(port, DEFAULT_USER_ID);
 
     ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
     await wait(50);
@@ -341,12 +345,13 @@ describe("broadcaster — price alerts", () => {
 
     const alertMsg = await collector.next();
     expect(alertMsg).toMatchObject({ type: "alert", symbol: "AAPL", threshold: 200, direction: "above", price: 210 });
+    expect(alertMsg).not.toHaveProperty("userId"); // internal routing detail, not part of the wire format
   });
 
   it("doesn't send an alert message when the tick doesn't cross any threshold", async () => {
     await createAlert({ symbol: "AAPL", threshold: 200, direction: "above" });
     const { feed, port } = await setup();
-    const { ws, collector } = await client(port);
+    const { ws, collector } = await client(port, DEFAULT_USER_ID);
 
     ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
     await wait(50);
@@ -361,7 +366,7 @@ describe("broadcaster — price alerts", () => {
   it("only fires an alert once, not on every subsequent tick past the threshold", async () => {
     await createAlert({ symbol: "AAPL", threshold: 200, direction: "above" });
     const { feed, port } = await setup();
-    const { ws, collector } = await client(port);
+    const { ws, collector } = await client(port, DEFAULT_USER_ID);
 
     ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
     await wait(50);
@@ -376,11 +381,47 @@ describe("broadcaster — price alerts", () => {
     expect(collector.messages).toHaveLength(0); // no second alert message
   });
 
-  it("delivers the alert to every client subscribed to that symbol, not just one", async () => {
+  it("does not deliver the alert to a different user subscribed to the same symbol", async () => {
     await createAlert({ symbol: "AAPL", threshold: 200, direction: "above" });
     const { feed, port } = await setup();
-    const a = await client(port);
-    const b = await client(port);
+    const owner = await client(port, DEFAULT_USER_ID);
+    const other = await client(port, OTHER_USER_ID);
+
+    owner.ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    other.ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    await wait(50);
+
+    feed.emit("AAPL", fakeTick("AAPL", { price: 210 }));
+
+    await owner.collector.next(); // tick
+    const alertMsg = await owner.collector.next();
+    expect(alertMsg).toMatchObject({ type: "alert", symbol: "AAPL" });
+
+    await other.collector.next(); // tick - everyone still gets ticks
+    await wait(50);
+    expect(other.collector.messages).toHaveLength(0); // but not the other user's alert
+  });
+
+  it("does not deliver the alert to an unauthenticated client subscribed to the same symbol", async () => {
+    await createAlert({ symbol: "AAPL", threshold: 200, direction: "above" });
+    const { feed, port } = await setup();
+    const anonymous = await client(port); // no cookie
+
+    anonymous.ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
+    await wait(50);
+
+    feed.emit("AAPL", fakeTick("AAPL", { price: 210 }));
+
+    await anonymous.collector.next(); // tick
+    await wait(50);
+    expect(anonymous.collector.messages).toHaveLength(0); // no alert - not signed in at all
+  });
+
+  it("delivers the alert to every one of the owning user's connections, not just one", async () => {
+    await createAlert({ symbol: "AAPL", threshold: 200, direction: "above" });
+    const { feed, port } = await setup();
+    const a = await client(port, DEFAULT_USER_ID);
+    const b = await client(port, DEFAULT_USER_ID);
 
     a.ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));
     b.ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] }));

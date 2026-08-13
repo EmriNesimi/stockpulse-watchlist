@@ -53,9 +53,10 @@ export async function startTestServer(priceFeed: PriceFeed): Promise<{ server: H
   return { server, port };
 }
 
-export function connectClient(port: number): Promise<WebSocket> {
+/** Pass a cookie header (see createSessionCookieValue in ../auth/session) to connect as a signed-in user. */
+export function connectClient(port: number, cookie?: string): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`ws://localhost:${port}/ws`);
+    const ws = new WebSocket(`ws://localhost:${port}/ws`, cookie ? { headers: { cookie } } : undefined);
     ws.once("open", () => resolve(ws));
     ws.once("error", reject);
   });

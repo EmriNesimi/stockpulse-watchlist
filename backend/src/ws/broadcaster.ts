@@ -75,9 +75,14 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
   }
 
   function broadcastAlert(clients: Set<WebSocket>, alert: AlertTrigger) {
-    const payload = JSON.stringify({ type: "alert", ...alert });
+    // userId isn't part of the wire format - it's only here to decide who
+    // gets this message, not something the frontend needs.
+    const { userId, ...alertPayload } = alert;
+    const payload = JSON.stringify({ type: "alert", ...alertPayload });
     for (const client of clients) {
-      if (client.readyState === WebSocket.OPEN) client.send(payload);
+      if (client.readyState !== WebSocket.OPEN) continue;
+      if (clientStates.get(client)?.userId !== userId) continue;
+      client.send(payload);
     }
   }
 
