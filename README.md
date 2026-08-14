@@ -118,12 +118,18 @@ stockpulse-watchlist/
 │   │   ├── db.ts                  # Prisma client singleton
 │   │   ├── asyncHandler.ts        # wraps async route handlers so errors don't hang
 │   │   ├── watchlistHelper.ts     # shared getOrCreateWatchlist(), used by watchlist + alerts routes
+│   │   ├── auth/
+│   │   │   ├── password.ts        # scrypt hash/verify (+ .test.ts)
+│   │   │   ├── session.ts         # signed session cookie create/verify (+ .test.ts)
+│   │   │   └── middleware.ts      # attachUserId (always runs) + requireAuth (401s if not signed in)
 │   │   ├── routes/
-│   │   │   ├── watchlist.ts               # GET/POST/DELETE, zod-validated (+ .routes.test.ts, real db)
+│   │   │   ├── auth.ts                    # signup/login/logout/me (+ .routes.test.ts, + .ratelimit.test.ts)
+│   │   │   ├── auth.schemas.ts            # email/password schema
+│   │   │   ├── watchlist.ts               # GET/POST/DELETE, zod-validated, requires auth (+ .routes.test.ts, real db)
 │   │   │   ├── watchlist.schemas.ts       # symbol/addItem schemas (+ .test.ts)
 │   │   │   ├── search.ts                  # Massive ticker search proxy + fallback list (+ .routes.test.ts)
 │   │   │   ├── search.schemas.ts          # query schema (+ .test.ts)
-│   │   │   ├── alerts.ts                  # GET/POST/DELETE price alerts (+ .routes.test.ts)
+│   │   │   ├── alerts.ts                  # GET/POST/DELETE price alerts, requires auth (+ .routes.test.ts)
 │   │   │   ├── alerts.schemas.ts          # symbol/threshold/direction schema (+ .test.ts)
 │   │   │   ├── history.ts                 # GET OHLC candles per symbol (+ .routes.test.ts)
 │   │   │   └── history.schemas.ts         # days-range schema (+ .test.ts)
@@ -144,8 +150,8 @@ stockpulse-watchlist/
 │   │   ├── test/
 │   │   │   └── globalSetup.ts     # spins up/tears down prisma/test.db for the route tests
 │   │   └── ws/
-│   │       ├── broadcaster.ts     # WS server: subscribe/unsubscribe, rate + size limits, alert delivery (+ .test.ts)
-│   │       └── testHelpers.ts     # FakePriceFeed, real server/client setup for the broadcaster tests
+│   │       ├── broadcaster.ts     # WS server: subscribe/unsubscribe, rate + size limits, user-scoped alert delivery (+ .test.ts)
+│   │       └── testHelpers.ts     # FakePriceFeed, real server/client setup (connectClient takes an optional session cookie)
 │   ├── prisma/
 │   │   ├── schema.prisma          # Watchlist, WatchlistItem, PriceAlert models
 │   │   └── migrations/
@@ -166,7 +172,8 @@ stockpulse-watchlist/
 │   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator
 │   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon
 │   │   │   ├── AlertToast.tsx           # dismissible toast for fired price alerts
-│   │   │   └── ErrorToast.tsx           # dismissible toast for failed load/add/alert-create
+│   │   │   ├── ErrorToast.tsx           # dismissible toast for failed load/add/alert-create
+│   │   │   └── AuthGate.tsx             # login/signup form, renders in place of the app until signed in
 │   │   ├── hooks/
 │   │   │   ├── useDebouncedValue.ts     # (+ .test.ts)
 │   │   │   ├── useLiveTicks.ts          # WS client: subscribe diffing, reconnect/backoff, alert events (+ .test.ts)
@@ -174,7 +181,7 @@ stockpulse-watchlist/
 │   │   │   ├── useErrorToasts.ts        # generic dismissible/auto-expiring error toast state (+ .test.ts)
 │   │   │   └── useThrottledAnnouncement.ts  # aria-live summary, throttled to 1/8s (+ .test.ts)
 │   │   ├── lib/
-│   │   │   ├── api.ts                   # fetch wrappers for the backend REST API (+ .test.ts)
+│   │   │   ├── api.ts                   # fetch wrappers for the backend REST API, credentials: "include" (+ .test.ts)
 │   │   │   └── ws.ts                    # WS URL resolution
 │   │   └── test/
 │   │       └── setup.ts                 # @testing-library/jest-dom matchers
@@ -263,14 +270,20 @@ You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,
 | Method | Path | Body / Query | Response |
 |---|---|---|---|
 | `GET` | `/health` | — | `{ "status": "ok" }` |
+| `POST` | `/api/auth/signup` | `{ email, password }` | `201` `{ user: { id, email } }` + sets session cookie · `409` if email's taken · `400` on invalid input |
+| `POST` | `/api/auth/login` | `{ email, password }` | `200` `{ user }` + sets session cookie · `401` on bad credentials (same error either way, doesn't reveal which was wrong) |
+| `POST` | `/api/auth/logout` | — | `204`, clears the session cookie |
+| `GET` | `/api/auth/me` | — | `200` `{ user }` · `401` if not signed in |
 | `GET` | `/api/search` | `?q=<string>` | `{ results: [{ symbol, name }], source: "massive" \| "fallback" }` |
-| `GET` | `/api/watchlist` | — | `{ items: [{ id, symbol, name, addedAt }] }` |
-| `POST` | `/api/watchlist` | `{ symbol, name? }` | `201` `{ item }` · `409` if already on the list · `400` on a bad symbol |
-| `DELETE` | `/api/watchlist/:symbol` | — | `204` on success · `404` if it wasn't there |
-| `GET` | `/api/alerts` | — | `{ alerts: [{ id, symbol, threshold, direction, createdAt, triggeredAt }] }` |
-| `POST` | `/api/alerts` | `{ symbol, threshold, direction: "above" \| "below" }` | `201` `{ alert }` · `400` on a bad symbol/threshold/direction |
-| `DELETE` | `/api/alerts/:id` | — | `204` on success · `404` if it wasn't there |
+| `GET` | `/api/watchlist` 🔒 | — | `{ items: [{ id, symbol, name, addedAt }] }` |
+| `POST` | `/api/watchlist` 🔒 | `{ symbol, name? }` | `201` `{ item }` · `409` if already on the list · `400` on a bad symbol |
+| `DELETE` | `/api/watchlist/:symbol` 🔒 | — | `204` on success · `404` if it wasn't there |
+| `GET` | `/api/alerts` 🔒 | — | `{ alerts: [{ id, symbol, threshold, direction, createdAt, triggeredAt }] }` |
+| `POST` | `/api/alerts` 🔒 | `{ symbol, threshold, direction: "above" \| "below" }` | `201` `{ alert }` · `400` on a bad symbol/threshold/direction |
+| `DELETE` | `/api/alerts/:id` 🔒 | — | `204` on success · `404` if it wasn't there (including someone else's alert - same response either way) |
 | `GET` | `/api/history/:symbol` | `?days=<7-365, default 30>` | `{ candles: [{ time, open, high, low, close, volume }], source: "massive" \| "simulated" }` |
+
+🔒 = requires a signed-in session (`401` otherwise). `/api/search` and `/api/history` stay open since they're not user-specific data.
 
 ### WebSocket (`/ws`)
 
@@ -287,7 +300,7 @@ You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,
 { "type": "error", "message": "Max 30 symbols per connection" }
 ```
 
-Alerts are one-shot — once fired, an alert won't fire again on later ticks unless removed and re-created. They're evaluated per tick against every still-active alert on that symbol and pushed to every client currently subscribed to it, not just the one that created the alert.
+Alerts are one-shot — once fired, an alert won't fire again on later ticks unless removed and re-created. They're evaluated per tick against every still-active alert on that symbol, but only pushed to connection(s) belonging to the user who created that specific alert - not to every client subscribed to the symbol. Connecting with a valid session cookie (sent automatically by the browser, same as any other request to the API's origin) is what makes a connection eligible to receive alerts at all; an unauthenticated connection still gets ticks, just never alerts.
 
 Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message size — see [Security notes](#-security-notes).
 
@@ -299,17 +312,19 @@ Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message s
 | `MASSIVE_API_KEY` | no | — | app runs on the simulated feed without it; free tier is rate-limited (5 REST calls/min) and doesn't include real-time WS |
 | `DATABASE_URL` | in production | `file:./prisma/dev.db` outside production | SQLite connection string |
 | `FRONTEND_ORIGIN` | in production | `http://localhost:5173` outside production | locks down CORS to this origin |
+| `SESSION_SECRET` | in production | a fixed dev-only value outside production | signs the session cookie (see [Security notes](#-security-notes)) |
 
 `backend/.env` is gitignored, and no `.env` file of any kind — not even an example/template with blank values — is committed to this repo, to keep the risk surface at zero. The API key never reaches the frontend; all Massive calls happen server-side.
 
-`DATABASE_URL` and `FRONTEND_ORIGIN` only fall back to their dev defaults when `NODE_ENV` isn't `production`. With `NODE_ENV=production` set, a missing value for either throws at startup instead of silently booting against the wrong database or CORS origin — see `backend/src/env.ts`.
+`DATABASE_URL`, `FRONTEND_ORIGIN`, and `SESSION_SECRET` only fall back to their dev defaults when `NODE_ENV` isn't `production`. With `NODE_ENV=production` set, a missing value for any of the three throws at startup instead of silently booting against the wrong database/CORS origin, or - worse, for `SESSION_SECRET` - with a fixed, publicly-known signing key that would let anyone forge a session cookie. See `backend/src/env.ts`.
 
 ## 🔒 Security notes
 
-- **Secrets**: `MASSIVE_API_KEY` lives only in `backend/.env` (gitignored). Never sent to the client. No `.env` file of any kind is committed — not even a blank `.env.example` template — and CI actively fails the build if one ever gets tracked, on top of a separate grep-based backstop for anything that looks like a committed key.
+- **Secrets**: `MASSIVE_API_KEY` and `SESSION_SECRET` live only in `backend/.env` (gitignored). Never sent to the client. No `.env` file of any kind is committed — not even a blank `.env.example` template — and CI actively fails the build if one ever gets tracked, on top of a separate grep-based backstop for anything that looks like a committed key.
+- **Auth**: passwords are hashed with Node's built-in `crypto.scrypt` (random salt per password, `timingSafeEqual` for the comparison) — not bcrypt/argon2, to avoid a native-binding dependency on top of the one this project already has a Vite 8 headache with. Sessions are an HMAC-SHA256-signed `httpOnly` cookie (`SameSite=Lax`, `Secure` when `FRONTEND_ORIGIN` is https) containing just the user id — tamper-evident, not encrypted, since there's nothing sensitive in the payload beyond an opaque id. Login/signup return the same generic error either way so a failed attempt can't be used to enumerate registered emails, and sit behind a tighter rate limit (10/min) than the general API limit. `/api/watchlist` and `/api/alerts` require a valid session and are scoped to the signed-in user; the WS broadcaster resolves the same session cookie on the raw upgrade request (outside the Express middleware chain) so price-alert notifications go only to the alert's owner, never to every client subscribed to that symbol.
 - **Input validation**: every REST endpoint validates its input with `zod` before touching Prisma or building a Massive URL. WebSocket subscribe/unsubscribe messages are validated the same way.
-- **Rate limiting**: `express-rate-limit` on all `/api` routes (60 req/min); the WS broadcaster caps each connection at 30 subscribed symbols, 60 messages/min, and a 2KB max message size, so one misbehaving client can't exhaust server resources.
-- **Headers/CORS**: `helmet` for standard security headers; CORS locked to `FRONTEND_ORIGIN`, no wildcard.
+- **Rate limiting**: `express-rate-limit` on all `/api` routes (60 req/min, 10/min on `/api/auth`); the WS broadcaster caps each connection at 30 subscribed symbols, 60 messages/min, and a 2KB max message size, so one misbehaving client can't exhaust server resources.
+- **Headers/CORS**: `helmet` for standard security headers; CORS locked to `FRONTEND_ORIGIN` with `credentials: true` (needed for the session cookie), no wildcard.
 - **Dependencies**: lockfiles committed for both workspaces. `npm audit` is clean on runtime dependencies. The frontend has one known, accepted exception — see below. (This actually caught something for real once: CI's audit step failed on a previously-untouched backend commit when a new high-severity advisory landed against a transitive test-tooling dependency — `npm audit` checks live against the advisory database, not just the lockfile, so a clean pipeline can go red with zero code changes if something upstream gets flagged. Patched via `npm audit fix` the same day.)
 - **CI**: `.github/workflows/ci.yml` runs typecheck + build + tests (backend) + `npm audit` + a secret-pattern grep on every push/PR for both workspaces.
 - **Type safety**: `noUnusedLocals`/`noUnusedParameters` enabled on both `tsconfig.json`s so dead imports/params fail typecheck instead of silently piling up. Prisma error handling uses `instanceof Prisma.PrismaClientKnownRequestError` checks, not untyped `catch (err: any)`.
