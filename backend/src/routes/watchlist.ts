@@ -4,6 +4,7 @@ import { prisma } from "../db";
 import { asyncHandler } from "../asyncHandler";
 import { symbolSchema, addItemSchema } from "./watchlist.schemas";
 import { getOrCreateWatchlist } from "../watchlistHelper";
+import { MAX_SYMBOLS_PER_CLIENT } from "../wsLimits";
 
 const router = Router();
 
@@ -23,6 +24,13 @@ router.post("/", asyncHandler(async (req, res) => {
   }
 
   const watchlist = await getOrCreateWatchlist(req.userId!);
+
+  const itemCount = await prisma.watchlistItem.count({ where: { watchlistId: watchlist.id } });
+  if (itemCount >= MAX_SYMBOLS_PER_CLIENT) {
+    return res.status(409).json({
+      error: `Watchlist is full — a single connection can only track ${MAX_SYMBOLS_PER_CLIENT} tickers at once. Remove one before adding another.`,
+    });
+  }
 
   try {
     const item = await prisma.watchlistItem.create({

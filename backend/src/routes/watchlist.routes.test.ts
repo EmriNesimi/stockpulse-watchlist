@@ -87,6 +87,23 @@ describe("POST /api/watchlist", () => {
     // Same symbol, different user - not a 409, since it's a different watchlist.
     expect(res.status).toBe(201);
   });
+
+  it("caps a watchlist at MAX_SYMBOLS_PER_CLIENT items", async () => {
+    // 30 distinct, schema-valid two-letter symbols: AA..AZ, then BA..BD (30 total).
+    const symbols = Array.from({ length: 30 }, (_, i) => String.fromCharCode(65 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
+
+    for (const symbol of symbols) {
+      const res = await agent.post("/api/watchlist").send({ symbol });
+      expect(res.status).toBe(201);
+    }
+
+    const res = await agent.post("/api/watchlist").send({ symbol: "ZZ" });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/watchlist is full/i);
+
+    const list = await agent.get("/api/watchlist");
+    expect(list.body.items).toHaveLength(30); // the 31st never got inserted
+  });
 });
 
 describe("DELETE /api/watchlist/:symbol", () => {

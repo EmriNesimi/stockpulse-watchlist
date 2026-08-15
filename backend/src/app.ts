@@ -27,12 +27,17 @@ export function createApp() {
   app.use(attachUserId);
 
   // Generous but real limits — this is a portfolio project, not a public API,
-  // but the search/watchlist routes still shouldn't be hammerable.
+  // but the search/watchlist routes still shouldn't be hammerable. Skipped
+  // under test for the same reason as authLimiter below: route test files
+  // share one app instance across well more than 60 requests for reasons
+  // that have nothing to do with rate limiting (e.g. the watchlist-cap test
+  // alone makes 31 requests).
   const apiLimiter = rateLimit({
     windowMs: 60_000,
     limit: 60,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: () => process.env.NODE_ENV === "test",
   });
   app.use("/api", apiLimiter);
 
