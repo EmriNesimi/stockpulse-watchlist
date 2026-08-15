@@ -11,6 +11,7 @@ import {
   getCurrentUser,
   login,
   logout,
+  verifyEmail,
 } from "./lib/api";
 import type { WatchlistItem } from "./lib/api";
 
@@ -32,6 +33,7 @@ vi.mock("./lib/api", () => ({
   signup: vi.fn(),
   login: vi.fn(),
   logout: vi.fn(),
+  verifyEmail: vi.fn(),
 }));
 
 // Matches the browser WebSocket API — same shape as useLiveTicks.test.ts's
@@ -98,6 +100,8 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue({ user: { id: "u1", email: "trader@example.com", emailVerified: true } });
   vi.mocked(logout).mockReset().mockResolvedValue(undefined);
+  vi.mocked(verifyEmail).mockReset();
+  window.history.replaceState({}, "", "/");
 });
 
 afterEach(() => {
@@ -586,5 +590,69 @@ describe("App — signing out and a different user signing in", () => {
 
     await waitFor(() => expect(screen.getByText("other@example.com")).toBeInTheDocument());
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});
+
+describe("App — verify-email link", () => {
+  it("consumes a ?token= in the URL and shows a success notice on the auth gate", async () => {
+    vi.mocked(getCurrentUser).mockRejectedValue(new Error("Not signed in"));
+    vi.mocked(verifyEmail).mockResolvedValue({
+      user: { id: "u9", email: "verify@example.com", emailVerified: true },
+    });
+    window.history.replaceState({}, "", "/?token=abc123");
+
+    render(<App />);
+
+    await waitFor(() => expect(verifyEmail).toHaveBeenCalledWith("abc123"));
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Email verified — you can log in now.")
+    );
+  });
+
+  it("strips the token from the URL so a refresh doesn't re-consume it", async () => {
+    vi.mocked(getCurrentUser).mockRejectedValue(new Error("Not signed in"));
+    vi.mocked(verifyEmail).mockResolvedValue({
+      user: { id: "u9", email: "verify@example.com", emailVerified: true },
+    });
+    window.history.replaceState({}, "", "/?token=abc123");
+
+    render(<App />);
+
+    await waitFor(() => expect(verifyEmail).toHaveBeenCalled());
+    expect(window.location.search).toBe("");
+  });
+
+  it("shows an error notice when the token is invalid or expired", async () => {
+    vi.mocked(getCurrentUser).mockRejectedValue(new Error("Not signed in"));
+    vi.mocked(verifyEmail).mockRejectedValue(new Error("That verification link is invalid or has expired"));
+    window.history.replaceState({}, "", "/?token=bad-token");
+
+    render(<App />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("That verification link is invalid or has expired")
+    );
+  });
+
+  it("does nothing when there's no token in the URL", async () => {
+    vi.mocked(getCurrentUser).mockRejectedValue(new Error("Not signed in"));
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByRole("form", { name: "Log in" })).toBeInTheDocument());
+    expect(verifyEmail).not.toHaveBeenCalled();
+  });
+
+  it("updates the already-signed-in user's emailVerified flag when the token matches their account", async () => {
+    vi.mocked(verifyEmail).mockResolvedValue({
+      user: { id: "u1", email: "trader@example.com", emailVerified: true },
+    });
+    window.history.replaceState({}, "", "/?token=abc123");
+
+    render(<App />);
+
+    await waitFor(() => expect(verifyEmail).toHaveBeenCalled());
+    // getCurrentUser's default mock (see beforeEach) is user "u1", same id
+    // the token verifies - the Dashboard should render, not the auth gate.
+    await waitFor(() => expect(screen.getByText("trader@example.com")).toBeInTheDocument());
   });
 });
