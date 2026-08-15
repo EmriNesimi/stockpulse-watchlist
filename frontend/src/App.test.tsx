@@ -296,6 +296,23 @@ describe("App — removing from the watchlist", () => {
     await waitFor(() => expect(screen.queryByText("AAPL")).not.toBeInTheDocument());
     expect(screen.getByText("MSFT")).toBeInTheDocument();
   });
+
+  it("re-enables search after removing an item from a full (30-item) watchlist", async () => {
+    const thirtyItems = Array.from({ length: 30 }, (_, i) => watchlistItem({ id: String(i), symbol: `SYM${i}` }));
+    vi.mocked(getWatchlist).mockResolvedValue({ items: thirtyItems });
+    vi.mocked(removeFromWatchlist).mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(screen.getByLabelText(/search for a stock ticker/i)).toBeDisabled());
+
+    await user.click(screen.getByRole("button", { name: "Remove SYM0 from watchlist" }));
+
+    await waitFor(() => expect(screen.getByLabelText(/search for a stock ticker/i)).not.toBeDisabled());
+    expect(screen.getByLabelText(/search for a stock ticker/i)).toHaveAttribute(
+      "placeholder",
+      "Search tickers (e.g. Apple, AAPL)"
+    );
+  });
 });
 
 describe("App — live connection status and price updates", () => {
