@@ -40,7 +40,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 ## ✨ Features
 
 - 🔍 **Ticker search** — type a company name or symbol, get real matches back debounced at 300ms, no page reload.
-- ⭐ **Watchlist** — add/remove tickers, persisted server-side in a real database (not `localStorage`), so it survives a refresh or a new browser.
+- ⭐ **Watchlist** — add/remove tickers, persisted server-side in a real database (not `localStorage`), so it survives a refresh or a new browser. Capped at 30 tickers — the same limit a single WebSocket connection can ever subscribe to — with the search box disabling itself and explaining why once you hit it, instead of letting you add a 31st ticker that could never get a live price.
 - 📡 **Live prices over WebSocket** — every row updates in place as ticks arrive, with a subtle color-and-icon flash on change (never color alone).
 - 📈 **Sparklines** — a rolling 30-point price history per symbol, rendered as inline SVG, no charting library needed for something this small.
 - 🕯️ **Candlestick chart** — click a symbol to expand a full OHLC candlestick chart for the last 30 days, same no-dependency SVG approach as the sparkline.
