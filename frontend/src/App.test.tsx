@@ -348,6 +348,7 @@ describe("App — live connection status and price updates", () => {
 
   it("shows 'Reconnecting…' if the connection drops", async () => {
     render(<App />);
+    await waitFor(() => expect(screen.getByText("Connecting…")).toBeInTheDocument());
     act(() => FakeWebSocket.instances[0].triggerOpen());
     await waitFor(() => expect(screen.getByText("Connected")).toBeInTheDocument());
 
@@ -445,6 +446,7 @@ describe("App — creating a price alert", () => {
 describe("App — receiving fired alerts", () => {
   it("shows a toast when an alert message arrives over the websocket", async () => {
     render(<App />);
+    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
     act(() => FakeWebSocket.instances[0].triggerOpen());
 
     act(() => {
@@ -465,6 +467,7 @@ describe("App — receiving fired alerts", () => {
   it("dismisses the toast when its dismiss button is clicked", async () => {
     const user = userEvent.setup();
     render(<App />);
+    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
     act(() => FakeWebSocket.instances[0].triggerOpen());
     act(() => {
       FakeWebSocket.instances[0].triggerMessage({
@@ -486,6 +489,7 @@ describe("App — receiving fired alerts", () => {
 
   it("shows multiple fired alerts as separate toasts", async () => {
     render(<App />);
+    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
     act(() => FakeWebSocket.instances[0].triggerOpen());
 
     act(() => {
