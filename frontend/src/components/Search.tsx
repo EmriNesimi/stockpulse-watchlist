@@ -20,6 +20,13 @@ export default function Search({ onAdd, alreadyAdded, atCapacity = false }: Sear
   const debouncedQuery = useDebouncedValue(query.trim(), 300);
 
   useEffect(() => {
+    // A disabled input with a non-empty value hides its placeholder, so if
+    // the watchlist fills up while the user has something typed, clear it -
+    // otherwise the "watchlist is full" message never actually shows.
+    if (atCapacity) setQuery("");
+  }, [atCapacity]);
+
+  useEffect(() => {
     if (!debouncedQuery) {
       setResults([]);
       setStatus("idle");

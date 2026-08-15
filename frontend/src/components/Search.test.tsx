@@ -137,6 +137,22 @@ describe("Search", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
+  it("clears an in-progress query when the watchlist fills up mid-typing", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<Search onAdd={vi.fn()} alreadyAdded={() => false} atCapacity={false} />);
+
+    const input = screen.getByLabelText(/search for a stock ticker/i);
+    await user.type(input, "apple");
+    expect(input).toHaveValue("apple");
+
+    rerender(<Search onAdd={vi.fn()} alreadyAdded={() => false} atCapacity={true} />);
+
+    // Otherwise the disabled input's non-empty value would hide the
+    // "watchlist is full" placeholder message entirely.
+    expect(input).toHaveValue("");
+    expect(input).toHaveAttribute("placeholder", expect.stringMatching(/watchlist is full/i));
+  });
+
   it("is enabled by default (atCapacity omitted)", () => {
     render(<Search onAdd={vi.fn()} alreadyAdded={() => false} />);
     expect(screen.getByLabelText(/search for a stock ticker/i)).not.toBeDisabled();
