@@ -7,6 +7,8 @@ import ConnectionBadge from "./components/ConnectionBadge";
 import AlertToast from "./components/AlertToast";
 import ErrorToast from "./components/ErrorToast";
 import VerificationBanner from "./components/VerificationBanner";
+import ThemeToggle from "./components/ThemeToggle";
+import type { Theme } from "./hooks/useTheme";
 import { useLiveTicks } from "./hooks/useLiveTicks";
 import { useThrottledAnnouncement } from "./hooks/useThrottledAnnouncement";
 import { useErrorToasts } from "./hooks/useErrorToasts";
@@ -25,13 +27,15 @@ import styles from "./App.module.css";
 interface DashboardProps {
   user: AuthUser;
   onSignOut: () => void;
+  theme: Theme;
+  onToggleTheme: () => void;
 }
 
 // Mounted fresh (see the key={user.id} in App.tsx) every time a different
 // user signs in, so all of this component's state - watchlist items,
 // prices, error toasts, fired-alert toasts - starts clean instead of
 // carrying over stale data from whoever was signed in before.
-export default function Dashboard({ user, onSignOut }: DashboardProps) {
+export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: DashboardProps) {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
   const symbols = useMemo(() => items.map((i) => i.symbol), [items]);
@@ -105,6 +109,7 @@ export default function Dashboard({ user, onSignOut }: DashboardProps) {
               <ChartLineUp size={16} weight="bold" aria-hidden />
             </span>
             <span className={styles.brand}>StockPulse</span>
+            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           </div>
           <ConnectionBadge status={status} />
         </div>
