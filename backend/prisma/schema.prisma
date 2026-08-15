@@ -40,6 +40,12 @@ model WatchlistItem {
   addedAt     DateTime  @default(now())
   watchlistId String
   watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  // Both null by default - most items are just "watching", not "owning".
+  // Both get set together or not at all (enforced at the zod boundary, not
+  // here) so profit/loss is always computable from real numbers a user
+  // actually entered, never a partial or fabricated figure.
+  shares      Float?
+  costBasis   Float? // price per share paid, in dollars
 
   @@unique([watchlistId, symbol])
   @@index([watchlistId])
