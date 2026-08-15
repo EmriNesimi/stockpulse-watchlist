@@ -4,10 +4,13 @@ import Sparkline from "./Sparkline";
 import PriceCell from "./PriceCell";
 import AlertForm from "./AlertForm";
 import CandlestickChart from "./CandlestickChart";
+import TickerAvatar from "./TickerAvatar";
 import { useHistory } from "../hooks/useHistory";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./WatchlistTable.module.css";
+
+const COLUMN_COUNT = 6;
 
 interface WatchlistTableProps {
   items: WatchlistItem[];
@@ -27,6 +30,16 @@ function ChartRow({ symbol }: { symbol: string }) {
   );
 }
 
+// The rolling tick history each row already tracks (for the sparkline) also
+// gives us a real intraday-session range for free - no extra API call, and
+// no invented 52-week-high/low we don't actually have data for.
+function sessionRange(history: number[] | undefined): string {
+  if (!history || history.length < 2) return "—";
+  const low = Math.min(...history);
+  const high = Math.max(...history);
+  return `$${low.toFixed(2)} – $${high.toFixed(2)}`;
+}
+
 export default function WatchlistTable({ items, prices, loading = false, onRemove, onCreateAlert }: WatchlistTableProps) {
   const [alertFormSymbol, setAlertFormSymbol] = useState<string | null>(null);
   const [chartSymbol, setChartSymbol] = useState<string | null>(null);
@@ -44,109 +57,122 @@ export default function WatchlistTable({ items, prices, loading = false, onRemov
   }
 
   return (
-    <table className={styles.table}>
-      <thead>
-        <tr className={styles.headerRow}>
-          <th className={styles.th}>Symbol</th>
-          <th className={styles.th}>Price</th>
-          <th className={styles.th}>Change</th>
-          <th className={styles.th}>Trend</th>
-          <th className={styles.th} />
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((item) => {
-          const state = prices[item.symbol];
-          const bullish = (state?.changePercent ?? 0) >= 0;
-          const alertFormOpen = alertFormSymbol === item.symbol;
-          const chartOpen = chartSymbol === item.symbol;
-          const rowClass = alertFormOpen || chartOpen ? styles.rowNoBorder : styles.row;
+    <div className={styles.card}>
+      <div className={styles.cardHeader}>
+        <span className={styles.cardTitle}>Watchlist</span>
+        <span className={styles.cardCount}>
+          {items.length} {items.length === 1 ? "ticker" : "tickers"}
+        </span>
+      </div>
+      <table className={styles.table}>
+        <thead>
+          <tr className={styles.headerRow}>
+            <th className={styles.th}>Symbol</th>
+            <th className={styles.th}>Price</th>
+            <th className={styles.th}>Change</th>
+            <th className={styles.th}>Session range</th>
+            <th className={styles.th}>Trend</th>
+            <th className={styles.th} />
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => {
+            const state = prices[item.symbol];
+            const bullish = (state?.changePercent ?? 0) >= 0;
+            const alertFormOpen = alertFormSymbol === item.symbol;
+            const chartOpen = chartSymbol === item.symbol;
+            const rowClass = alertFormOpen || chartOpen ? styles.rowNoBorder : styles.row;
 
-          return (
-            <Fragment key={item.id}>
-              <tr className={rowClass}>
-                <td className={styles.td}>
-                  <button
-                    onClick={() => {
-                      setChartSymbol(chartOpen ? null : item.symbol);
-                      setAlertFormSymbol(null);
-                    }}
-                    aria-label={`${chartOpen ? "Hide" : "Show"} price chart for ${item.symbol}`}
-                    aria-expanded={chartOpen}
-                    className={styles.symbolButton}
-                  >
-                    <strong className={`tabular-nums ${styles.symbolText}`}>{item.symbol}</strong>
-                    <div className={styles.symbolName}>{item.name}</div>
-                  </button>
-                </td>
-                <td className={styles.td}>
-                  <PriceCell state={state} />
-                </td>
-                <td
-                  className={`tabular-nums ${styles.changeCell} ${
-                    state ? (bullish ? styles.changeBullish : styles.changeBearish) : ""
-                  }`}
-                >
-                  {state ? (
-                    <>
-                      {bullish ? <TrendUp size={16} aria-hidden /> : <TrendDown size={16} aria-hidden />}
-                      {bullish ? "+" : ""}
-                      {state.changePercent.toFixed(2)}%
-                    </>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className={styles.td}>
-                  <Sparkline values={state?.history ?? []} bullish={bullish} />
-                </td>
-                <td className={styles.actionsCell}>
-                  <button
-                    onClick={() => {
-                      setAlertFormSymbol(alertFormOpen ? null : item.symbol);
-                      setChartSymbol(null);
-                    }}
-                    aria-label={`Set a price alert for ${item.symbol}`}
-                    aria-expanded={alertFormOpen}
-                    className={`${styles.iconButton} ${alertFormOpen ? styles.iconButtonActive : ""}`}
-                  >
-                    <Bell size={18} weight={alertFormOpen ? "fill" : "regular"} aria-hidden />
-                  </button>
-                  <button
-                    onClick={() => onRemove(item.symbol)}
-                    aria-label={`Remove ${item.symbol} from watchlist`}
-                    className={styles.iconButton}
-                  >
-                    <X size={18} aria-hidden />
-                  </button>
-                </td>
-              </tr>
-              {alertFormOpen && (
-                <tr className={chartOpen ? styles.rowNoBorder : styles.row}>
-                  <td colSpan={5} className={styles.expandedCell}>
-                    <AlertForm
-                      symbol={item.symbol}
-                      defaultThreshold={state?.price}
-                      onSubmit={(threshold, direction) => {
-                        onCreateAlert(item.symbol, threshold, direction);
+            return (
+              <Fragment key={item.id}>
+                <tr className={rowClass}>
+                  <td className={styles.td}>
+                    <button
+                      onClick={() => {
+                        setChartSymbol(chartOpen ? null : item.symbol);
                         setAlertFormSymbol(null);
                       }}
-                      onCancel={() => setAlertFormSymbol(null)}
-                    />
+                      aria-label={`${chartOpen ? "Hide" : "Show"} price chart for ${item.symbol}`}
+                      aria-expanded={chartOpen}
+                      className={styles.symbolButton}
+                    >
+                      <TickerAvatar symbol={item.symbol} />
+                      <span>
+                        <strong className={`tabular-nums ${styles.symbolText}`}>{item.symbol}</strong>
+                        <div className={styles.symbolName}>{item.name}</div>
+                      </span>
+                    </button>
+                  </td>
+                  <td className={styles.td}>
+                    <PriceCell state={state} />
+                  </td>
+                  <td
+                    className={`tabular-nums ${styles.changeCell} ${
+                      state ? (bullish ? styles.changeBullish : styles.changeBearish) : ""
+                    }`}
+                  >
+                    {state ? (
+                      <>
+                        {bullish ? <TrendUp size={16} aria-hidden /> : <TrendDown size={16} aria-hidden />}
+                        {bullish ? "+" : ""}
+                        {state.changePercent.toFixed(2)}%
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className={`tabular-nums ${styles.td} ${styles.rangeCell}`}>{sessionRange(state?.history)}</td>
+                  <td className={styles.td}>
+                    <Sparkline values={state?.history ?? []} bullish={bullish} />
+                  </td>
+                  <td className={styles.actionsCell}>
+                    <button
+                      onClick={() => {
+                        setAlertFormSymbol(alertFormOpen ? null : item.symbol);
+                        setChartSymbol(null);
+                      }}
+                      aria-label={`Set a price alert for ${item.symbol}`}
+                      aria-expanded={alertFormOpen}
+                      className={`${styles.iconButton} ${alertFormOpen ? styles.iconButtonActive : ""}`}
+                    >
+                      <Bell size={18} weight={alertFormOpen ? "fill" : "regular"} aria-hidden />
+                    </button>
+                    <button
+                      onClick={() => onRemove(item.symbol)}
+                      aria-label={`Remove ${item.symbol} from watchlist`}
+                      className={styles.iconButton}
+                    >
+                      <X size={18} aria-hidden />
+                    </button>
                   </td>
                 </tr>
-              )}
-              {chartOpen && (
-                <tr className={styles.row}>
-                  <td colSpan={5} className={styles.expandedCell}>
-                    <ChartRow symbol={item.symbol} />
-                  </td>
-                </tr>
-              )}
-            </Fragment>
-          );
-        })}
-      </tbody>
-    </table>
+                {alertFormOpen && (
+                  <tr className={chartOpen ? styles.rowNoBorder : styles.row}>
+                    <td colSpan={COLUMN_COUNT} className={styles.expandedCell}>
+                      <AlertForm
+                        symbol={item.symbol}
+                        defaultThreshold={state?.price}
+                        onSubmit={(threshold, direction) => {
+                          onCreateAlert(item.symbol, threshold, direction);
+                          setAlertFormSymbol(null);
+                        }}
+                        onCancel={() => setAlertFormSymbol(null)}
+                      />
+                    </td>
+                  </tr>
+                )}
+                {chartOpen && (
+                  <tr className={styles.row}>
+                    <td colSpan={COLUMN_COUNT} className={styles.expandedCell}>
+                      <ChartRow symbol={item.symbol} />
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
