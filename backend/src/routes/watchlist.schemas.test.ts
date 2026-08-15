@@ -55,4 +55,12 @@ describe("addItemSchema", () => {
     const result = addItemSchema.safeParse({ symbol: "AAPL", name: "x".repeat(201) });
     expect(result.success).toBe(false);
   });
+
+  it("rejects an empty-string name instead of silently accepting it", () => {
+    expect(addItemSchema.safeParse({ symbol: "AAPL", name: "" }).success).toBe(false);
+  });
+
+  it("rejects a whitespace-only name", () => {
+    expect(addItemSchema.safeParse({ symbol: "AAPL", name: "   " }).success).toBe(false);
+  });
 });
