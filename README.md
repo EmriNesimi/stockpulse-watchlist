@@ -218,7 +218,7 @@ Font: **Inter**. Icons: **Phosphor** (`@phosphor-icons/react`), no emoji in the 
 
 ## 🚀 Setup
 
-Requires Node 20+.
+Requires Node ≥20.19.0 (or ≥22.12.0) — that's what Vite 8/Rolldown need. A `.nvmrc` is committed at the repo root; run `nvm use` to pick it up automatically.
 
 ```bash
 # backend
@@ -325,26 +325,13 @@ Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message s
 ## 🔒 Security notes
 
 - **Secrets**: `MASSIVE_API_KEY` and `SESSION_SECRET` live only in `backend/.env` (gitignored). Never sent to the client. No `.env` file of any kind is committed — not even a blank `.env.example` template — and CI actively fails the build if one ever gets tracked, on top of a separate grep-based backstop for anything that looks like a committed key.
-- **Auth**: passwords are hashed with Node's built-in `crypto.scrypt` (random salt per password, `timingSafeEqual` for the comparison) — not bcrypt/argon2, to avoid a native-binding dependency on top of the one this project already has a Vite 8 headache with. Sessions are an HMAC-SHA256-signed `httpOnly` cookie (`SameSite=Lax`, `Secure` when `FRONTEND_ORIGIN` is https) containing just the user id — tamper-evident, not encrypted, since there's nothing sensitive in the payload beyond an opaque id. Login/signup return the same generic error either way so a failed attempt can't be used to enumerate registered emails, and sit behind a tighter rate limit (10/min) than the general API limit. `/api/watchlist` and `/api/alerts` require a valid session and are scoped to the signed-in user; the WS broadcaster resolves the same session cookie on the raw upgrade request (outside the Express middleware chain) so price-alert notifications go only to the alert's owner, never to every client subscribed to that symbol.
+- **Auth**: passwords are hashed with Node's built-in `crypto.scrypt` (random salt per password, `timingSafeEqual` for the comparison) — not bcrypt/argon2, to avoid a native-binding dependency (this project has had enough native-binding trouble already, see the Vite 8/Rolldown note in the roadmap). Sessions are an HMAC-SHA256-signed `httpOnly` cookie (`SameSite=Lax`, `Secure` when `FRONTEND_ORIGIN` is https) containing just the user id — tamper-evident, not encrypted, since there's nothing sensitive in the payload beyond an opaque id. Login/signup return the same generic error either way so a failed attempt can't be used to enumerate registered emails, and sit behind a tighter rate limit (10/min) than the general API limit. `/api/watchlist` and `/api/alerts` require a valid session and are scoped to the signed-in user; the WS broadcaster resolves the same session cookie on the raw upgrade request (outside the Express middleware chain) so price-alert notifications go only to the alert's owner, never to every client subscribed to that symbol.
 - **Input validation**: every REST endpoint validates its input with `zod` before touching Prisma or building a Massive URL. WebSocket subscribe/unsubscribe messages are validated the same way.
 - **Rate limiting**: `express-rate-limit` on all `/api` routes (60 req/min, 10/min on `/api/auth`, both skipped under `NODE_ENV=test` since the route test files share one app instance across far more requests than either limit allows — see `auth.ratelimit.test.ts` for a test that exercises the real limiter with `NODE_ENV` overridden back); the WS broadcaster caps each connection at 30 subscribed symbols, 60 messages/min, and a 2KB max message size, so one misbehaving client can't exhaust server resources. `POST /api/watchlist` enforces that same 30-symbol number as a hard cap on watchlist size (`409` past it) — without it, a user could add more tickers than a WS connection can ever subscribe to, and the broadcaster would reject the *entire* subscribe batch, not just the extras, silently breaking live prices for their whole watchlist.
 - **Headers/CORS**: `helmet` for standard security headers; CORS locked to `FRONTEND_ORIGIN` with `credentials: true` (needed for the session cookie), no wildcard.
-- **Dependencies**: lockfiles committed for both workspaces. `npm audit` is clean on runtime dependencies. The frontend has one known, accepted exception — see below. (This actually caught something for real once: CI's audit step failed on a previously-untouched backend commit when a new high-severity advisory landed against a transitive test-tooling dependency — `npm audit` checks live against the advisory database, not just the lockfile, so a clean pipeline can go red with zero code changes if something upstream gets flagged. Patched via `npm audit fix` the same day.)
+- **Dependencies**: lockfiles committed for both workspaces. `npm audit` is clean on both — the frontend used to carry an accepted set of Vite/esbuild dev-server-only advisories, resolved by the Vite 8 upgrade below rather than left as a permanent exception. (Audit actually caught something for real once, separately: CI's audit step failed on a previously-untouched backend commit when a new high-severity advisory landed against a transitive test-tooling dependency — `npm audit` checks live against the advisory database, not just the lockfile, so a clean pipeline can go red with zero code changes if something upstream gets flagged. Patched via `npm audit fix` the same day.)
 - **CI**: `.github/workflows/ci.yml` runs typecheck + build + tests (backend) + `npm audit` + a secret-pattern grep on every push/PR for both workspaces.
 - **Type safety**: `noUnusedLocals`/`noUnusedParameters` enabled on both `tsconfig.json`s so dead imports/params fail typecheck instead of silently piling up. Prisma error handling uses `instanceof Prisma.PrismaClientKnownRequestError` checks, not untyped `catch (err: any)`.
-
-<details>
-<summary><strong>Known accepted risk: Vite/esbuild dev-server advisories (click to expand)</strong></summary>
-
-<br />
-
-`npm audit` on the frontend flags a handful of advisories against `vite`/`esbuild` (path traversal and `fs.deny` bypass in Vite's *local dev server*, plus an esbuild dev-server CORS issue). These are:
-
-- Dev-server-only — they don't affect the production build output that actually ships.
-- devDependencies, excluded from CI's audit step via `npm audit --omit=dev`.
-- Not cleanly fixable right now: the only fix Vite offers is a major-version jump to Vite 8, which uses a new Rolldown-based bundler that currently fails to build on this project's Node version (missing a native binding, `rolldown-binding.darwin-universal.node` not found). Tracked for revisiting once Vite 8 stabilizes.
-
-</details>
 
 ## 🗺️ Roadmap
 
@@ -360,7 +347,7 @@ Things that would make sense to add next, roughly in order of value:
 - [x] ~~Frontend component test coverage~~ — done: every component has rendering/interaction tests (`Search`, `WatchlistTable`, `AlertForm`, `AlertToast`, `Sparkline`, `PriceCell`, `ConnectionBadge`).
 - [x] ~~App.tsx integration coverage~~ — done: a dedicated integration suite mounts the real component tree (nothing but the API client and the WebSocket global are faked) and exercises the actual flows a user would hit — load, search/add, remove/rollback, live status and prices, alert create and receive. Frontend testing is now complete top to bottom: hooks → API client → components → App wiring.
 - [x] ~~Swap the frontend's inline styles for a proper CSS approach~~ — done: every component moved from inline `style={{...}}` objects to a co-located `.module.css` file (CSS Modules, not Tailwind — smaller diff against the existing design-token setup, no new build tooling). Dynamic styling (flash-on-tick, bullish/bearish color, open/active states) became conditional class names instead of inline style objects. A few component tests that had asserted on inline `style.backgroundColor` now assert on the module's exported class names instead, since jsdom doesn't compute real CSS from scoped classes.
-- [ ] Revisit the Vite 8 upgrade once its Rolldown bundler stabilizes on this toolchain (see the accepted-risk note above).
+- [x] ~~Revisit the Vite 8 upgrade~~ — done: the actual blocker was Rolldown needing Node ≥20.19.0 while the dev machine was on 20.12.2, not Vite 8 itself. A minor Node bump (via `nvm`, see `.nvmrc`) unblocked it — Vite 5→8, Vitest 3→4, and `@vitejs/plugin-react` 4→6 all went through with zero config changes, all tests green, and the production build got noticeably faster (~2.7s → ~0.3s) now that Rolldown does the bundling.
 
 ## 🧰 Tech stack
 
