@@ -118,6 +118,7 @@ stockpulse-watchlist/
 │   │   ├── db.ts                  # Prisma client singleton
 │   │   ├── asyncHandler.ts        # wraps async route handlers so errors don't hang
 │   │   ├── watchlistHelper.ts     # shared getOrCreateWatchlist(), used by watchlist + alerts routes
+│   │   ├── wsLimits.ts            # MAX_SYMBOLS_PER_CLIENT (30) - shared between the WS broadcaster and the watchlist size cap
 │   │   ├── auth/
 │   │   │   ├── password.ts        # scrypt hash/verify (+ .test.ts)
 │   │   │   ├── session.ts         # signed session cookie create/verify (+ .test.ts)
@@ -158,7 +159,9 @@ stockpulse-watchlist/
 │   └── vitest.config.ts
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx                      # (+ .test.tsx, .module.css — integration suite, real component tree)
+│   │   ├── App.tsx                      # auth-status gate only — checking/AuthGate/Dashboard (+ .test.tsx, integration suite)
+│   │   ├── Dashboard.tsx                # everything post-login (watchlist, prices, toasts) — remounted per key={user.id} on sign-in
+│   │   ├── App.module.css               # Dashboard's layout styles (header/main/sign-out button)
 │   │   ├── main.tsx
 │   │   ├── types.ts                     # shared PriceState type
 │   │   ├── index.css                    # global styles, tabular-nums, sr-only, reduced-motion
@@ -182,7 +185,8 @@ stockpulse-watchlist/
 │   │   │   └── useThrottledAnnouncement.ts  # aria-live summary, throttled to 1/8s (+ .test.ts)
 │   │   ├── lib/
 │   │   │   ├── api.ts                   # fetch wrappers for the backend REST API, credentials: "include" (+ .test.ts)
-│   │   │   └── ws.ts                    # WS URL resolution
+│   │   │   ├── ws.ts                    # WS URL resolution
+│   │   │   └── limits.ts                # MAX_WATCHLIST_SYMBOLS (30) - mirrors backend/src/wsLimits.ts
 │   │   └── test/
 │   │       └── setup.ts                 # @testing-library/jest-dom matchers
 │   └── vite.config.ts, vitest.config.ts
@@ -276,7 +280,7 @@ You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,
 | `GET` | `/api/auth/me` | — | `200` `{ user }` · `401` if not signed in |
 | `GET` | `/api/search` | `?q=<string>` | `{ results: [{ symbol, name }], source: "massive" \| "fallback" }` |
 | `GET` | `/api/watchlist` 🔒 | — | `{ items: [{ id, symbol, name, addedAt }] }` |
-| `POST` | `/api/watchlist` 🔒 | `{ symbol, name? }` | `201` `{ item }` · `409` if already on the list · `400` on a bad symbol |
+| `POST` | `/api/watchlist` 🔒 | `{ symbol, name? }` | `201` `{ item }` · `409` if already on the list or the watchlist is at its 30-ticker cap · `400` on a bad symbol |
 | `DELETE` | `/api/watchlist/:symbol` 🔒 | — | `204` on success · `404` if it wasn't there |
 | `GET` | `/api/alerts` 🔒 | — | `{ alerts: [{ id, symbol, threshold, direction, createdAt, triggeredAt }] }` |
 | `POST` | `/api/alerts` 🔒 | `{ symbol, threshold, direction: "above" \| "below" }` | `201` `{ alert }` · `400` on a bad symbol/threshold/direction |
