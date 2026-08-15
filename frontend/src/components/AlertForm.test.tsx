@@ -52,6 +52,28 @@ describe("AlertForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it("does not submit a threshold over the $10M sanity ceiling", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<AlertForm symbol="AAPL" onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+    await user.type(screen.getByLabelText("Price threshold for AAPL alert"), "10000001");
+    await user.click(screen.getByRole("button", { name: "Set" }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("submits a threshold right at the $10M sanity ceiling", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<AlertForm symbol="AAPL" onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+    await user.type(screen.getByLabelText("Price threshold for AAPL alert"), "10000000");
+    await user.click(screen.getByRole("button", { name: "Set" }));
+
+    expect(onSubmit).toHaveBeenCalledWith(10_000_000, "above");
+  });
+
   it("calls onCancel when the cancel button is clicked", async () => {
     const user = userEvent.setup();
     const onCancel = vi.fn();

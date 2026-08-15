@@ -2,6 +2,11 @@ import { useState } from "react";
 import { X } from "@phosphor-icons/react";
 import styles from "./AlertForm.module.css";
 
+// Mirrors MAX_THRESHOLD in backend/src/routes/alerts.schemas.ts - keeping
+// this in sync means a too-large value gets caught here instead of round-
+// tripping to the server just to bounce off the same cap.
+const MAX_THRESHOLD = 10_000_000;
+
 interface AlertFormProps {
   symbol: string;
   defaultThreshold?: number;
@@ -16,7 +21,7 @@ export default function AlertForm({ symbol, defaultThreshold, onSubmit, onCancel
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsed = Number(threshold);
-    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > MAX_THRESHOLD) return;
     onSubmit(parsed, direction);
   }
 
@@ -37,6 +42,7 @@ export default function AlertForm({ symbol, defaultThreshold, onSubmit, onCancel
         inputMode="decimal"
         step="0.01"
         min="0.01"
+        max={MAX_THRESHOLD}
         value={threshold}
         onChange={(e) => setThreshold(e.target.value)}
         placeholder="200.00"
