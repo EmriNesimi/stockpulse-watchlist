@@ -1,0 +1,10 @@
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  color: var(--color-on-primary);
+  letter-spacing: -0.02em;
+}
