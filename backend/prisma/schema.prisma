@@ -8,10 +8,16 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
+  id                       String    @id @default(cuid())
+  email                    String    @unique
+  passwordHash             String
+  createdAt                DateTime  @default(now())
+  // Signup doesn't block on verification - the account works immediately,
+  // this just tracks whether the email's been confirmed yet for the banner/
+  // resend flow. Token is a single-use random value, cleared on verify.
+  emailVerifiedAt          DateTime?
+  verificationToken        String?   @unique
+  verificationTokenExpires DateTime?
 }
 
 // userId isn't a Prisma relation to User.id on purpose - it's kept as a
