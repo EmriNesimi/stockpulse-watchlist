@@ -103,4 +103,83 @@ describe("GET /api/auth/me", () => {
     const res = await request(app).get("/api/auth/me").set("Cookie", "stockpulse_session=fake.notarealsignature");
     expect(res.status).toBe(401);
   });
+
+  it("reports emailVerified: false right after signup", async () => {
+    const agent = request.agent(app);
+    await agent.post("/api/auth/signup").send({ email: "unverified@example.com", password: "hunter22" });
+
+    const res = await agent.get("/api/auth/me");
+    expect(res.body.user.emailVerified).toBe(false);
+  });
+});
+
+describe("GET /api/auth/verify-email", () => {
+  it("verifies the account with a valid token and clears it (single-use)", async () => {
+    const agent = request.agent(app);
+    await agent.post("/api/auth/signup").send({ email: "verifyme@example.com", password: "hunter22" });
+    const stored = await prisma.user.findUniqueOrThrow({ where: { email: "verifyme@example.com" } });
+
+    const res = await request(app).get(`/api/auth/verify-email?token=${stored.verificationToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.user.emailVerified).toBe(true);
+
+    const meRes = await agent.get("/api/auth/me");
+    expect(meRes.body.user.emailVerified).toBe(true);
+
+    // Using the same token again fails - it was cleared on first use.
+    const reuse = await request(app).get(`/api/auth/verify-email?token=${stored.verificationToken}`);
+    expect(reuse.status).toBe(400);
+  });
+
+  it("rejects a garbage token", async () => {
+    const res = await request(app).get("/api/auth/verify-email?token=not-a-real-token");
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a missing token", async () => {
+    const res = await request(app).get("/api/auth/verify-email");
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an expired token", async () => {
+    const agent = request.agent(app);
+    await agent.post("/api/auth/signup").send({ email: "expired@example.com", password: "hunter22" });
+    const stored = await prisma.user.findUniqueOrThrow({ where: { email: "expired@example.com" } });
+    await prisma.user.update({
+      where: { id: stored.id },
+      data: { verificationTokenExpires: new Date(Date.now() - 1000) },
+    });
+
+    const res = await request(app).get(`/api/auth/verify-email?token=${stored.verificationToken}`);
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/auth/resend-verification", () => {
+  it("returns 401 without a session", async () => {
+    const res = await request(app).post("/api/auth/resend-verification");
+    expect(res.status).toBe(401);
+  });
+
+  it("issues a fresh token for an unverified user", async () => {
+    const agent = request.agent(app);
+    await agent.post("/api/auth/signup").send({ email: "resend@example.com", password: "hunter22" });
+    const before = await prisma.user.findUniqueOrThrow({ where: { email: "resend@example.com" } });
+
+    const res = await agent.post("/api/auth/resend-verification");
+    expect(res.status).toBe(204);
+
+    const after = await prisma.user.findUniqueOrThrow({ where: { email: "resend@example.com" } });
+    expect(after.verificationToken).not.toBe(before.verificationToken);
+  });
+
+  it("returns 409 if the email is already verified", async () => {
+    const agent = request.agent(app);
+    await agent.post("/api/auth/signup").send({ email: "already-verified@example.com", password: "hunter22" });
+    const stored = await prisma.user.findUniqueOrThrow({ where: { email: "already-verified@example.com" } });
+    await request(app).get(`/api/auth/verify-email?token=${stored.verificationToken}`);
+
+    const res = await agent.post("/api/auth/resend-verification");
+    expect(res.status).toBe(409);
+  });
 });
