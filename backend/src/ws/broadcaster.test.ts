@@ -250,6 +250,21 @@ describe("broadcaster — per-connection symbol cap", () => {
     expect(feed.activeSymbols()).toHaveLength(MAX_SYMBOLS);
   });
 
+  it("rejects a single message that's already over the cap, subscribing to nothing", async () => {
+    const { feed, port } = await setup();
+    const { ws, collector } = await client(port);
+    const symbols = Array.from({ length: MAX_SYMBOLS + 1 }, (_, i) => `SYM${i}`);
+
+    ws.send(JSON.stringify({ action: "subscribe", symbols }));
+
+    const msg = await collector.next();
+    expect(msg).toMatchObject({ type: "error" });
+    await wait(50);
+    // Whole message rejected by the schema (symbols.max(30)) before any
+    // per-symbol subscribe logic runs - not just the symbols past the cap.
+    expect(feed.activeSymbols()).toHaveLength(0);
+  });
+
   it("rejects going over the cap across multiple messages, with an explanatory error", async () => {
     const { port } = await setup();
     const { ws, collector } = await client(port);
