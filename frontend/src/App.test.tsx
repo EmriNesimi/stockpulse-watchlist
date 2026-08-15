@@ -216,7 +216,9 @@ describe("App — search and add to watchlist", () => {
     await waitFor(() => expect(addToWatchlist).toHaveBeenCalled());
     // The empty state should still be showing — the add never actually landed.
     expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent(/couldn't add aapl/i);
+    // Shows the server's actual message, not a generic "try again" - "already
+    // on the watchlist" is a real, non-retryable reason worth telling the user.
+    expect(screen.getByRole("alert")).toHaveTextContent("AAPL is already on the watchlist");
   }, 10000);
 
   it("marks an already-added symbol as disabled in future search results", async () => {
@@ -438,9 +440,8 @@ describe("App — creating a price alert", () => {
     await user.type(screen.getByLabelText("Price threshold for AAPL alert"), "200");
     await user.click(screen.getByRole("button", { name: "Set" }));
 
-    await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent(/couldn't create the alert for aapl/i)
-    );
+    // Shows the server's actual message, not a generic "try again".
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("server error"));
   });
 });
 

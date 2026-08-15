@@ -54,8 +54,11 @@ export default function Dashboard({ user, onSignOut }: DashboardProps) {
     try {
       const { item } = await addToWatchlist(ticker.symbol, ticker.name);
       setItems((prev) => [...prev, item]);
-    } catch {
-      pushError(`Couldn't add ${ticker.symbol} — try again.`);
+    } catch (err) {
+      // The server's message distinguishes real cases (already on the
+      // list, watchlist full) that "try again" would be actively
+      // misleading for - a full watchlist will never succeed on retry.
+      pushError(err instanceof Error ? err.message : `Couldn't add ${ticker.symbol} — try again.`);
     }
   }
 
@@ -72,8 +75,8 @@ export default function Dashboard({ user, onSignOut }: DashboardProps) {
   async function handleCreateAlert(symbol: string, threshold: number, direction: "above" | "below") {
     try {
       await createAlert(symbol, threshold, direction);
-    } catch {
-      pushError(`Couldn't create the alert for ${symbol} — try again.`);
+    } catch (err) {
+      pushError(err instanceof Error ? err.message : `Couldn't create the alert for ${symbol} — try again.`);
     }
   }
 
