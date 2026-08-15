@@ -23,9 +23,27 @@
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
+  --space-7: 48px;
 
   --radius-sm: 6px;
   --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  /* Elevation scale for cards/panels - subtle on an OLED-black background,
+     where a heavy shadow would just look like a hard edge instead of lift. */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  --shadow-raised: 0 8px 24px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+
+  /* Fixed hue set for per-symbol avatar badges (see lib/tickerColor.ts) -
+     not semantic, just enough visual variety that a watchlist of initials
+     doesn't read as a wall of identical grey circles. */
+  --avatar-hue-1: #f59e0b;
+  --avatar-hue-2: #8b5cf6;
+  --avatar-hue-3: #06b6d4;
+  --avatar-hue-4: #ec4899;
+  --avatar-hue-5: #3b82f6;
+  --avatar-hue-6: #10b981;
 
   --motion-fast: 150ms;
   --motion-base: 250ms;
