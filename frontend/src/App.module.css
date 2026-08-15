@@ -49,6 +49,7 @@
   border-radius: var(--radius-sm);
   color: var(--color-foreground);
   padding: var(--space-1) var(--space-2);
+  min-width: 44px;
   min-height: 44px;
   font-size: 0.8125rem;
 }
