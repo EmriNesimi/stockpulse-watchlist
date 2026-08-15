@@ -237,6 +237,20 @@ describe("App — search and add to watchlist", () => {
       timeout: 2000,
     });
   }, 10000);
+
+  it("disables search once the watchlist has 30 items", async () => {
+    const thirtyItems = Array.from({ length: 30 }, (_, i) => watchlistItem({ id: String(i), symbol: `SYM${i}` }));
+    vi.mocked(getWatchlist).mockResolvedValue({ items: thirtyItems });
+    render(<App />);
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(/search for a stock ticker/i)).toHaveAttribute(
+        "placeholder",
+        expect.stringMatching(/watchlist is full/i)
+      )
+    );
+    expect(screen.getByLabelText(/search for a stock ticker/i)).toBeDisabled();
+  });
 });
 
 describe("App — removing from the watchlist", () => {

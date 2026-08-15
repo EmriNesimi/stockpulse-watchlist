@@ -16,6 +16,7 @@ import {
   type TickerResult,
   type WatchlistItem,
 } from "./lib/api";
+import { MAX_WATCHLIST_SYMBOLS } from "./lib/limits";
 import styles from "./App.module.css";
 
 interface DashboardProps {
@@ -98,7 +99,11 @@ export default function Dashboard({ user, onSignOut }: DashboardProps) {
           <ConnectionBadge status={status} />
         </div>
         <div className={styles.headerRight}>
-          <Search onAdd={handleAdd} alreadyAdded={(symbol) => items.some((i) => i.symbol === symbol)} />
+          <Search
+            onAdd={handleAdd}
+            alreadyAdded={(symbol) => items.some((i) => i.symbol === symbol)}
+            atCapacity={items.length >= MAX_WATCHLIST_SYMBOLS}
+          />
           <div className={styles.account}>
             <span className={styles.accountEmail}>{user.email}</span>
             <button onClick={onSignOut} className={styles.signOutButton}>
