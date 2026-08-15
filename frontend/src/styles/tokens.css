@@ -1,4 +1,5 @@
-/* StockPulse design tokens — dark OLED trading-terminal theme.
+/* StockPulse design tokens — dark OLED trading-terminal theme by default,
+   with a light override block for the light/dark toggle (see useTheme.ts).
    Chosen via the ui-ux-pro-max design system search (fintech / dense dashboard). */
 :root {
   --color-primary: #0f172a;
@@ -37,7 +38,8 @@
 
   /* Fixed hue set for per-symbol avatar badges (see lib/tickerColor.ts) -
      not semantic, just enough visual variety that a watchlist of initials
-     doesn't read as a wall of identical grey circles. */
+     doesn't read as a wall of identical grey circles. Same in both themes -
+     they're on white text avatars either way. */
   --avatar-hue-1: #f59e0b;
   --avatar-hue-2: #8b5cf6;
   --avatar-hue-3: #06b6d4;
@@ -48,4 +50,24 @@
   --motion-fast: 150ms;
   --motion-base: 250ms;
   --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Light mode - same structure as the Figma reference (white surfaces, dark
+   navy text) but keeping our own green accent instead of the Figma's
+   purple, for brand consistency between the two themes. */
+:root[data-theme="light"] {
+  --color-primary: #0f172a;
+  --color-on-primary: #ffffff;
+  --color-secondary: #ffffff;
+  --color-accent: #16a34a;
+  --color-background: #f1f5f9;
+  --color-foreground: #0f172a;
+  --color-muted: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-destructive: #dc2626;
+  --color-bullish: #0d9488;
+  --color-bearish: #e11d48;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  --shadow-raised: 0 8px 24px rgba(15, 23, 42, 0.12), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
 }
