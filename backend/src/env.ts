@@ -24,4 +24,9 @@ export const env = {
   // fine for local use, but a fixed value would let anyone forge a session
   // in production, hence the same production fail-fast as the vars above.
   sessionSecret: required("SESSION_SECRET", "dev-only-session-secret-do-not-use-in-production"),
+  // Optional, same pattern as massiveApiKey: verification emails just don't
+  // send without it (signup/login still work fine) instead of the app
+  // refusing to boot over a non-critical feature.
+  resendApiKey: process.env.RESEND_API_KEY?.trim() || undefined,
+  resendFromEmail: process.env.RESEND_FROM_EMAIL?.trim() || "StockPulse <onboarding@resend.dev>",
 };
