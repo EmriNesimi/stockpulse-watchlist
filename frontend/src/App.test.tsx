@@ -9,6 +9,7 @@ import {
   createAlert,
   searchTickers,
   getCurrentUser,
+  login,
   logout,
 } from "./lib/api";
 import type { WatchlistItem } from "./lib/api";
@@ -516,5 +517,28 @@ describe("App — receiving fired alerts", () => {
     });
 
     await waitFor(() => expect(screen.getAllByRole("alert")).toHaveLength(2));
+  });
+});
+
+describe("App — signing out and a different user signing in", () => {
+  it("doesn't carry the previous user's error toast over to the next signed-in user", async () => {
+    vi.mocked(getWatchlist).mockRejectedValueOnce(new Error("network down"));
+    render(<App />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(/couldn't load your watchlist/i)
+    );
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Sign out" }));
+    await waitFor(() => expect(screen.getByRole("form", { name: "Log in" })).toBeInTheDocument());
+
+    vi.mocked(login).mockResolvedValue({ user: { id: "u2", email: "other@example.com" } });
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Email"), "other@example.com");
+    await user.type(screen.getByLabelText("Password"), "some-password");
+    await user.click(screen.getByRole("button", { name: "Log in" }));
+
+    await waitFor(() => expect(screen.getByText("other@example.com")).toBeInTheDocument());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
