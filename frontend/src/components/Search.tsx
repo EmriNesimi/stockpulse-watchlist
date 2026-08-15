@@ -2,16 +2,18 @@ import { useEffect, useState } from "react";
 import { MagnifyingGlass, Plus, CircleNotch } from "@phosphor-icons/react";
 import { searchTickers, type TickerResult } from "../lib/api";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { MAX_WATCHLIST_SYMBOLS } from "../lib/limits";
 import styles from "./Search.module.css";
 
 interface SearchProps {
   onAdd: (ticker: TickerResult) => void;
   alreadyAdded: (symbol: string) => boolean;
+  atCapacity?: boolean;
 }
 
 type Status = "idle" | "loading" | "error";
 
-export default function Search({ onAdd, alreadyAdded }: SearchProps) {
+export default function Search({ onAdd, alreadyAdded, atCapacity = false }: SearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<TickerResult[]>([]);
   const [status, setStatus] = useState<Status>("idle");
@@ -54,7 +56,12 @@ export default function Search({ onAdd, alreadyAdded }: SearchProps) {
           onKeyDown={(e) => {
             if (e.key === "Escape") setQuery("");
           }}
-          placeholder="Search tickers (e.g. Apple, AAPL)"
+          disabled={atCapacity}
+          placeholder={
+            atCapacity
+              ? `Watchlist is full (${MAX_WATCHLIST_SYMBOLS}/${MAX_WATCHLIST_SYMBOLS}) — remove one first`
+              : "Search tickers (e.g. Apple, AAPL)"
+          }
           aria-label="Search for a stock ticker to add to your watchlist"
           aria-expanded={debouncedQuery.length > 0}
           aria-controls="search-results"
@@ -65,7 +72,7 @@ export default function Search({ onAdd, alreadyAdded }: SearchProps) {
         )}
       </div>
 
-      {debouncedQuery && (
+      {!atCapacity && debouncedQuery && (
         <div id="search-results" role="listbox" aria-label="Ticker search results" className={styles.results}>
           {status === "error" && (
             <div className={styles.resultsError}>Couldn't reach search right now. Try again in a moment.</div>
