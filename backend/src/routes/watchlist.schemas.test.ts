@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { symbolSchema, addItemSchema } from "./watchlist.schemas";
+import { symbolSchema, addItemSchema, updateHoldingsSchema } from "./watchlist.schemas";
 
 describe("symbolSchema", () => {
   it("accepts a plain ticker", () => {
@@ -62,5 +62,50 @@ describe("addItemSchema", () => {
 
   it("rejects a whitespace-only name", () => {
     expect(addItemSchema.safeParse({ symbol: "AAPL", name: "   " }).success).toBe(false);
+  });
+
+  it("accepts shares and costBasis provided together", () => {
+    const result = addItemSchema.safeParse({ symbol: "AAPL", shares: 10, costBasis: 150.5 });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts neither shares nor costBasis (just watching, not owning)", () => {
+    expect(addItemSchema.safeParse({ symbol: "AAPL" }).success).toBe(true);
+  });
+
+  it("rejects shares without costBasis", () => {
+    expect(addItemSchema.safeParse({ symbol: "AAPL", shares: 10 }).success).toBe(false);
+  });
+
+  it("rejects costBasis without shares", () => {
+    expect(addItemSchema.safeParse({ symbol: "AAPL", costBasis: 150.5 }).success).toBe(false);
+  });
+
+  it("rejects zero or negative shares", () => {
+    expect(addItemSchema.safeParse({ symbol: "AAPL", shares: 0, costBasis: 150 }).success).toBe(false);
+    expect(addItemSchema.safeParse({ symbol: "AAPL", shares: -5, costBasis: 150 }).success).toBe(false);
+  });
+
+  it("rejects an absurdly large costBasis", () => {
+    expect(addItemSchema.safeParse({ symbol: "AAPL", shares: 1, costBasis: 1e300 }).success).toBe(false);
+  });
+});
+
+describe("updateHoldingsSchema", () => {
+  it("accepts real shares/costBasis together", () => {
+    expect(updateHoldingsSchema.safeParse({ shares: 5, costBasis: 200 }).success).toBe(true);
+  });
+
+  it("accepts both explicitly null (clearing holdings)", () => {
+    expect(updateHoldingsSchema.safeParse({ shares: null, costBasis: null }).success).toBe(true);
+  });
+
+  it("rejects a mix of a real value and null", () => {
+    expect(updateHoldingsSchema.safeParse({ shares: 5, costBasis: null }).success).toBe(false);
+    expect(updateHoldingsSchema.safeParse({ shares: null, costBasis: 200 }).success).toBe(false);
+  });
+
+  it("rejects a missing field entirely - both keys are required (even if null)", () => {
+    expect(updateHoldingsSchema.safeParse({ shares: 5 }).success).toBe(false);
   });
 });
