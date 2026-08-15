@@ -45,14 +45,35 @@ describe("createAlertSchema", () => {
   it("rejects a missing direction", () => {
     expect(createAlertSchema.safeParse({ symbol: "AAPL", threshold: 200 }).success).toBe(false);
   });
+
+  it("accepts a threshold right at the sanity ceiling", () => {
+    expect(
+      createAlertSchema.safeParse({ symbol: "AAPL", threshold: 10_000_000, direction: "above" }).success
+    ).toBe(true);
+  });
+
+  it("rejects an absurdly large threshold instead of storing an alert that can never trigger", () => {
+    expect(
+      createAlertSchema.safeParse({ symbol: "AAPL", threshold: 1e300, direction: "above" }).success
+    ).toBe(false);
+  });
 });
 
 describe("alertIdSchema", () => {
-  it("accepts a non-empty string", () => {
+  it("accepts a cuid-shaped string", () => {
     expect(alertIdSchema.parse("cabc123")).toBe("cabc123");
   });
 
   it("rejects an empty string", () => {
     expect(alertIdSchema.safeParse("").success).toBe(false);
+  });
+
+  it("rejects a string over 40 characters", () => {
+    expect(alertIdSchema.safeParse("c" + "a".repeat(40)).success).toBe(false);
+  });
+
+  it("rejects characters outside the alphanumeric cuid charset", () => {
+    expect(alertIdSchema.safeParse("cabc123; DROP TABLE PriceAlert;--").success).toBe(false);
+    expect(alertIdSchema.safeParse("../../etc/passwd").success).toBe(false);
   });
 });

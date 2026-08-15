@@ -95,9 +95,14 @@ describe("DELETE /api/alerts/:id", () => {
     expect(list.body.alerts).toHaveLength(0);
   });
 
-  it("returns 404 for an id that doesn't exist", async () => {
-    const res = await agent.delete("/api/alerts/not-a-real-id");
+  it("returns 404 for a well-formed id that doesn't exist", async () => {
+    const res = await agent.delete("/api/alerts/cnotarealidatall00000000");
     expect(res.status).toBe(404);
+  });
+
+  it("returns 400 for a malformed id (not the cuid alphanumeric shape)", async () => {
+    const res = await agent.delete("/api/alerts/not-a-real-id");
+    expect(res.status).toBe(400);
   });
 
   it("can't delete another user's alert", async () => {
