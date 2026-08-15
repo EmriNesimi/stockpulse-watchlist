@@ -5,8 +5,8 @@ import { z } from "zod";
 import type { PriceFeed, PriceTick, Unsubscribe } from "../priceFeed";
 import { checkAndTriggerAlerts, type AlertTrigger } from "../alerts/checkAndTriggerAlerts";
 import { SESSION_COOKIE_NAME, verifySessionCookieValue } from "../auth/session";
+import { MAX_SYMBOLS_PER_CLIENT } from "../wsLimits";
 
-const MAX_SYMBOLS_PER_CLIENT = 30;
 const MAX_MESSAGES_PER_MINUTE = 60;
 const MAX_PAYLOAD_BYTES = 2 * 1024; // subscribe messages are tiny, no reason to allow more
 
