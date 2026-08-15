@@ -96,7 +96,7 @@ beforeEach(() => {
   // the auth-gate flow itself gets its own describe block further down.
   vi.mocked(getCurrentUser)
     .mockReset()
-    .mockResolvedValue({ user: { id: "u1", email: "trader@example.com" } });
+    .mockResolvedValue({ user: { id: "u1", email: "trader@example.com", emailVerified: true } });
   vi.mocked(logout).mockReset().mockResolvedValue(undefined);
 });
 
@@ -578,7 +578,7 @@ describe("App — signing out and a different user signing in", () => {
     await userEvent.setup().click(screen.getByRole("button", { name: "Sign out" }));
     await waitFor(() => expect(screen.getByRole("form", { name: "Log in" })).toBeInTheDocument());
 
-    vi.mocked(login).mockResolvedValue({ user: { id: "u2", email: "other@example.com" } });
+    vi.mocked(login).mockResolvedValue({ user: { id: "u2", email: "other@example.com", emailVerified: true } });
     const user = userEvent.setup();
     await user.type(screen.getByLabelText("Email"), "other@example.com");
     await user.type(screen.getByLabelText("Password"), "some-password");

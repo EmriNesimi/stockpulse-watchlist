@@ -33,6 +33,7 @@ export interface PriceAlert {
 export interface AuthUser {
   id: string;
   email: string;
+  emailVerified: boolean;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -107,4 +108,12 @@ export function logout(): Promise<void> {
 
 export function getCurrentUser(): Promise<{ user: AuthUser }> {
   return request("/api/auth/me");
+}
+
+export function verifyEmail(token: string): Promise<{ user: AuthUser }> {
+  return request(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
+}
+
+export function resendVerificationEmail(): Promise<void> {
+  return request("/api/auth/resend-verification", { method: "POST" });
 }

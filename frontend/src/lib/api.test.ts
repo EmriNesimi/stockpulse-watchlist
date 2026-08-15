@@ -13,6 +13,8 @@ import {
   removeFromWatchlist,
   searchTickers,
   signup,
+  verifyEmail,
+  resendVerificationEmail,
 } from "./api";
 
 function jsonResponse(body: unknown, init: Partial<Response> = {}): Response {
@@ -272,5 +274,38 @@ describe("getCurrentUser", () => {
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ error: "Not signed in" }, { ok: false, status: 401 }));
 
     await expect(getCurrentUser()).rejects.toThrow("Not signed in");
+  });
+});
+
+describe("verifyEmail", () => {
+  it("GETs the verify-email endpoint with the token, URL-encoded", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ user: { id: "1", email: "a@example.com", emailVerified: true } })
+    );
+
+    const result = await verifyEmail("abc def");
+
+    expect(fetch).toHaveBeenCalledWith(`${API_BASE}/api/auth/verify-email?token=abc%20def`, expect.anything());
+    expect(result.user.emailVerified).toBe(true);
+  });
+
+  it("throws with the server's message for an invalid/expired token", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ error: "That verification link is invalid or has expired" }, { ok: false, status: 400 })
+    );
+
+    await expect(verifyEmail("bad-token")).rejects.toThrow("That verification link is invalid or has expired");
+  });
+});
+
+describe("resendVerificationEmail", () => {
+  it("POSTs to /api/auth/resend-verification", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(undefined, { status: 204 }));
+
+    await resendVerificationEmail();
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toBe(`${API_BASE}/api/auth/resend-verification`);
+    expect(init?.method).toBe("POST");
   });
 });

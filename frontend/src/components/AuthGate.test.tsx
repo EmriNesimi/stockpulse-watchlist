@@ -26,7 +26,7 @@ describe("AuthGate", () => {
   });
 
   it("logs in with the entered email/password and calls onAuthenticated", async () => {
-    vi.mocked(login).mockResolvedValue({ user: { id: "u1", email: "trader@example.com" } });
+    vi.mocked(login).mockResolvedValue({ user: { id: "u1", email: "trader@example.com", emailVerified: true } });
     const onAuthenticated = vi.fn();
     const user = userEvent.setup();
     render(<AuthGate onAuthenticated={onAuthenticated} />);
@@ -36,7 +36,7 @@ describe("AuthGate", () => {
     await user.click(screen.getByRole("button", { name: "Log in" }));
 
     expect(login).toHaveBeenCalledWith("trader@example.com", "hunter22");
-    await waitFor(() => expect(onAuthenticated).toHaveBeenCalledWith({ id: "u1", email: "trader@example.com" }));
+    await waitFor(() => expect(onAuthenticated).toHaveBeenCalledWith({ id: "u1", email: "trader@example.com", emailVerified: true }));
   });
 
   it("shows the server's error message when login fails", async () => {
@@ -63,7 +63,7 @@ describe("AuthGate", () => {
   });
 
   it("signs up with the entered email/password and calls onAuthenticated", async () => {
-    vi.mocked(signup).mockResolvedValue({ user: { id: "u2", email: "new@example.com" } });
+    vi.mocked(signup).mockResolvedValue({ user: { id: "u2", email: "new@example.com", emailVerified: false } });
     const onAuthenticated = vi.fn();
     const user = userEvent.setup();
     render(<AuthGate onAuthenticated={onAuthenticated} />);
@@ -75,7 +75,7 @@ describe("AuthGate", () => {
     await user.click(screen.getByRole("button", { name: "Sign up" }));
 
     expect(signup).toHaveBeenCalledWith("new@example.com", "brand-new-password");
-    await waitFor(() => expect(onAuthenticated).toHaveBeenCalledWith({ id: "u2", email: "new@example.com" }));
+    await waitFor(() => expect(onAuthenticated).toHaveBeenCalledWith({ id: "u2", email: "new@example.com", emailVerified: false }));
   });
 
   it("shows the server's error message when signup fails (e.g. duplicate email)", async () => {
@@ -173,7 +173,7 @@ describe("AuthGate", () => {
   });
 
   it("disables the submit button while the request is in flight", async () => {
-    let resolveLogin: (value: { user: { id: string; email: string } }) => void;
+    let resolveLogin: (value: { user: { id: string; email: string; emailVerified: boolean } }) => void;
     vi.mocked(login).mockReturnValue(
       new Promise((resolve) => {
         resolveLogin = resolve;
@@ -188,7 +188,7 @@ describe("AuthGate", () => {
 
     expect(screen.getByRole("button", { name: "Log in" })).toBeDisabled();
 
-    resolveLogin!({ user: { id: "u1", email: "trader@example.com" } });
+    resolveLogin!({ user: { id: "u1", email: "trader@example.com", emailVerified: true } });
     await waitFor(() => expect(screen.getByRole("button", { name: "Log in" })).not.toBeDisabled());
   });
 });
