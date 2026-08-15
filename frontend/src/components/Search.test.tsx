@@ -118,4 +118,27 @@ describe("Search", () => {
       timeout: 2000,
     });
   }, 10000);
+
+  it("disables the input and shows a full-watchlist message when at capacity", () => {
+    render(<Search onAdd={vi.fn()} alreadyAdded={() => false} atCapacity />);
+
+    const input = screen.getByLabelText(/search for a stock ticker/i);
+    expect(input).toBeDisabled();
+    expect(input).toHaveAttribute("placeholder", expect.stringMatching(/watchlist is full/i));
+  });
+
+  it("doesn't show search results while at capacity, even with a typed query", async () => {
+    vi.mocked(searchTickers).mockResolvedValue({
+      results: [{ symbol: "AAPL", name: "Apple Inc." }],
+      source: "massive",
+    });
+    render(<Search onAdd={vi.fn()} alreadyAdded={() => false} atCapacity />);
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("is enabled by default (atCapacity omitted)", () => {
+    render(<Search onAdd={vi.fn()} alreadyAdded={() => false} />);
+    expect(screen.getByLabelText(/search for a stock ticker/i)).not.toBeDisabled();
+  });
 });
