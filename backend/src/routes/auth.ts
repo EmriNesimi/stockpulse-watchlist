@@ -1,11 +1,13 @@
 import { Router } from "express";
-import { Prisma } from "@prisma/client";
+import { Prisma, type User } from "@prisma/client";
 import { prisma } from "../db";
 import { asyncHandler } from "../asyncHandler";
 import { hashPassword, verifyPassword } from "../auth/password";
 import { createSessionCookieValue, SESSION_COOKIE_NAME } from "../auth/session";
+import { generateVerificationToken } from "../auth/verification";
+import { sendEmail, verificationEmailHtml } from "../email/resend";
 import { getOrCreateWatchlist } from "../watchlistHelper";
-import { credentialsSchema } from "./auth.schemas";
+import { credentialsSchema, verifyEmailQuerySchema } from "./auth.schemas";
 import { env } from "../env";
 
 const router = Router();
@@ -16,6 +18,27 @@ const SESSION_COOKIE_OPTIONS = {
   secure: env.frontendOrigin.startsWith("https://"),
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
 };
+
+function toPublicUser(user: User) {
+  return { id: user.id, email: user.email, emailVerified: user.emailVerifiedAt !== null };
+}
+
+async function sendVerificationEmail(userId: string, email: string) {
+  const { token, expiresAt } = generateVerificationToken();
+  await prisma.user.update({
+    where: { id: userId },
+    data: { verificationToken: token, verificationTokenExpires: expiresAt },
+  });
+
+  const verifyUrl = `${env.frontendOrigin}/verify-email?token=${token}`;
+  // Best-effort: a failed send shouldn't break signup/login, and there's a
+  // resend button in the UI for exactly this case.
+  try {
+    await sendEmail(email, "Confirm your StockPulse account", verificationEmailHtml(verifyUrl));
+  } catch (err) {
+    console.error(`Failed to send verification email to ${email}:`, err);
+  }
+}
 
 router.post(
   "/signup",
@@ -41,9 +64,10 @@ router.post(
     // Every user gets an empty watchlist up front, same as the old
     // single-user "default-user" flow did implicitly.
     await getOrCreateWatchlist(user.id);
+    await sendVerificationEmail(user.id, user.email);
 
     res.cookie(SESSION_COOKIE_NAME, createSessionCookieValue(user.id), SESSION_COOKIE_OPTIONS);
-    res.status(201).json({ user: { id: user.id, email: user.email } });
+    res.status(201).json({ user: toPublicUser(user) });
   })
 );
 
@@ -65,7 +89,7 @@ router.post(
     if (!valid) return invalidCredentials();
 
     res.cookie(SESSION_COOKIE_NAME, createSessionCookieValue(user.id), SESSION_COOKIE_OPTIONS);
-    res.json({ user: { id: user.id, email: user.email } });
+    res.json({ user: toPublicUser(user) });
   })
 );
 
@@ -86,7 +110,43 @@ router.get(
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     if (!user) return res.status(401).json({ error: "Not signed in" });
 
-    res.json({ user: { id: user.id, email: user.email } });
+    res.json({ user: toPublicUser(user) });
+  })
+);
+
+router.get(
+  "/verify-email",
+  asyncHandler(async (req, res) => {
+    const parsed = verifyEmailQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid or missing verification token" });
+    }
+
+    const user = await prisma.user.findUnique({ where: { verificationToken: parsed.data.token } });
+    if (!user || !user.verificationTokenExpires || user.verificationTokenExpires < new Date()) {
+      return res.status(400).json({ error: "That verification link is invalid or has expired" });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerifiedAt: new Date(), verificationToken: null, verificationTokenExpires: null },
+    });
+
+    res.json({ user: toPublicUser({ ...user, emailVerifiedAt: new Date() }) });
+  })
+);
+
+router.post(
+  "/resend-verification",
+  asyncHandler(async (req, res) => {
+    if (!req.userId) return res.status(401).json({ error: "Not signed in" });
+
+    const user = await prisma.user.findUnique({ where: { id: req.userId } });
+    if (!user) return res.status(401).json({ error: "Not signed in" });
+    if (user.emailVerifiedAt) return res.status(409).json({ error: "Email is already verified" });
+
+    await sendVerificationEmail(user.id, user.email);
+    res.status(204).send();
   })
 );
 
