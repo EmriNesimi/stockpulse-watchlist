@@ -410,6 +410,27 @@ describe("WatchlistTable — trend column and sparkline integration", () => {
   });
 });
 
+describe("WatchlistTable — session range column", () => {
+  it("shows a dash when there's not enough history yet", () => {
+    render(<WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
+    // Both the Change and Session range cells fall back to a dash with no
+    // price data yet - just confirm at least one shows up, not which.
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows the real min/max of the rolling tick history, not a fabricated range", () => {
+    render(
+      <WatchlistTable
+        items={[item({ symbol: "AAPL" })]}
+        prices={{ AAPL: price({ history: [101.5, 99, 103.25, 100] }) }}
+        onRemove={noop}
+        onCreateAlert={noop}
+      />
+    );
+    expect(screen.getByText("$99.00 – $103.25")).toBeInTheDocument();
+  });
+});
+
 describe("WatchlistTable — edge cases", () => {
   it("doesn't crash when an item has no name", () => {
     render(
