@@ -593,6 +593,24 @@ describe("App — signing out and a different user signing in", () => {
   });
 });
 
+describe("App — verification banner", () => {
+  it("shows the verification banner for an unverified user", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({
+      user: { id: "u1", email: "trader@example.com", emailVerified: false },
+    });
+    render(<App />);
+
+    await waitFor(() => expect(screen.getByText(/verify your email/i)).toBeInTheDocument());
+  });
+
+  it("doesn't show the verification banner for a verified user", async () => {
+    render(<App />); // default mock user (see beforeEach) is emailVerified: true
+
+    await waitFor(() => expect(screen.getByText("StockPulse")).toBeInTheDocument());
+    expect(screen.queryByText(/verify your email/i)).not.toBeInTheDocument();
+  });
+});
+
 describe("App — verify-email link", () => {
   it("consumes a ?token= in the URL and shows a success notice on the auth gate", async () => {
     vi.mocked(getCurrentUser).mockRejectedValue(new Error("Not signed in"));

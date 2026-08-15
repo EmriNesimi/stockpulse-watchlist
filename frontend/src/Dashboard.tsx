@@ -6,6 +6,7 @@ import StatsRow from "./components/StatsRow";
 import ConnectionBadge from "./components/ConnectionBadge";
 import AlertToast from "./components/AlertToast";
 import ErrorToast from "./components/ErrorToast";
+import VerificationBanner from "./components/VerificationBanner";
 import { useLiveTicks } from "./hooks/useLiveTicks";
 import { useThrottledAnnouncement } from "./hooks/useThrottledAnnouncement";
 import { useErrorToasts } from "./hooks/useErrorToasts";
@@ -94,6 +95,8 @@ export default function Dashboard({ user, onSignOut }: DashboardProps) {
 
       <AlertToast alerts={alertEvents} onDismiss={dismissAlert} />
       <ErrorToast errors={errors} onDismiss={dismissError} />
+
+      {!user.emailVerified && <VerificationBanner onError={pushError} />}
 
       <header className={styles.header}>
         <div className={styles.headerLeft}>
