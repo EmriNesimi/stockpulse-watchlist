@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import AuthGate from "./components/AuthGate";
 import Dashboard from "./Dashboard";
+import { useTheme } from "./hooks/useTheme";
 import { getCurrentUser, logout, verifyEmail, type AuthUser } from "./lib/api";
 
 type AuthStatus = "checking" | "authenticated" | "unauthenticated";
@@ -8,6 +9,7 @@ type AuthStatus = "checking" | "authenticated" | "unauthenticated";
 export default function App() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>("checking");
   const [user, setUser] = useState<AuthUser | null>(null);
+  const { theme, toggleTheme } = useTheme();
   // Set when the page loads with ?token=... (the link from the
   // verification email) - null the rest of the time. Doesn't require being
   // signed in as the account the link belongs to; it just confirms the
@@ -65,6 +67,8 @@ export default function App() {
     return (
       <AuthGate
         onAuthenticated={handleAuthenticated}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         verifyEmailNotice={
           emailVerifyResult === "success"
             ? { kind: "success", message: "Email verified — you can log in now." }
@@ -80,5 +84,7 @@ export default function App() {
   // owns - watchlist, prices, error/alert toasts) whenever a different
   // user signs in, instead of that state quietly carrying over from
   // whoever was signed in before.
-  return <Dashboard key={user.id} user={user} onSignOut={handleSignOut} />;
+  return (
+    <Dashboard key={user.id} user={user} onSignOut={handleSignOut} theme={theme} onToggleTheme={toggleTheme} />
+  );
 }
