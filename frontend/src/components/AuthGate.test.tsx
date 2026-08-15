@@ -20,7 +20,7 @@ afterEach(() => {
 
 describe("AuthGate", () => {
   it("defaults to the login form", () => {
-    render(<AuthGate onAuthenticated={vi.fn()} />);
+    render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
     expect(screen.getByRole("form", { name: "Log in" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Log in" })).toBeInTheDocument();
   });
@@ -29,7 +29,7 @@ describe("AuthGate", () => {
     vi.mocked(login).mockResolvedValue({ user: { id: "u1", email: "trader@example.com", emailVerified: true } });
     const onAuthenticated = vi.fn();
     const user = userEvent.setup();
-    render(<AuthGate onAuthenticated={onAuthenticated} />);
+    render(<AuthGate onAuthenticated={onAuthenticated} theme="dark" onToggleTheme={vi.fn()} />);
 
     await user.type(screen.getByLabelText("Email"), "trader@example.com");
     await user.type(screen.getByLabelText("Password"), "hunter22");
@@ -42,7 +42,7 @@ describe("AuthGate", () => {
   it("shows the server's error message when login fails", async () => {
     vi.mocked(login).mockRejectedValue(new Error("Invalid email or password"));
     const user = userEvent.setup();
-    render(<AuthGate onAuthenticated={vi.fn()} />);
+    render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
 
     await user.type(screen.getByLabelText("Email"), "trader@example.com");
     await user.type(screen.getByLabelText("Password"), "wrong-password");
@@ -53,7 +53,7 @@ describe("AuthGate", () => {
 
   it("switches to the signup form and back", async () => {
     const user = userEvent.setup();
-    render(<AuthGate onAuthenticated={vi.fn()} />);
+    render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: "Sign up" }));
     expect(screen.getByRole("form", { name: "Sign up" })).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe("AuthGate", () => {
     vi.mocked(signup).mockResolvedValue({ user: { id: "u2", email: "new@example.com", emailVerified: false } });
     const onAuthenticated = vi.fn();
     const user = userEvent.setup();
-    render(<AuthGate onAuthenticated={onAuthenticated} />);
+    render(<AuthGate onAuthenticated={onAuthenticated} theme="dark" onToggleTheme={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: "Sign up" }));
     await user.type(screen.getByLabelText("Email"), "new@example.com");
@@ -81,7 +81,7 @@ describe("AuthGate", () => {
   it("shows the server's error message when signup fails (e.g. duplicate email)", async () => {
     vi.mocked(signup).mockRejectedValue(new Error("An account with that email already exists"));
     const user = userEvent.setup();
-    render(<AuthGate onAuthenticated={vi.fn()} />);
+    render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: "Sign up" }));
     await user.type(screen.getByLabelText("Email"), "dupe@example.com");
@@ -96,7 +96,7 @@ describe("AuthGate", () => {
 
   it("rejects submission when the passwords don't match, without calling signup", async () => {
     const user = userEvent.setup();
-    render(<AuthGate onAuthenticated={vi.fn()} />);
+    render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: "Sign up" }));
     await user.type(screen.getByLabelText("Email"), "new@example.com");
@@ -110,7 +110,7 @@ describe("AuthGate", () => {
 
   it("marks the confirm-password field invalid and describes it by the error when passwords mismatch", async () => {
     const user = userEvent.setup();
-    render(<AuthGate onAuthenticated={vi.fn()} />);
+    render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: "Sign up" }));
     await user.type(screen.getByLabelText("Email"), "new@example.com");
@@ -126,7 +126,7 @@ describe("AuthGate", () => {
 
   it("clears aria-invalid on the confirm-password field once passwords match and mode is switched", async () => {
     const user = userEvent.setup();
-    render(<AuthGate onAuthenticated={vi.fn()} />);
+    render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: "Sign up" }));
     await user.type(screen.getByLabelText("Email"), "new@example.com");
@@ -145,6 +145,8 @@ describe("AuthGate", () => {
     render(
       <AuthGate
         onAuthenticated={vi.fn()}
+        theme="dark"
+        onToggleTheme={vi.fn()}
         verifyEmailNotice={{ kind: "success", message: "Email verified — you can log in now." }}
       />
     );
@@ -153,24 +155,24 @@ describe("AuthGate", () => {
 
   it("shows an error notice when verifyEmailNotice is an error", () => {
     render(
-      <AuthGate onAuthenticated={vi.fn()} verifyEmailNotice={{ kind: "error", message: "Link expired" }} />
+      <AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} verifyEmailNotice={{ kind: "error", message: "Link expired" }} />
     );
     expect(screen.getByRole("alert")).toHaveTextContent("Link expired");
   });
 
   it("shows no notice when verifyEmailNotice is omitted", () => {
-    render(<AuthGate onAuthenticated={vi.fn()} />);
+    render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("doesn't show a confirm-password field in login mode", () => {
-    render(<AuthGate onAuthenticated={vi.fn()} />);
+    render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
     expect(screen.queryByLabelText("Confirm password")).not.toBeInTheDocument();
   });
 
   it("clears the confirm-password field when switching back to login and forward to signup again", async () => {
     const user = userEvent.setup();
-    render(<AuthGate onAuthenticated={vi.fn()} />);
+    render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: "Sign up" }));
     await user.type(screen.getByLabelText("Confirm password"), "leftover-text");
@@ -183,7 +185,7 @@ describe("AuthGate", () => {
   it("clears a previous error when switching modes", async () => {
     vi.mocked(login).mockRejectedValue(new Error("Invalid email or password"));
     const user = userEvent.setup();
-    render(<AuthGate onAuthenticated={vi.fn()} />);
+    render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
 
     await user.type(screen.getByLabelText("Email"), "trader@example.com");
     await user.type(screen.getByLabelText("Password"), "wrong-password");
@@ -202,7 +204,7 @@ describe("AuthGate", () => {
       })
     );
     const user = userEvent.setup();
-    render(<AuthGate onAuthenticated={vi.fn()} />);
+    render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
 
     await user.type(screen.getByLabelText("Email"), "trader@example.com");
     await user.type(screen.getByLabelText("Password"), "hunter22");

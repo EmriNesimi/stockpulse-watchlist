@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { ChartLineUp } from "@phosphor-icons/react";
 import { login, signup, type AuthUser } from "../lib/api";
+import type { Theme } from "../hooks/useTheme";
+import ThemeToggle from "./ThemeToggle";
 import styles from "./AuthGate.module.css";
 
 // A hand-authored, deterministic "line chart" motif for the auth screen's
@@ -19,12 +21,14 @@ interface VerifyEmailNotice {
 
 interface AuthGateProps {
   onAuthenticated: (user: AuthUser) => void;
+  theme: Theme;
+  onToggleTheme: () => void;
   verifyEmailNotice?: VerifyEmailNotice | null;
 }
 
 type Mode = "login" | "signup";
 
-export default function AuthGate({ onAuthenticated, verifyEmailNotice }: AuthGateProps) {
+export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verifyEmailNotice }: AuthGateProps) {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -71,6 +75,7 @@ export default function AuthGate({ onAuthenticated, verifyEmailNotice }: AuthGat
               <ChartLineUp size={18} weight="bold" aria-hidden />
             </span>
             <span className={styles.brand}>StockPulse</span>
+            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           </div>
           {verifyEmailNotice && (
             <div
