@@ -444,6 +444,20 @@ describe("App — creating a price alert", () => {
   });
 });
 
+describe("App — WS protocol errors", () => {
+  it("surfaces a WS error message as a dismissible error toast", async () => {
+    render(<App />);
+    await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+    act(() => FakeWebSocket.instances[0].triggerOpen());
+
+    act(() => {
+      FakeWebSocket.instances[0].triggerMessage({ type: "error", message: "Too many messages, slow down" });
+    });
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Too many messages, slow down"));
+  });
+});
+
 describe("App — receiving fired alerts", () => {
   it("shows a toast when an alert message arrives over the websocket", async () => {
     render(<App />);

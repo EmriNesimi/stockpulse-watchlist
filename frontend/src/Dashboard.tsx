@@ -31,7 +31,7 @@ export default function Dashboard({ user, onSignOut }: DashboardProps) {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
   const symbols = useMemo(() => items.map((i) => i.symbol), [items]);
-  const { prices, status, alertEvents, dismissAlert } = useLiveTicks(symbols);
+  const { prices, status, alertEvents, dismissAlert, wsError } = useLiveTicks(symbols);
   const announcement = useThrottledAnnouncement(items, prices);
   const { errors, pushError, dismissError } = useErrorToasts();
 
@@ -43,6 +43,12 @@ export default function Dashboard({ user, onSignOut }: DashboardProps) {
     // pushError is stable for the lifetime of the hook, no need to re-run on identity churn
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (wsError) pushError(wsError);
+    // pushError is stable for the lifetime of the hook, no need to re-run on identity churn
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wsError]);
 
   async function handleAdd(ticker: TickerResult) {
     try {
