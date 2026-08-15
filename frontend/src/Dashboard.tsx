@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { ChartLineUp } from "@phosphor-icons/react";
 import Search from "./components/Search";
 import WatchlistTable from "./components/WatchlistTable";
+import StatsRow from "./components/StatsRow";
 import ConnectionBadge from "./components/ConnectionBadge";
 import AlertToast from "./components/AlertToast";
 import ErrorToast from "./components/ErrorToast";
@@ -95,7 +97,12 @@ export default function Dashboard({ user, onSignOut }: DashboardProps) {
 
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <span className={styles.brand}>StockPulse</span>
+          <div className={styles.brandRow}>
+            <span className={styles.brandMark}>
+              <ChartLineUp size={16} weight="bold" aria-hidden />
+            </span>
+            <span className={styles.brand}>StockPulse</span>
+          </div>
           <ConnectionBadge status={status} />
         </div>
         <div className={styles.headerRight}>
@@ -114,6 +121,8 @@ export default function Dashboard({ user, onSignOut }: DashboardProps) {
       </header>
 
       <main id="main-content" tabIndex={-1} className={styles.main}>
+        <h1 className={styles.pageHeading}>Your watchlist</h1>
+        <StatsRow items={items} prices={prices} />
         <WatchlistTable
           items={items}
           prices={prices}
