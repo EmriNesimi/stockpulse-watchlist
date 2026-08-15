@@ -367,3 +367,52 @@ describe("useLiveTicks — price alerts", () => {
     expect(result.current.alertEvents.map((a) => a.id)).toEqual(["alert-2"]);
   });
 });
+
+describe("useLiveTicks — server error messages", () => {
+  beforeEach(() => {
+    FakeWebSocket.instances = [];
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("surfaces the server's error message instead of silently dropping it", () => {
+    const { result } = renderHook(() => useLiveTicks(["AAPL"]));
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+
+    act(() => socket.triggerMessage({ type: "error", message: "Too many messages, slow down" }));
+
+    expect(result.current.wsError).toBe("Too many messages, slow down");
+  });
+
+  it("forgets what it thinks is subscribed and resends the full desired set after an error", () => {
+    const { result } = renderHook(() => useLiveTicks(["AAPL", "MSFT"]));
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+    expect(sentMessages(socket)).toContainEqual({ action: "subscribe", symbols: ["AAPL", "MSFT"] });
+
+    act(() => socket.triggerMessage({ type: "error", message: "Invalid subscribe/unsubscribe message" }));
+
+    // The client had (incorrectly, per the bug this is fixing) marked
+    // AAPL/MSFT as subscribed already - after an error it shouldn't trust
+    // that, and should resend the whole desired set from scratch.
+    const resent = sentMessages(socket).filter((m) => m.action === "subscribe");
+    expect(resent.at(-1)).toEqual({ action: "subscribe", symbols: ["AAPL", "MSFT"] });
+    expect(result.current.wsError).toBe("Invalid subscribe/unsubscribe message");
+  });
+
+  it("still processes ticks normally after recovering from an error", () => {
+    const { result } = renderHook(() => useLiveTicks(["AAPL"]));
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+    act(() => socket.triggerMessage({ type: "error", message: "Too many messages, slow down" }));
+
+    act(() => {
+      socket.triggerMessage({ type: "tick", symbol: "AAPL", price: 231.5, changePercent: 1.2, source: "live" });
+    });
+
+    expect(result.current.prices.AAPL?.price).toBe(231.5);
+  });
+});

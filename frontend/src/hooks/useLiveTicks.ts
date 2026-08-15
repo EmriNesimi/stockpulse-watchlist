@@ -31,10 +31,16 @@ interface AlertMessage extends AlertEvent {
   type: "alert";
 }
 
+interface ErrorMessage {
+  type: "error";
+  message: string;
+}
+
 export function useLiveTicks(symbols: string[]) {
   const [prices, setPrices] = useState<Record<string, PriceState>>({});
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const [alertEvents, setAlertEvents] = useState<AlertEvent[]>([]);
+  const [wsError, setWsError] = useState<string | null>(null);
 
   function dismissAlert(id: string) {
     setAlertEvents((prev) => prev.filter((a) => a.id !== id));
@@ -94,10 +100,23 @@ export function useLiveTicks(symbols: string[]) {
       };
 
       ws.onmessage = (event) => {
-        let msg: TickMessage | AlertMessage;
+        let msg: TickMessage | AlertMessage | ErrorMessage;
         try {
           msg = JSON.parse(event.data);
         } catch {
+          return;
+        }
+
+        if (msg.type === "error") {
+          setWsError(msg.message);
+          // We don't know which of the just-sent symbols the server
+          // actually accepted (the protocol has no per-symbol ack), so the
+          // safest recovery is to forget what we think is subscribed and
+          // resend the full desired set from scratch, rather than leaving
+          // symbols permanently marked "subscribed" when the server never
+          // actually accepted them.
+          subscribedSymbols.current = new Set();
+          syncSubscriptions();
           return;
         }
 
@@ -153,5 +172,5 @@ export function useLiveTicks(symbols: string[]) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(syncSubscriptions, [symbols.join(",")]);
 
-  return { prices, status, alertEvents, dismissAlert };
+  return { prices, status, alertEvents, dismissAlert, wsError };
 }
