@@ -108,6 +108,39 @@ describe("AuthGate", () => {
     expect(signup).not.toHaveBeenCalled();
   });
 
+  it("marks the confirm-password field invalid and describes it by the error when passwords mismatch", async () => {
+    const user = userEvent.setup();
+    render(<AuthGate onAuthenticated={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    await user.type(screen.getByLabelText("Email"), "new@example.com");
+    await user.type(screen.getByLabelText("Password"), "brand-new-password");
+    await user.type(screen.getByLabelText("Confirm password"), "a-different-password");
+    await user.click(screen.getByRole("button", { name: "Sign up" }));
+
+    const confirmField = screen.getByLabelText("Confirm password");
+    const errorEl = screen.getByRole("alert");
+    expect(confirmField).toHaveAttribute("aria-invalid", "true");
+    expect(confirmField).toHaveAttribute("aria-describedby", errorEl.id);
+  });
+
+  it("clears aria-invalid on the confirm-password field once passwords match and mode is switched", async () => {
+    const user = userEvent.setup();
+    render(<AuthGate onAuthenticated={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    await user.type(screen.getByLabelText("Email"), "new@example.com");
+    await user.type(screen.getByLabelText("Password"), "brand-new-password");
+    await user.type(screen.getByLabelText("Confirm password"), "a-different-password");
+    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    expect(screen.getByLabelText("Confirm password")).toHaveAttribute("aria-invalid", "true");
+
+    await user.click(screen.getByRole("button", { name: "Log in" }));
+    await user.click(screen.getByRole("button", { name: "Sign up" }));
+
+    expect(screen.getByLabelText("Confirm password")).toHaveAttribute("aria-invalid", "false");
+  });
+
   it("doesn't show a confirm-password field in login mode", () => {
     render(<AuthGate onAuthenticated={vi.fn()} />);
     expect(screen.queryByLabelText("Confirm password")).not.toBeInTheDocument();

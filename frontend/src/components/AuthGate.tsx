@@ -14,14 +14,17 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [passwordMismatch, setPasswordMismatch] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setPasswordMismatch(false);
 
     if (mode === "signup" && password !== confirmPassword) {
       setError("Passwords don't match");
+      setPasswordMismatch(true);
       return;
     }
 
@@ -39,6 +42,7 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
   function switchMode() {
     setMode(mode === "login" ? "signup" : "login");
     setError(null);
+    setPasswordMismatch(false);
     setConfirmPassword("");
   }
 
@@ -86,6 +90,8 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
                 type="password"
                 autoComplete="new-password"
                 required
+                aria-invalid={passwordMismatch}
+                aria-describedby={passwordMismatch ? "auth-error" : undefined}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className={styles.input}
@@ -93,7 +99,7 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
             </div>
           )}
           {error && (
-            <div role="alert" className={styles.error}>
+            <div id="auth-error" role="alert" className={styles.error}>
               {error}
             </div>
           )}
