@@ -141,6 +141,28 @@ describe("AuthGate", () => {
     expect(screen.getByLabelText("Confirm password")).toHaveAttribute("aria-invalid", "false");
   });
 
+  it("shows a success notice when verifyEmailNotice is a success", () => {
+    render(
+      <AuthGate
+        onAuthenticated={vi.fn()}
+        verifyEmailNotice={{ kind: "success", message: "Email verified — you can log in now." }}
+      />
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Email verified — you can log in now.");
+  });
+
+  it("shows an error notice when verifyEmailNotice is an error", () => {
+    render(
+      <AuthGate onAuthenticated={vi.fn()} verifyEmailNotice={{ kind: "error", message: "Link expired" }} />
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Link expired");
+  });
+
+  it("shows no notice when verifyEmailNotice is omitted", () => {
+    render(<AuthGate onAuthenticated={vi.fn()} />);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
   it("doesn't show a confirm-password field in login mode", () => {
     render(<AuthGate onAuthenticated={vi.fn()} />);
     expect(screen.queryByLabelText("Confirm password")).not.toBeInTheDocument();

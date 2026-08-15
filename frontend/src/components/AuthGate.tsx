@@ -12,13 +12,19 @@ const SHOWCASE_PATH_BULLISH =
 const SHOWCASE_PATH_BEARISH =
   "M0,120 L60,140 L120,110 L180,150 L240,130 L300,175 L360,150 L420,190 L480,165 L540,205 L600,185";
 
+interface VerifyEmailNotice {
+  kind: "success" | "error";
+  message: string;
+}
+
 interface AuthGateProps {
   onAuthenticated: (user: AuthUser) => void;
+  verifyEmailNotice?: VerifyEmailNotice | null;
 }
 
 type Mode = "login" | "signup";
 
-export default function AuthGate({ onAuthenticated }: AuthGateProps) {
+export default function AuthGate({ onAuthenticated, verifyEmailNotice }: AuthGateProps) {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,6 +72,14 @@ export default function AuthGate({ onAuthenticated }: AuthGateProps) {
             </span>
             <span className={styles.brand}>StockPulse</span>
           </div>
+          {verifyEmailNotice && (
+            <div
+              role={verifyEmailNotice.kind === "error" ? "alert" : "status"}
+              className={verifyEmailNotice.kind === "error" ? styles.error : styles.verifySuccess}
+            >
+              {verifyEmailNotice.message}
+            </div>
+          )}
           <div className={styles.heading}>
             <h1 className={styles.title}>{mode === "login" ? "Welcome back" : "Create your account"}</h1>
             <p className={styles.subtitle}>
