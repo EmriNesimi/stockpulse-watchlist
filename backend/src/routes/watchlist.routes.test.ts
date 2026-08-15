@@ -88,6 +88,24 @@ describe("POST /api/watchlist", () => {
     expect(res.status).toBe(201);
   });
 
+  it("accepts shares and costBasis, adding real holdings up front", async () => {
+    const res = await agent.post("/api/watchlist").send({ symbol: "AAPL", shares: 10, costBasis: 150.25 });
+
+    expect(res.status).toBe(201);
+    expect(res.body.item).toMatchObject({ shares: 10, costBasis: 150.25 });
+  });
+
+  it("defaults shares/costBasis to null when not provided - watching, not owning", async () => {
+    const res = await agent.post("/api/watchlist").send({ symbol: "AAPL" });
+    expect(res.body.item.shares).toBeNull();
+    expect(res.body.item.costBasis).toBeNull();
+  });
+
+  it("rejects shares without a matching costBasis", async () => {
+    const res = await agent.post("/api/watchlist").send({ symbol: "AAPL", shares: 10 });
+    expect(res.status).toBe(400);
+  });
+
   it("caps a watchlist at MAX_SYMBOLS_PER_CLIENT items", async () => {
     // 30 distinct, schema-valid two-letter symbols: AA..AZ, then BA..BD (30 total).
     const symbols = Array.from({ length: 30 }, (_, i) => String.fromCharCode(65 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
@@ -131,5 +149,56 @@ describe("DELETE /api/watchlist/:symbol", () => {
   it("returns 400 for a malformed symbol in the URL", async () => {
     const res = await agent.delete("/api/watchlist/not-a-real-ticker-shape-at-all");
     expect(res.status).toBe(400);
+  });
+});
+
+describe("PATCH /api/watchlist/:symbol", () => {
+  it("sets holdings on an item that was just watching", async () => {
+    await agent.post("/api/watchlist").send({ symbol: "AAPL" });
+
+    const res = await agent.patch("/api/watchlist/AAPL").send({ shares: 5, costBasis: 200 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.item).toMatchObject({ shares: 5, costBasis: 200 });
+  });
+
+  it("updates existing holdings to new values", async () => {
+    await agent.post("/api/watchlist").send({ symbol: "AAPL", shares: 5, costBasis: 200 });
+
+    const res = await agent.patch("/api/watchlist/AAPL").send({ shares: 8, costBasis: 210 });
+
+    expect(res.body.item).toMatchObject({ shares: 8, costBasis: 210 });
+  });
+
+  it("clears holdings when both are sent as null", async () => {
+    await agent.post("/api/watchlist").send({ symbol: "AAPL", shares: 5, costBasis: 200 });
+
+    const res = await agent.patch("/api/watchlist/AAPL").send({ shares: null, costBasis: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body.item.shares).toBeNull();
+    expect(res.body.item.costBasis).toBeNull();
+  });
+
+  it("rejects a mix of null and a real value", async () => {
+    await agent.post("/api/watchlist").send({ symbol: "AAPL" });
+
+    const res = await agent.patch("/api/watchlist/AAPL").send({ shares: 5, costBasis: null });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 404 for a symbol that isn't on the list", async () => {
+    const res = await agent.patch("/api/watchlist/GOOGL").send({ shares: 1, costBasis: 100 });
+    expect(res.status).toBe(404);
+  });
+
+  it("can't update another user's holdings", async () => {
+    await agent.post("/api/watchlist").send({ symbol: "AAPL" });
+
+    const otherAgent = request.agent(app);
+    await otherAgent.post("/api/auth/signup").send({ email: "patch-other-user@example.com", password: "test-password" });
+    const res = await otherAgent.patch("/api/watchlist/AAPL").send({ shares: 5, costBasis: 200 });
+
+    expect(res.status).toBe(404);
   });
 });
