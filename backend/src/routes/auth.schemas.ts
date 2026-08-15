@@ -6,3 +6,8 @@ export const credentialsSchema = z.object({
   // toward "Password1!" over a genuinely long passphrase.
   password: z.string().min(8, "Password must be at least 8 characters").max(200),
 });
+
+// Verification tokens are 32 random bytes, hex-encoded (see auth/verification.ts).
+export const verifyEmailQuerySchema = z.object({
+  token: z.string().trim().min(1).max(64).regex(/^[a-f0-9]+$/, "Invalid verification token"),
+});
