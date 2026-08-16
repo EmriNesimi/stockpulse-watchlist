@@ -7,6 +7,7 @@ import ErrorToast from "./components/ErrorToast";
 import VerificationBanner from "./components/VerificationBanner";
 import ThemeToggle from "./components/ThemeToggle";
 import DashboardView from "./views/DashboardView";
+import ProfileView from "./views/ProfileView";
 import type { Theme } from "./hooks/useTheme";
 import type { View, ViewName } from "./lib/views";
 import { useLiveTicks } from "./hooks/useLiveTicks";
@@ -17,6 +18,7 @@ import {
   createAlert,
   getWatchlist,
   removeFromWatchlist,
+  updateHoldings,
   type AuthUser,
   type TickerResult,
   type WatchlistItem,
@@ -94,6 +96,18 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
     }
   }
 
+  // Rethrows so HoldingsForm can show the failure inline next to the inputs
+  // it came from, rather than as a toast detached from the form.
+  async function handleSaveHoldings(symbol: string, shares: number, costBasis: number) {
+    const { item } = await updateHoldings(symbol, shares, costBasis);
+    setItems((prev) => prev.map((i) => (i.symbol === symbol ? item : i)));
+  }
+
+  async function handleClearHoldings(symbol: string) {
+    const { item } = await updateHoldings(symbol, null, null);
+    setItems((prev) => prev.map((i) => (i.symbol === symbol ? item : i)));
+  }
+
   function handleNavigate(name: ViewName) {
     // "stock" is deliberately unreachable from the nav - it needs a symbol,
     // so it's only entered by picking one out of a list.
@@ -151,7 +165,12 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
             <div className={styles.placeholder}>The wallet screen lands in the next pass.</div>
           )}
           {view.name === "profile" && (
-            <div className={styles.placeholder}>The profile screen lands in the next pass.</div>
+            <ProfileView
+              user={user}
+              items={items}
+              onSaveHoldings={handleSaveHoldings}
+              onClearHoldings={handleClearHoldings}
+            />
           )}
         </main>
       </div>
