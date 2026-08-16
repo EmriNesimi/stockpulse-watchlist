@@ -1,10 +1,14 @@
+/* Proportions here are lifted from the Figma sign-up frame: a ~61/39 split
+   between the form panel and the hero panel, with the form itself capped at
+   the width of its input fields (~470px at the reference's 1920 canvas). */
 .wrapper {
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 1.55fr 1fr;
+  background: var(--color-secondary);
 }
 
-@media (max-width: 860px) {
+@media (max-width: 900px) {
   .wrapper {
     grid-template-columns: 1fr;
   }
@@ -18,12 +22,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-5);
+  padding: var(--space-6) var(--space-5);
 }
 
 .card {
   width: 100%;
-  max-width: 22rem;
+  max-width: 470px;
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -43,35 +47,40 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
   background: var(--color-accent);
-  color: var(--color-on-primary);
+  color: #ffffff;
   flex-shrink: 0;
 }
 
 .brand {
   font-weight: 700;
   font-size: 1.25rem;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .heading {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
 }
 
 .title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
 }
 
 .subtitle {
-  font-size: 0.9375rem;
-  opacity: 0.65;
+  font-size: 1rem;
+  color: var(--color-foreground-muted);
+  margin: 0;
 }
 
 .form {
@@ -87,34 +96,45 @@
 }
 
 .label {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  opacity: 0.8;
 }
 
+/* Filled, borderless inputs - the reference has no resting border, and gets
+   its affordance from the fill instead. The border only appears on focus. */
 .input {
   background: var(--color-muted);
   color: var(--color-foreground);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3);
-  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-4);
+  height: 48px;
   transition: border-color var(--motion-fast) var(--motion-ease);
+}
+
+.input::placeholder {
+  color: var(--color-foreground-muted);
 }
 
 .input:focus-visible {
   border-color: var(--color-accent);
+  outline: none;
 }
 
 .submitButton {
   background: var(--color-accent);
-  color: var(--color-on-primary);
+  color: #ffffff;
   border: none;
-  border-radius: var(--radius-sm);
-  padding: var(--space-3);
-  min-height: 44px;
+  border-radius: var(--radius-full);
+  height: 46px;
   font-weight: 600;
-  box-shadow: var(--shadow-card);
+  font-size: 0.9375rem;
+  margin-top: var(--space-1);
+  transition: filter var(--motion-fast) var(--motion-ease);
+}
+
+.submitButton:hover:not(:disabled) {
+  filter: brightness(1.08);
 }
 
 .submitButton:disabled {
@@ -122,23 +142,22 @@
 }
 
 .error {
-  color: var(--color-bearish);
-  font-size: 0.8125rem;
+  color: var(--color-destructive);
+  font-size: 0.875rem;
 }
 
 .verifySuccess {
   color: var(--color-bullish);
-  font-size: 0.8125rem;
-  padding: var(--space-2) var(--space-3);
-  background: color-mix(in srgb, var(--color-bullish) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-bullish) 30%, transparent);
-  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  padding: var(--space-3);
+  background: color-mix(in srgb, var(--color-bullish) 10%, transparent);
+  border-radius: var(--radius-md);
 }
 
 .toggle {
   text-align: center;
-  font-size: 0.875rem;
-  opacity: 0.7;
+  font-size: 0.9375rem;
+  color: var(--color-foreground-muted);
 }
 
 .toggleButton {
@@ -150,18 +169,20 @@
   font-size: inherit;
 }
 
-/* Decorative side panel - an original generated chart motif, not lifted
-   art, since this is shipped product code rather than a one-off mockup. */
+.toggleButton:hover {
+  text-decoration: underline;
+}
+
+/* Hero panel. The reference uses a stock photo of a trading visualisation;
+   this is an original generated motif in the same palette, since shipped
+   product code shouldn't carry art lifted from a mockup. */
 .showcase {
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   padding: var(--space-7);
-  background:
-    radial-gradient(circle at 20% 15%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 45%),
-    linear-gradient(160deg, var(--color-primary), var(--color-background) 70%);
-  border-left: 1px solid var(--color-border);
+  background: linear-gradient(160deg, #07182e 0%, #0a2b45 55%, #0b3c4d 100%);
   overflow: hidden;
 }
 
@@ -172,29 +193,24 @@
   height: 100%;
 }
 
-.showcaseLine {
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 .showcaseContent {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   max-width: 26rem;
+  color: #ffffff;
 }
 
 .showcaseTitle {
-  font-size: 1.75rem;
+  font-size: 1.875rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .showcaseBody {
   font-size: 0.9375rem;
-  opacity: 0.75;
+  color: rgba(255, 255, 255, 0.72);
   line-height: 1.6;
 }

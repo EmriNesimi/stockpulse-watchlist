@@ -72,7 +72,7 @@ describe("AuthGate", () => {
     await user.type(screen.getByLabelText("Email"), "new@example.com");
     await user.type(screen.getByLabelText("Password"), "brand-new-password");
     await user.type(screen.getByLabelText("Confirm password"), "brand-new-password");
-    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    await user.click(screen.getByRole("button", { name: "Get started" }));
 
     expect(signup).toHaveBeenCalledWith("new@example.com", "brand-new-password");
     await waitFor(() => expect(onAuthenticated).toHaveBeenCalledWith({ id: "u2", email: "new@example.com", emailVerified: false }));
@@ -87,7 +87,7 @@ describe("AuthGate", () => {
     await user.type(screen.getByLabelText("Email"), "dupe@example.com");
     await user.type(screen.getByLabelText("Password"), "some-password");
     await user.type(screen.getByLabelText("Confirm password"), "some-password");
-    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    await user.click(screen.getByRole("button", { name: "Get started" }));
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent("An account with that email already exists")
@@ -102,7 +102,7 @@ describe("AuthGate", () => {
     await user.type(screen.getByLabelText("Email"), "new@example.com");
     await user.type(screen.getByLabelText("Password"), "brand-new-password");
     await user.type(screen.getByLabelText("Confirm password"), "a-different-password");
-    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    await user.click(screen.getByRole("button", { name: "Get started" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent("Passwords don't match");
     expect(signup).not.toHaveBeenCalled();
@@ -116,7 +116,7 @@ describe("AuthGate", () => {
     await user.type(screen.getByLabelText("Email"), "new@example.com");
     await user.type(screen.getByLabelText("Password"), "brand-new-password");
     await user.type(screen.getByLabelText("Confirm password"), "a-different-password");
-    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    await user.click(screen.getByRole("button", { name: "Get started" }));
 
     const confirmField = screen.getByLabelText("Confirm password");
     const errorEl = screen.getByRole("alert");
@@ -132,7 +132,7 @@ describe("AuthGate", () => {
     await user.type(screen.getByLabelText("Email"), "new@example.com");
     await user.type(screen.getByLabelText("Password"), "brand-new-password");
     await user.type(screen.getByLabelText("Confirm password"), "a-different-password");
-    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    await user.click(screen.getByRole("button", { name: "Get started" }));
     expect(screen.getByLabelText("Confirm password")).toHaveAttribute("aria-invalid", "true");
 
     await user.click(screen.getByRole("button", { name: "Log in" }));
