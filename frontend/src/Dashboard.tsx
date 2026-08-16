@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChartLineUp } from "@phosphor-icons/react";
 import Search from "./components/Search";
-import WatchlistTable from "./components/WatchlistTable";
-import StatsRow from "./components/StatsRow";
+import Sidebar from "./components/Sidebar";
 import ConnectionBadge from "./components/ConnectionBadge";
 import AlertToast from "./components/AlertToast";
 import ErrorToast from "./components/ErrorToast";
 import VerificationBanner from "./components/VerificationBanner";
 import ThemeToggle from "./components/ThemeToggle";
+import DashboardView from "./views/DashboardView";
 import type { Theme } from "./hooks/useTheme";
+import type { View, ViewName } from "./lib/views";
 import { useLiveTicks } from "./hooks/useLiveTicks";
 import { useThrottledAnnouncement } from "./hooks/useThrottledAnnouncement";
 import { useErrorToasts } from "./hooks/useErrorToasts";
@@ -35,9 +35,15 @@ interface DashboardProps {
 // user signs in, so all of this component's state - watchlist items,
 // prices, error toasts, fired-alert toasts - starts clean instead of
 // carrying over stale data from whoever was signed in before.
+//
+// This is the authenticated shell rather than a single screen: it owns the
+// watchlist and the live-tick subscription, and swaps the content column
+// between views. Keeping the subscription up here means navigating doesn't
+// tear down and re-open the WebSocket.
 export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: DashboardProps) {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
+  const [view, setView] = useState<View>({ name: "dashboard" });
   const symbols = useMemo(() => items.map((i) => i.symbol), [items]);
   const { prices, status, alertEvents, dismissAlert, wsError } = useLiveTicks(symbols);
   const announcement = useThrottledAnnouncement(items, prices);
@@ -88,6 +94,14 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
     }
   }
 
+  function handleNavigate(name: ViewName) {
+    // "stock" is deliberately unreachable from the nav - it needs a symbol,
+    // so it's only entered by picking one out of a list.
+    if (name === "dashboard" || name === "wallet" || name === "profile") {
+      setView({ name });
+    }
+  }
+
   return (
     <div className={styles.app}>
       <a href="#main-content" className="skip-link">
@@ -100,45 +114,47 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
       <AlertToast alerts={alertEvents} onDismiss={dismissAlert} />
       <ErrorToast errors={errors} onDismiss={dismissError} />
 
-      {!user.emailVerified && <VerificationBanner onError={pushError} />}
+      <Sidebar current={view.name} onNavigate={handleNavigate} onSignOut={onSignOut} />
 
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <div className={styles.brandRow}>
-            <span className={styles.brandMark}>
-              <ChartLineUp size={16} weight="bold" aria-hidden />
-            </span>
-            <span className={styles.brand}>StockPulse</span>
-            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-          </div>
-          <ConnectionBadge status={status} />
-        </div>
-        <div className={styles.headerRight}>
+      <div className={styles.column}>
+        <header className={styles.topbar}>
           <Search
             onAdd={handleAdd}
             alreadyAdded={(symbol) => items.some((i) => i.symbol === symbol)}
             atCapacity={items.length >= MAX_WATCHLIST_SYMBOLS}
           />
-          <div className={styles.account}>
-            <span className={styles.accountEmail}>{user.email}</span>
-            <button onClick={onSignOut} className={styles.signOutButton}>
-              Sign out
-            </button>
+          <div className={styles.topbarRight}>
+            <ConnectionBadge status={status} />
+            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+            <div className={styles.account}>
+              <span className={styles.accountAvatar} aria-hidden>
+                {user.email.slice(0, 2)}
+              </span>
+              <span className={styles.accountEmail}>{user.email}</span>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main id="main-content" tabIndex={-1} className={styles.main}>
-        <h1 className={styles.pageHeading}>Your watchlist</h1>
-        <StatsRow items={items} prices={prices} />
-        <WatchlistTable
-          items={items}
-          prices={prices}
-          loading={isLoadingWatchlist}
-          onRemove={handleRemove}
-          onCreateAlert={handleCreateAlert}
-        />
-      </main>
+        {!user.emailVerified && <VerificationBanner onError={pushError} />}
+
+        <main id="main-content" tabIndex={-1} className={styles.main}>
+          {view.name === "dashboard" && (
+            <DashboardView
+              items={items}
+              prices={prices}
+              loading={isLoadingWatchlist}
+              onRemove={handleRemove}
+              onCreateAlert={handleCreateAlert}
+            />
+          )}
+          {view.name === "wallet" && (
+            <div className={styles.placeholder}>The wallet screen lands in the next pass.</div>
+          )}
+          {view.name === "profile" && (
+            <div className={styles.placeholder}>The profile screen lands in the next pass.</div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
