@@ -18,7 +18,7 @@ export function createApp() {
   app.use(
     cors({
       origin: env.frontendOrigin,
-      methods: ["GET", "POST", "DELETE"],
+      methods: ["GET", "POST", "PATCH", "DELETE"],
       credentials: true, // session cookie needs to cross the cors boundary
     })
   );
