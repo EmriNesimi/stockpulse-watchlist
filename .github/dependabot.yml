@@ -1,0 +1,34 @@
+version: 2
+
+# CI already fails the build on a high-severity advisory (npm audit in
+# ci.yml), but that only tells us something is wrong after the fact. These
+# keep the lockfiles moving so advisories get fixed before they bite.
+updates:
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for the routine patch/minor churn; majors still come through
+      # individually so breaking changes get read properly.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
