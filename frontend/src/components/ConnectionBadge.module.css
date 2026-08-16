@@ -6,11 +6,11 @@
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
-  color: var(--color-foreground);
-  opacity: 0.75;
+  border-radius: var(--radius-full);
+  color: var(--color-foreground-muted);
 }
 
 .connected {
   color: var(--color-bullish);
-  opacity: 1;
+  border-color: color-mix(in srgb, var(--color-bullish) 35%, transparent);
 }

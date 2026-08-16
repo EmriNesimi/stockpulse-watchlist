@@ -76,12 +76,13 @@ export default function WatchlistTable({ items, prices, loading = false, onRemov
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => {
+          {items.map((item, index) => {
             const state = prices[item.symbol];
             const bullish = (state?.changePercent ?? 0) >= 0;
             const alertFormOpen = alertFormSymbol === item.symbol;
             const chartOpen = chartSymbol === item.symbol;
-            const rowClass = alertFormOpen || chartOpen ? styles.rowNoBorder : styles.row;
+            const striped = index % 2 === 1 ? ` ${styles.rowStriped}` : "";
+            const rowClass = (alertFormOpen || chartOpen ? styles.rowNoBorder : styles.row) + striped;
 
             return (
               <Fragment key={item.id}>

@@ -7,29 +7,30 @@
   border-radius: var(--radius-sm);
   transition: background-color 500ms ease-out;
   background-color: transparent;
+  font-weight: 600;
 }
 
+/* Kept light: on the white surface anything stronger reads as a filled block
+   rather than a passing highlight. */
 .flashUp {
-  background-color: color-mix(in srgb, var(--color-bullish) 25%, transparent);
+  background-color: color-mix(in srgb, var(--color-bullish) 14%, transparent);
 }
 
 .flashDown {
-  background-color: color-mix(in srgb, var(--color-bearish) 25%, transparent);
+  background-color: color-mix(in srgb, var(--color-bearish) 14%, transparent);
 }
 
 .badge {
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  padding: 1px 6px;
-  border-radius: var(--radius-sm);
-  color: var(--color-foreground);
-  border: 1px solid var(--color-border);
-  opacity: 0.6;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  color: var(--color-foreground-muted);
+  background: var(--color-muted);
 }
 
 .live {
   color: var(--color-bullish);
-  border-color: var(--color-bullish);
-  opacity: 1;
+  background: color-mix(in srgb, var(--color-bullish) 12%, transparent);
 }

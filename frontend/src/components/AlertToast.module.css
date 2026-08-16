@@ -60,6 +60,6 @@
   background: transparent;
   border: none;
   color: var(--color-foreground);
-  opacity: 0.6;
+  color: var(--color-foreground-muted);
   flex-shrink: 0;
 }

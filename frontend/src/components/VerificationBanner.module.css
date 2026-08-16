@@ -30,5 +30,5 @@
 }
 
 .resendButton:disabled {
-  opacity: 0.6;
+  color: var(--color-foreground-muted);
 }

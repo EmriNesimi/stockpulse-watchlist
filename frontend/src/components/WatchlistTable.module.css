@@ -1,14 +1,15 @@
 .placeholder {
-  border: 1px dashed var(--color-border);
+  background: var(--color-secondary);
   border-radius: var(--radius-lg);
-  padding: var(--space-6);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-7) var(--space-5);
   text-align: center;
-  opacity: 0.7;
+  color: var(--color-foreground-muted);
+  font-size: 0.875rem;
 }
 
 .card {
   background: var(--color-secondary);
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   overflow: hidden;
@@ -19,7 +20,6 @@
   align-items: baseline;
   gap: var(--space-2);
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--color-border);
 }
 
 .cardTitle {
@@ -30,7 +30,7 @@
 
 .cardCount {
   font-size: 0.8125rem;
-  opacity: 0.6;
+  color: var(--color-foreground-muted);
 }
 
 .table {
@@ -43,23 +43,27 @@
 }
 
 .th {
-  padding: var(--space-3) var(--space-5);
+  padding: var(--space-2) var(--space-5);
   font-weight: 500;
   font-size: 0.8125rem;
-  opacity: 0.6;
+  color: var(--color-foreground-muted);
 }
 
+/* The reference alternates row fills instead of ruling every row, which keeps
+   a long table quieter. Striping is applied by index rather than :nth-child
+   because the expandable alert/chart rows are siblings in the same tbody and
+   would otherwise throw the alternation off. */
 .row {
-  border-top: 1px solid var(--color-border);
   transition: background-color var(--motion-fast) var(--motion-ease);
 }
 
-.row:hover {
-  background: color-mix(in srgb, var(--color-foreground) 3%, transparent);
+.rowStriped {
+  background: var(--color-muted);
 }
 
-.rowNoBorder {
-  border-top: 1px solid var(--color-border);
+.row:hover,
+.rowNoBorder:hover {
+  background: var(--color-accent-soft);
 }
 
 .td {
@@ -85,11 +89,12 @@
 
 .symbolText {
   display: block;
+  font-size: 0.9375rem;
 }
 
 .symbolName {
   font-size: 0.8125rem;
-  opacity: 0.6;
+  color: var(--color-foreground-muted);
 }
 
 .changeCell {
@@ -97,6 +102,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  font-weight: 500;
 }
 
 .changeBullish {
@@ -108,8 +114,8 @@
 }
 
 .rangeCell {
-  font-size: 0.8125rem;
-  opacity: 0.75;
+  font-size: 0.875rem;
+  color: var(--color-foreground-muted);
 }
 
 .actionsCell {
@@ -123,23 +129,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 40px;
+  min-height: 40px;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm);
-  color: var(--color-foreground);
-  opacity: 0.6;
+  border-radius: var(--radius-full);
+  color: var(--color-foreground-muted);
+  transition:
+    color var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease);
 }
 
-.iconButtonActive {
+.iconButton:hover {
+  background: var(--color-muted);
+  color: var(--color-foreground);
+}
+
+.iconButtonActive,
+.iconButtonActive:hover {
   color: var(--color-accent);
-  opacity: 1;
+  background: var(--color-accent-soft);
 }
 
 .expandedCell {
   padding: 0 var(--space-5) var(--space-4);
-  background: color-mix(in srgb, var(--color-foreground) 2%, transparent);
+  background: var(--color-muted);
 }
 
 .chartWrapper {
@@ -148,6 +162,6 @@
 
 .chartLabel {
   font-size: 0.8125rem;
-  opacity: 0.6;
+  color: var(--color-foreground-muted);
   margin-bottom: var(--space-2);
 }
