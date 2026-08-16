@@ -8,6 +8,7 @@ import VerificationBanner from "./components/VerificationBanner";
 import ThemeToggle from "./components/ThemeToggle";
 import DashboardView from "./views/DashboardView";
 import ProfileView from "./views/ProfileView";
+import WalletView from "./views/WalletView";
 import type { Theme } from "./hooks/useTheme";
 import type { View, ViewName } from "./lib/views";
 import { useLiveTicks } from "./hooks/useLiveTicks";
@@ -161,9 +162,7 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
               onCreateAlert={handleCreateAlert}
             />
           )}
-          {view.name === "wallet" && (
-            <div className={styles.placeholder}>The wallet screen lands in the next pass.</div>
-          )}
+          {view.name === "wallet" && <WalletView items={items} prices={prices} />}
           {view.name === "profile" && (
             <ProfileView
               user={user}

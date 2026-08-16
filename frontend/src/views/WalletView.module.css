@@ -1,0 +1,156 @@
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.heading {
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.card {
+  background: var(--color-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+}
+
+/* The headline number gets its own panel, with the supporting figures in a
+   row beneath it. */
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-5);
+}
+
+.summaryLabel {
+  font-size: 0.875rem;
+  color: var(--color-foreground-muted);
+}
+
+.summaryValue {
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.summaryChange {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.figureLabel {
+  font-size: 0.8125rem;
+  color: var(--color-foreground-muted);
+}
+
+.figureValue {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.sectionTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-3);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-foreground-muted);
+}
+
+.thNumeric {
+  text-align: right;
+}
+
+.row {
+  border-top: 1px solid var(--color-border);
+}
+
+.td {
+  padding: var(--space-3);
+}
+
+.tdNumeric {
+  text-align: right;
+  padding: var(--space-3);
+  font-weight: 500;
+}
+
+.symbolCell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.symbol {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.bullish {
+  color: var(--color-bullish);
+}
+
+.bearish {
+  color: var(--color-bearish);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.emptyTitle {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.emptyBody {
+  font-size: 0.875rem;
+  color: var(--color-foreground-muted);
+}
+
+.pending {
+  font-size: 0.8125rem;
+  color: var(--color-foreground-muted);
+}
+
+@media (max-width: 640px) {
+  .scroll {
+    overflow-x: auto;
+  }
+}
