@@ -14,6 +14,14 @@ import historyRouter from "./routes/history";
 export function createApp() {
   const app = express();
 
+  // Both rate limiters below bucket by client IP. Behind a reverse proxy
+  // (Render, Fly, nginx) every request arrives from the proxy's address, so
+  // without this the whole userbase shares one login budget and a single
+  // attacker locks everyone out. Trusting exactly one hop rather than `true`
+  // - blanket trust lets a client spoof its own IP via X-Forwarded-For and
+  // sidestep the limiter entirely.
+  app.set("trust proxy", 1);
+
   app.use(helmet());
   app.use(
     cors({
