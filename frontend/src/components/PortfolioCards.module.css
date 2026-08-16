@@ -1,0 +1,90 @@
+/* A horizontally scrolling rail of position cards, as in the reference. It
+   scrolls rather than wraps so the section keeps a predictable height however
+   many positions are open. */
+.rail {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+  scroll-snap-type: x proximity;
+}
+
+.card {
+  flex: 0 0 260px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.symbol {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: -0.01em;
+}
+
+.spark {
+  margin-left: auto;
+  display: flex;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.label {
+  font-size: 0.8125rem;
+  color: var(--color-foreground-muted);
+}
+
+.value {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.bullish {
+  color: var(--color-bullish);
+}
+
+.bearish {
+  color: var(--color-bearish);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-5);
+  background: var(--color-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.emptyTitle {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.emptyBody {
+  font-size: 0.875rem;
+  color: var(--color-foreground-muted);
+}
