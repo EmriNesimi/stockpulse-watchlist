@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { PriceFeed, PriceTick, Unsubscribe } from "../priceFeed";
 import { checkAndTriggerAlerts, type AlertTrigger } from "../alerts/checkAndTriggerAlerts";
 import { SESSION_COOKIE_NAME, verifySessionCookieValue } from "../auth/session";
+import { env } from "../env";
 import { MAX_SYMBOLS_PER_CLIENT } from "../wsLimits";
 
 const MAX_MESSAGES_PER_MINUTE = 60;
@@ -39,8 +40,28 @@ function resolveUserId(cookieHeader: string | undefined): string | undefined {
   return verifySessionCookieValue(cookies[SESSION_COOKIE_NAME]) ?? undefined;
 }
 
+// The same-origin policy doesn't cover WebSockets and CORS never runs on an
+// upgrade request, so without this check any page on the internet could open
+// a socket to this server, have the browser attach the user's session cookie,
+// and receive that user's private alert messages (cross-site WebSocket
+// hijacking). Browsers always send Origin on a WS handshake; non-browser
+// clients (tests, curl) send none and are allowed through, since there's no
+// ambient cookie to abuse in that case.
+export function isAllowedOrigin(origin: string | undefined, allowed: string): boolean {
+  if (origin === undefined) return true;
+  return origin === allowed;
+}
+
 export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
-  const wss = new WebSocketServer({ server, path: "/ws", maxPayload: MAX_PAYLOAD_BYTES });
+  const wss = new WebSocketServer({
+    server,
+    path: "/ws",
+    maxPayload: MAX_PAYLOAD_BYTES,
+    verifyClient: ({ origin }, done) => {
+      if (isAllowedOrigin(origin, env.frontendOrigin)) return done(true);
+      done(false, 403, "Forbidden origin");
+    },
+  });
 
   // One upstream priceFeed subscription per symbol, shared across every
   // client watching it, instead of one per client-symbol pair.
