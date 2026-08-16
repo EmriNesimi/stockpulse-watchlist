@@ -83,6 +83,8 @@ function watchlistItem(overrides: Partial<WatchlistItem> = {}): WatchlistItem {
     symbol: "AAPL",
     name: "Apple Inc.",
     addedAt: "2026-01-01T00:00:00.000Z",
+    shares: null,
+    costBasis: null,
     ...overrides,
   };
 }

@@ -5,7 +5,7 @@ import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 
 function item(symbol: string): WatchlistItem {
-  return { id: symbol, symbol, name: symbol, addedAt: new Date().toISOString() };
+  return { id: symbol, symbol, name: symbol, addedAt: new Date().toISOString(), shares: null, costBasis: null };
 }
 
 function price(overrides: Partial<PriceState> = {}): PriceState {

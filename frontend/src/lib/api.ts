@@ -10,6 +10,10 @@ export interface WatchlistItem {
   symbol: string;
   name: string | null;
   addedAt: string;
+  // Set together or not at all - the backend rejects one without the other.
+  // Null means "watching but not holding", which is the default.
+  shares: number | null;
+  costBasis: number | null;
 }
 
 export interface Candle {
@@ -64,6 +68,20 @@ export function addToWatchlist(symbol: string, name?: string): Promise<{ item: W
   return request("/api/watchlist", {
     method: "POST",
     body: JSON.stringify({ symbol, name }),
+  });
+}
+
+// Pass nulls to clear a position back to watch-only. The backend enforces
+// that shares and costBasis move together, so they're not independently
+// optional here either.
+export function updateHoldings(
+  symbol: string,
+  shares: number | null,
+  costBasis: number | null
+): Promise<{ item: WatchlistItem }> {
+  return request(`/api/watchlist/${encodeURIComponent(symbol)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ shares, costBasis }),
   });
 }
 

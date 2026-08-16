@@ -5,7 +5,15 @@ import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 
 function item(overrides: Partial<WatchlistItem> = {}): WatchlistItem {
-  return { id: overrides.symbol ?? "1", symbol: "AAPL", name: "Apple Inc.", addedAt: "2026-01-01", ...overrides };
+  return {
+    id: overrides.symbol ?? "1",
+    symbol: "AAPL",
+    name: "Apple Inc.",
+    addedAt: "2026-01-01",
+    shares: null,
+    costBasis: null,
+    ...overrides,
+  };
 }
 
 function price(overrides: Partial<PriceState> = {}): PriceState {
