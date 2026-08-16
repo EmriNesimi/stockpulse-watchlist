@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import {
@@ -12,6 +12,7 @@ import {
   login,
   logout,
   verifyEmail,
+  getHistory,
 } from "./lib/api";
 import type { WatchlistItem } from "./lib/api";
 
@@ -34,6 +35,9 @@ vi.mock("./lib/api", () => ({
   login: vi.fn(),
   logout: vi.fn(),
   verifyEmail: vi.fn(),
+  resendVerificationEmail: vi.fn(),
+  updateHoldings: vi.fn(),
+  getHistory: vi.fn(),
 }));
 
 // Matches the browser WebSocket API — same shape as useLiveTicks.test.ts's
@@ -77,6 +81,13 @@ class FakeWebSocket {
 
 vi.stubGlobal("WebSocket", FakeWebSocket);
 
+// Symbols and prices now appear in the chart panel and the watching rail as
+// well as the table, so assertions about "the row for X" scope themselves to
+// the table rather than the whole page.
+function table() {
+  return within(screen.getByRole("table"));
+}
+
 function watchlistItem(overrides: Partial<WatchlistItem> = {}): WatchlistItem {
   return {
     id: overrides.symbol ?? "1",
@@ -96,6 +107,9 @@ beforeEach(() => {
   vi.mocked(removeFromWatchlist).mockReset();
   vi.mocked(createAlert).mockReset();
   vi.mocked(searchTickers).mockReset();
+  // The dashboard always mounts the chart panel, which pulls history for
+  // whichever symbol is focused.
+  vi.mocked(getHistory).mockReset().mockResolvedValue({ candles: [], source: "simulated" });
   // Every existing test in this file exercises the already-signed-in app;
   // the auth-gate flow itself gets its own describe block further down.
   vi.mocked(getCurrentUser)
@@ -143,8 +157,8 @@ describe("App — initial load", () => {
     });
     render(<App />);
 
-    await waitFor(() => expect(screen.getByText("AAPL")).toBeInTheDocument());
-    expect(screen.getByText("MSFT")).toBeInTheDocument();
+    await waitFor(() => expect(table().getByText("AAPL")).toBeInTheDocument());
+    expect(table().getByText("MSFT")).toBeInTheDocument();
   });
 
   it("doesn't crash the app if the initial watchlist fetch fails", async () => {
@@ -300,7 +314,7 @@ describe("App — removing from the watchlist", () => {
     await user.click(screen.getByRole("button", { name: "Remove AAPL from watchlist" }));
 
     await waitFor(() => expect(screen.queryByText("AAPL")).not.toBeInTheDocument());
-    expect(screen.getByText("MSFT")).toBeInTheDocument();
+    expect(table().getByText("MSFT")).toBeInTheDocument();
   });
 
   it("re-enables search after removing an item from a full (30-item) watchlist", async () => {
@@ -360,7 +374,7 @@ describe("App — live connection status and price updates", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("$231.50")).toBeInTheDocument());
+    await waitFor(() => expect(table().getByText("$231.50")).toBeInTheDocument());
   });
 
   it("only updates the row for the symbol the tick is for", async () => {
@@ -381,7 +395,7 @@ describe("App — live connection status and price updates", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("$200.00")).toBeInTheDocument());
+    await waitFor(() => expect(table().getByText("$200.00")).toBeInTheDocument());
     // MSFT never got a tick — still showing its placeholder dash somewhere.
     expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
