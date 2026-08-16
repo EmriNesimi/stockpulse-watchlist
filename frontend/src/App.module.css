@@ -80,13 +80,3 @@
   letter-spacing: -0.02em;
   margin: 0 0 var(--space-4);
 }
-
-/* Temporary stand-in for the screens landing in the next pass. */
-.placeholder {
-  background: var(--color-secondary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: var(--space-7) var(--space-5);
-  text-align: center;
-  color: var(--color-foreground-muted);
-}

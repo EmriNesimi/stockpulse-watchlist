@@ -155,13 +155,3 @@
   padding: 0 var(--space-5) var(--space-4);
   background: var(--color-muted);
 }
-
-.chartWrapper {
-  padding-top: var(--space-3);
-}
-
-.chartLabel {
-  font-size: 0.8125rem;
-  color: var(--color-foreground-muted);
-  margin-bottom: var(--space-2);
-}
