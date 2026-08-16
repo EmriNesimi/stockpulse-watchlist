@@ -5,13 +5,13 @@ export type Theme = "dark" | "light";
 const STORAGE_KEY = "stockpulse-theme";
 
 function readStoredTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
+  if (typeof window === "undefined") return "light";
   const stored = window.localStorage.getItem(STORAGE_KEY);
-  return stored === "light" ? "light" : "dark"; // dark is the brand default
+  return stored === "dark" ? "dark" : "light"; // light is the brand default
 }
 
 // Reflects the theme onto <html data-theme="..."> (tokens.css keys its
-// light-mode overrides off that attribute) and persists the choice, rather
+// dark-mode overrides off that attribute) and persists the choice, rather
 // than only following prefers-color-scheme - a user who explicitly picks a
 // theme should keep it, not have it flip if their OS setting changes.
 export function useTheme() {
