@@ -8,6 +8,10 @@
 :root {
   --color-primary: #0d0c2b;
   --color-on-primary: #ffffff;
+  /* Separate from on-primary: the accent and the avatar hues stay saturated
+     in both themes, so text on them is always white. on-primary has to flip
+     with the primary surface, which inverts between themes. */
+  --color-on-accent: #ffffff;
   --color-secondary: #ffffff;
   --color-accent: #8044fe;
   --color-accent-soft: #f1ebff;
