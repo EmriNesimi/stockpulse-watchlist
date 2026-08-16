@@ -3,9 +3,7 @@ import { TrendUp, TrendDown, X, Bell } from "@phosphor-icons/react";
 import Sparkline from "./Sparkline";
 import PriceCell from "./PriceCell";
 import AlertForm from "./AlertForm";
-import CandlestickChart from "./CandlestickChart";
 import TickerAvatar from "./TickerAvatar";
-import { useHistory } from "../hooks/useHistory";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./WatchlistTable.module.css";
@@ -18,16 +16,7 @@ interface WatchlistTableProps {
   loading?: boolean;
   onRemove: (symbol: string) => void;
   onCreateAlert: (symbol: string, threshold: number, direction: "above" | "below") => void;
-}
-
-function ChartRow({ symbol }: { symbol: string }) {
-  const { candles, loading, error } = useHistory(symbol);
-  return (
-    <div className={styles.chartWrapper}>
-      <div className={styles.chartLabel}>{symbol} · last 30 days</div>
-      <CandlestickChart candles={candles} loading={loading} error={error} />
-    </div>
-  );
+  onSelectSymbol: (symbol: string) => void;
 }
 
 // The rolling tick history each row already tracks (for the sparkline) also
@@ -40,9 +29,15 @@ function sessionRange(history: number[] | undefined): string {
   return `$${low.toFixed(2)} – $${high.toFixed(2)}`;
 }
 
-export default function WatchlistTable({ items, prices, loading = false, onRemove, onCreateAlert }: WatchlistTableProps) {
+export default function WatchlistTable({
+  items,
+  prices,
+  loading = false,
+  onRemove,
+  onCreateAlert,
+  onSelectSymbol,
+}: WatchlistTableProps) {
   const [alertFormSymbol, setAlertFormSymbol] = useState<string | null>(null);
-  const [chartSymbol, setChartSymbol] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -80,21 +75,16 @@ export default function WatchlistTable({ items, prices, loading = false, onRemov
             const state = prices[item.symbol];
             const bullish = (state?.changePercent ?? 0) >= 0;
             const alertFormOpen = alertFormSymbol === item.symbol;
-            const chartOpen = chartSymbol === item.symbol;
             const striped = index % 2 === 1 ? ` ${styles.rowStriped}` : "";
-            const rowClass = (alertFormOpen || chartOpen ? styles.rowNoBorder : styles.row) + striped;
+            const rowClass = (alertFormOpen ? styles.rowNoBorder : styles.row) + striped;
 
             return (
               <Fragment key={item.id}>
                 <tr className={rowClass}>
                   <td className={styles.td}>
                     <button
-                      onClick={() => {
-                        setChartSymbol(chartOpen ? null : item.symbol);
-                        setAlertFormSymbol(null);
-                      }}
-                      aria-label={`${chartOpen ? "Hide" : "Show"} price chart for ${item.symbol}`}
-                      aria-expanded={chartOpen}
+                      onClick={() => onSelectSymbol(item.symbol)}
+                      aria-label={`Open ${item.symbol}`}
                       className={styles.symbolButton}
                     >
                       <TickerAvatar symbol={item.symbol} />
@@ -128,10 +118,7 @@ export default function WatchlistTable({ items, prices, loading = false, onRemov
                   </td>
                   <td className={styles.actionsCell}>
                     <button
-                      onClick={() => {
-                        setAlertFormSymbol(alertFormOpen ? null : item.symbol);
-                        setChartSymbol(null);
-                      }}
+                      onClick={() => setAlertFormSymbol(alertFormOpen ? null : item.symbol)}
                       aria-label={`Set a price alert for ${item.symbol}`}
                       aria-expanded={alertFormOpen}
                       className={`${styles.iconButton} ${alertFormOpen ? styles.iconButtonActive : ""}`}
@@ -148,7 +135,7 @@ export default function WatchlistTable({ items, prices, loading = false, onRemov
                   </td>
                 </tr>
                 {alertFormOpen && (
-                  <tr className={chartOpen ? styles.rowNoBorder : styles.row}>
+                  <tr className={styles.row}>
                     <td colSpan={COLUMN_COUNT} className={styles.expandedCell}>
                       <AlertForm
                         symbol={item.symbol}
@@ -159,13 +146,6 @@ export default function WatchlistTable({ items, prices, loading = false, onRemov
                         }}
                         onCancel={() => setAlertFormSymbol(null)}
                       />
-                    </td>
-                  </tr>
-                )}
-                {chartOpen && (
-                  <tr className={styles.row}>
-                    <td colSpan={COLUMN_COUNT} className={styles.expandedCell}>
-                      <ChartRow symbol={item.symbol} />
                     </td>
                   </tr>
                 )}

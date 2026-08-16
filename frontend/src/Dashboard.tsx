@@ -9,6 +9,7 @@ import ThemeToggle from "./components/ThemeToggle";
 import DashboardView from "./views/DashboardView";
 import ProfileView from "./views/ProfileView";
 import WalletView from "./views/WalletView";
+import StockDetailView from "./views/StockDetailView";
 import type { Theme } from "./hooks/useTheme";
 import type { View, ViewName } from "./lib/views";
 import { useLiveTicks } from "./hooks/useLiveTicks";
@@ -159,6 +160,15 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
               prices={prices}
               loading={isLoadingWatchlist}
               onRemove={handleRemove}
+              onCreateAlert={handleCreateAlert}
+              onOpenSymbol={(symbol) => setView({ name: "stock", symbol })}
+            />
+          )}
+          {view.name === "stock" && (
+            <StockDetailView
+              item={items.find((i) => i.symbol === view.symbol)}
+              prices={prices}
+              onBack={() => setView({ name: "dashboard" })}
               onCreateAlert={handleCreateAlert}
             />
           )}

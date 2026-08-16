@@ -1,0 +1,87 @@
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: var(--space-2) var(--space-3);
+  margin-left: calc(var(--space-3) * -1);
+  color: var(--color-foreground-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color var(--motion-fast) var(--motion-ease);
+}
+
+.backButton:hover {
+  color: var(--color-accent);
+}
+
+.card {
+  background: var(--color-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+}
+
+.alertHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.sectionTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.sectionHint {
+  font-size: 0.8125rem;
+  color: var(--color-foreground-muted);
+}
+
+.positionRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-4);
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.figureLabel {
+  font-size: 0.8125rem;
+  color: var(--color-foreground-muted);
+}
+
+.figureValue {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.bullish {
+  color: var(--color-bullish);
+}
+
+.bearish {
+  color: var(--color-bearish);
+}
+
+.empty {
+  font-size: 0.875rem;
+  color: var(--color-foreground-muted);
+}

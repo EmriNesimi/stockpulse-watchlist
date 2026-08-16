@@ -14,9 +14,17 @@ interface DashboardViewProps {
   loading: boolean;
   onRemove: (symbol: string) => void;
   onCreateAlert: (symbol: string, threshold: number, direction: "above" | "below") => void;
+  onOpenSymbol: (symbol: string) => void;
 }
 
-export default function DashboardView({ items, prices, loading, onRemove, onCreateAlert }: DashboardViewProps) {
+export default function DashboardView({
+  items,
+  prices,
+  loading,
+  onRemove,
+  onCreateAlert,
+  onOpenSymbol,
+}: DashboardViewProps) {
   // Which symbol the big chart is showing. Null means "first on the list",
   // so the panel is never blank when there's something to show, and the
   // selection survives the list re-ordering underneath it.
@@ -43,6 +51,7 @@ export default function DashboardView({ items, prices, loading, onRemove, onCrea
         loading={loading}
         onRemove={onRemove}
         onCreateAlert={onCreateAlert}
+        onSelectSymbol={onOpenSymbol}
       />
     </div>
   );

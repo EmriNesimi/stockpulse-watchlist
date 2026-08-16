@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import WatchlistTable from "./WatchlistTable";
 import type { WatchlistItem } from "../lib/api";
@@ -26,7 +26,8 @@ const noop = vi.fn();
 
 describe("WatchlistTable — empty state", () => {
   it("shows a helpful message and no table when there are no items", () => {
-    render(<WatchlistTable items={[]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
+    render(<WatchlistTable items={[]} prices={{}} onRemove={noop} onCreateAlert={noop}
+        onSelectSymbol={noop} />);
     expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
@@ -34,7 +35,8 @@ describe("WatchlistTable — empty state", () => {
 
 describe("WatchlistTable — loading state", () => {
   it("shows a loading message instead of the empty-state message while loading", () => {
-    render(<WatchlistTable items={[]} prices={{}} loading={true} onRemove={noop} onCreateAlert={noop} />);
+    render(<WatchlistTable items={[]} prices={{}} loading={true} onRemove={noop} onCreateAlert={noop}
+        onSelectSymbol={noop} />);
     expect(screen.getByRole("status")).toHaveTextContent(/loading your watchlist/i);
     expect(screen.queryByText(/nothing on your watchlist yet/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
@@ -50,13 +52,15 @@ describe("WatchlistTable — loading state", () => {
         loading={true}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByRole("status")).toHaveTextContent(/loading your watchlist/i);
   });
 
   it("defaults to not loading when the prop is omitted", () => {
-    render(<WatchlistTable items={[]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
+    render(<WatchlistTable items={[]} prices={{}} onRemove={noop} onCreateAlert={noop}
+        onSelectSymbol={noop} />);
     expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument();
   });
 });
@@ -69,6 +73,7 @@ describe("WatchlistTable — rendering rows", () => {
         prices={{}}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByText("AAPL")).toBeInTheDocument();
@@ -82,6 +87,7 @@ describe("WatchlistTable — rendering rows", () => {
         prices={{}}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByText("AAPL")).toBeInTheDocument();
@@ -90,7 +96,8 @@ describe("WatchlistTable — rendering rows", () => {
 
   it("shows placeholder dashes for a symbol with no price data yet", () => {
     render(
-      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />
+      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop}
+        onSelectSymbol={noop} />
     );
     // PriceCell's dash and the change column's dash
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
@@ -103,6 +110,7 @@ describe("WatchlistTable — rendering rows", () => {
         prices={{ AAPL: price({ price: 231.5, changePercent: 1.25 }) }}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByText("$231.50")).toBeInTheDocument();
@@ -116,6 +124,7 @@ describe("WatchlistTable — rendering rows", () => {
         prices={{ AAPL: price({ changePercent: 2 }) }}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByText("+2.00%")).toBeInTheDocument();
@@ -126,6 +135,7 @@ describe("WatchlistTable — rendering rows", () => {
         prices={{ AAPL: price({ changePercent: -2 }) }}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByText("-2.00%")).toBeInTheDocument();
@@ -138,6 +148,7 @@ describe("WatchlistTable — rendering rows", () => {
         prices={{ AAPL: price({ price: 200 }) }}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByText("$200.00")).toBeInTheDocument();
@@ -157,6 +168,7 @@ describe("WatchlistTable — removing a symbol", () => {
         prices={{}}
         onRemove={onRemove}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
 
@@ -173,6 +185,7 @@ describe("WatchlistTable — removing a symbol", () => {
         prices={{}}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
 
@@ -185,7 +198,8 @@ describe("WatchlistTable — setting an alert", () => {
   it("opens the inline alert form when the bell is clicked", async () => {
     const user = userEvent.setup();
     render(
-      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />
+      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop}
+        onSelectSymbol={noop} />
     );
 
     expect(screen.queryByRole("form", { name: "Set a price alert for AAPL" })).not.toBeInTheDocument();
@@ -198,7 +212,8 @@ describe("WatchlistTable — setting an alert", () => {
   it("closes the form again if the bell is clicked a second time", async () => {
     const user = userEvent.setup();
     render(
-      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />
+      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop}
+        onSelectSymbol={noop} />
     );
 
     const bell = screen.getByRole("button", { name: "Set a price alert for AAPL" });
@@ -217,6 +232,7 @@ describe("WatchlistTable — setting an alert", () => {
         prices={{}}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
 
@@ -237,6 +253,7 @@ describe("WatchlistTable — setting an alert", () => {
         prices={{ AAPL: price({ price: 231.5 }) }}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
 
@@ -249,7 +266,8 @@ describe("WatchlistTable — setting an alert", () => {
     const user = userEvent.setup();
     const onCreateAlert = vi.fn();
     render(
-      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={onCreateAlert} />
+      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={onCreateAlert}
+        onSelectSymbol={noop} />
     );
 
     await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
@@ -265,7 +283,8 @@ describe("WatchlistTable — setting an alert", () => {
     const user = userEvent.setup();
     const onCreateAlert = vi.fn();
     render(
-      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={onCreateAlert} />
+      <WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={onCreateAlert}
+        onSelectSymbol={noop} />
     );
 
     await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
@@ -276,69 +295,9 @@ describe("WatchlistTable — setting an alert", () => {
   });
 });
 
-describe("WatchlistTable — candlestick chart toggle", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("does not fetch history or show a chart until the symbol is clicked", () => {
-    const spy = vi.spyOn(api, "getHistory");
-    render(<WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
-
-    expect(spy).not.toHaveBeenCalled();
-    expect(screen.queryByRole("img", { name: /candlestick chart/i })).not.toBeInTheDocument();
-  });
-
-  it("fetches and renders the chart when the symbol is clicked", async () => {
-    vi.spyOn(api, "getHistory").mockResolvedValueOnce({
-      candles: [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }],
-      source: "simulated",
-    });
-    const user = userEvent.setup();
-    render(<WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
-
-    await user.click(screen.getByRole("button", { name: "Show price chart for AAPL" }));
-
-    await waitFor(() => expect(screen.getByRole("img", { name: /candlestick chart/i })).toBeInTheDocument());
-  });
-
-  it("hides the chart again when the symbol is clicked a second time", async () => {
-    vi.spyOn(api, "getHistory").mockResolvedValue({
-      candles: [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }],
-      source: "simulated",
-    });
-    const user = userEvent.setup();
-    render(<WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
-
-    const toggle = screen.getByRole("button", { name: "Show price chart for AAPL" });
-    await user.click(toggle);
-    await waitFor(() => expect(screen.getByRole("img", { name: /candlestick chart/i })).toBeInTheDocument());
-
-    await user.click(screen.getByRole("button", { name: "Hide price chart for AAPL" }));
-    expect(screen.queryByRole("img", { name: /candlestick chart/i })).not.toBeInTheDocument();
-  });
-
-  it("closes the alert form when the chart is opened on the same row", async () => {
-    vi.spyOn(api, "getHistory").mockResolvedValue({
-      candles: [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }],
-      source: "simulated",
-    });
-    const user = userEvent.setup();
-    render(<WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
-
-    await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
-    expect(screen.getByRole("form", { name: "Set a price alert for AAPL" })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Show price chart for AAPL" }));
-    expect(screen.queryByRole("form", { name: "Set a price alert for AAPL" })).not.toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole("img", { name: /candlestick chart/i })).toBeInTheDocument());
-  });
-
-  it("only shows one chart at a time across rows", async () => {
-    vi.spyOn(api, "getHistory").mockResolvedValue({
-      candles: [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }],
-      source: "simulated",
-    });
+describe("WatchlistTable — opening a symbol", () => {
+  it("calls onSelectSymbol with the row that was clicked", async () => {
+    const onSelectSymbol = vi.fn();
     const user = userEvent.setup();
     render(
       <WatchlistTable
@@ -346,14 +305,48 @@ describe("WatchlistTable — candlestick chart toggle", () => {
         prices={{}}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={onSelectSymbol}
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Show price chart for AAPL" }));
-    await waitFor(() => expect(screen.getByRole("img", { name: /candlestick chart/i })).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "Open MSFT" }));
 
-    await user.click(screen.getByRole("button", { name: "Show price chart for MSFT" }));
-    await waitFor(() => expect(screen.getAllByRole("img", { name: /candlestick chart/i })).toHaveLength(1));
+    expect(onSelectSymbol).toHaveBeenCalledWith("MSFT");
+  });
+
+  it("doesn't fetch history from the table any more - the detail screen owns that", () => {
+    const spy = vi.spyOn(api, "getHistory");
+    render(
+      <WatchlistTable
+        items={[item({ symbol: "AAPL" })]}
+        prices={{}}
+        onRemove={noop}
+        onCreateAlert={noop}
+        onSelectSymbol={noop}
+      />
+    );
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(screen.queryByRole("img", { name: /candlestick chart/i })).not.toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+
+  it("opening a symbol doesn't fire the remove handler", async () => {
+    const onRemove = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <WatchlistTable
+        items={[item({ symbol: "AAPL" })]}
+        prices={{}}
+        onRemove={onRemove}
+        onCreateAlert={noop}
+        onSelectSymbol={noop}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open AAPL" }));
+
+    expect(onRemove).not.toHaveBeenCalled();
   });
 });
 
@@ -365,6 +358,7 @@ describe("WatchlistTable — trend column and sparkline integration", () => {
         prices={{ AAPL: price({ changePercent: 1.5, history: [100, 105, 110] }) }}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByRole("img", { name: /trending up/i })).toBeInTheDocument();
@@ -377,6 +371,7 @@ describe("WatchlistTable — trend column and sparkline integration", () => {
         prices={{ AAPL: price({ changePercent: -1.5, history: [110, 105, 100] }) }}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByRole("img", { name: /trending down/i })).toBeInTheDocument();
@@ -389,6 +384,7 @@ describe("WatchlistTable — trend column and sparkline integration", () => {
         prices={{ AAPL: price({ changePercent: 0, history: [100, 100, 100] }) }}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByText("+0.00%")).toBeInTheDocument();
@@ -405,6 +401,7 @@ describe("WatchlistTable — trend column and sparkline integration", () => {
         }}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByRole("img", { name: /trending up/i })).toBeInTheDocument();
@@ -414,7 +411,8 @@ describe("WatchlistTable — trend column and sparkline integration", () => {
 
 describe("WatchlistTable — session range column", () => {
   it("shows a dash when there's not enough history yet", () => {
-    render(<WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop} />);
+    render(<WatchlistTable items={[item({ symbol: "AAPL" })]} prices={{}} onRemove={noop} onCreateAlert={noop}
+        onSelectSymbol={noop} />);
     // Both the Change and Session range cells fall back to a dash with no
     // price data yet - just confirm at least one shows up, not which.
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1);
@@ -427,6 +425,7 @@ describe("WatchlistTable — session range column", () => {
         prices={{ AAPL: price({ history: [101.5, 99, 103.25, 100] }) }}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByText("$99.00 – $103.25")).toBeInTheDocument();
@@ -441,6 +440,7 @@ describe("WatchlistTable — edge cases", () => {
         prices={{}}
         onRemove={noop}
         onCreateAlert={noop}
+        onSelectSymbol={noop}
       />
     );
     expect(screen.getByText("AAPL")).toBeInTheDocument();
@@ -448,7 +448,8 @@ describe("WatchlistTable — edge cases", () => {
 
   it("keeps every row's remove/alert controls independently addressable with 10+ items", () => {
     const items = Array.from({ length: 12 }, (_, i) => item({ id: String(i), symbol: `SYM${i}` }));
-    render(<WatchlistTable items={items} prices={{}} onRemove={noop} onCreateAlert={noop} />);
+    render(<WatchlistTable items={items} prices={{}} onRemove={noop} onCreateAlert={noop}
+        onSelectSymbol={noop} />);
 
     expect(screen.getByRole("button", { name: "Remove SYM0 from watchlist" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove SYM11 from watchlist" })).toBeInTheDocument();
