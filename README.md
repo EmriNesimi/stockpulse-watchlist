@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=soft&color=0:020617,50:0F172A,100:16A34A&height=180&section=header&text=StockPulse&fontSize=54&fontColor=F8FAFC&fontAlignY=35&animation=fadeIn&desc=live%20tickers.%20a%20real%20watchlist.%20no%20fake%20data%20labeled%20as%20real.&descAlignY=58&descSize=16&descAlign=50" width="100%" alt="StockPulse banner" />
+<img src="https://capsule-render.vercel.app/api?type=soft&color=0:0D0C2B,50:4B21B0,100:8044FE&height=180&section=header&text=StockPulse&fontSize=54&fontColor=FFFFFF&fontAlignY=35&animation=fadeIn&desc=live%20tickers.%20a%20real%20portfolio.%20no%20fake%20data%20labeled%20as%20real.&descAlignY=58&descSize=16&descAlign=50" width="100%" alt="StockPulse banner" />
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=500&size=18&duration=2200&pause=800&color=00FF9C&background=02061700&center=true&vCenter=true&width=600&lines=%24+watching+AAPL...+%2B0.34%25;%24+watching+MSFT...+-0.12%25;%24+connection%3A+live" alt="Terminal-style typing animation" />
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=500&size=18&duration=2200&pause=800&color=8044FE&background=FFFFFF00&center=true&vCenter=true&width=620&lines=%24+watching+AAPL...+%2B0.34%25;%24+position%3A+12+shares+%40+%24300.00;%24+profit%3A+%2B%24425.40+(%2B11.82%25);%24+connection%3A+live" alt="Terminal-style typing animation" />
 
 <br /><br />
 
