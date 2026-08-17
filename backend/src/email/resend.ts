@@ -40,7 +40,7 @@ export function verificationEmailHtml(verifyUrl: string): string {
       <h1 style="font-size: 20px;">Confirm your StockPulse account</h1>
       <p>Click the link below to verify your email address. This link expires in 24 hours.</p>
       <p>
-        <a href="${verifyUrl}" style="display: inline-block; background: #16a34a; color: #fff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+        <a href="${verifyUrl}" style="display: inline-block; background: #8044fe; color: #fff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">
           Verify email
         </a>
       </p>
