@@ -8,6 +8,9 @@ export const credentialsSchema = z.object({
 });
 
 // Verification tokens are 32 random bytes, hex-encoded (see auth/verification.ts).
-export const verifyEmailQuerySchema = z.object({
+// Sent in the body rather than the query string: consuming the token mutates
+// state, so it goes over POST, and a body keeps the token out of access logs
+// and Referer headers.
+export const verifyEmailBodySchema = z.object({
   token: z.string().trim().min(1).max(64).regex(/^[a-f0-9]+$/, "Invalid verification token"),
 });

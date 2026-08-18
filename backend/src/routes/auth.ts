@@ -7,7 +7,7 @@ import { createSessionCookieValue, SESSION_COOKIE_NAME } from "../auth/session";
 import { generateVerificationToken } from "../auth/verification";
 import { sendEmail, verificationEmailHtml } from "../email/resend";
 import { getOrCreateWatchlist } from "../watchlistHelper";
-import { credentialsSchema, verifyEmailQuerySchema } from "./auth.schemas";
+import { credentialsSchema, verifyEmailBodySchema } from "./auth.schemas";
 import { env } from "../env";
 
 const router = Router();
@@ -114,10 +114,14 @@ router.get(
   })
 );
 
-router.get(
+// POST rather than GET: this consumes a single-use token, so it isn't a safe
+// or idempotent request. A GET here could be burned by anything that
+// speculatively fetches URLs - link prefetchers, corporate mail scanners -
+// before the user ever clicks.
+router.post(
   "/verify-email",
   asyncHandler(async (req, res) => {
-    const parsed = verifyEmailQuerySchema.safeParse(req.query);
+    const parsed = verifyEmailBodySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: "Invalid or missing verification token" });
     }

@@ -129,7 +129,7 @@ export function getCurrentUser(): Promise<{ user: AuthUser }> {
 }
 
 export function verifyEmail(token: string): Promise<{ user: AuthUser }> {
-  return request(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
+  return request("/api/auth/verify-email", { method: "POST", body: JSON.stringify({ token }) });
 }
 
 export function resendVerificationEmail(): Promise<void> {

@@ -113,13 +113,13 @@ describe("GET /api/auth/me", () => {
   });
 });
 
-describe("GET /api/auth/verify-email", () => {
+describe("POST /api/auth/verify-email", () => {
   it("verifies the account with a valid token and clears it (single-use)", async () => {
     const agent = request.agent(app);
     await agent.post("/api/auth/signup").send({ email: "verifyme@example.com", password: "hunter22" });
     const stored = await prisma.user.findUniqueOrThrow({ where: { email: "verifyme@example.com" } });
 
-    const res = await request(app).get(`/api/auth/verify-email?token=${stored.verificationToken}`);
+    const res = await request(app).post("/api/auth/verify-email").send({ token: stored.verificationToken });
     expect(res.status).toBe(200);
     expect(res.body.user.emailVerified).toBe(true);
 
@@ -127,17 +127,17 @@ describe("GET /api/auth/verify-email", () => {
     expect(meRes.body.user.emailVerified).toBe(true);
 
     // Using the same token again fails - it was cleared on first use.
-    const reuse = await request(app).get(`/api/auth/verify-email?token=${stored.verificationToken}`);
+    const reuse = await request(app).post("/api/auth/verify-email").send({ token: stored.verificationToken });
     expect(reuse.status).toBe(400);
   });
 
   it("rejects a garbage token", async () => {
-    const res = await request(app).get("/api/auth/verify-email?token=not-a-real-token");
+    const res = await request(app).post("/api/auth/verify-email").send({ token: "not-a-real-token" });
     expect(res.status).toBe(400);
   });
 
   it("rejects a missing token", async () => {
-    const res = await request(app).get("/api/auth/verify-email");
+    const res = await request(app).post("/api/auth/verify-email").send({});
     expect(res.status).toBe(400);
   });
 
@@ -150,7 +150,7 @@ describe("GET /api/auth/verify-email", () => {
       data: { verificationTokenExpires: new Date(Date.now() - 1000) },
     });
 
-    const res = await request(app).get(`/api/auth/verify-email?token=${stored.verificationToken}`);
+    const res = await request(app).post("/api/auth/verify-email").send({ token: stored.verificationToken });
     expect(res.status).toBe(400);
   });
 });
@@ -177,7 +177,7 @@ describe("POST /api/auth/resend-verification", () => {
     const agent = request.agent(app);
     await agent.post("/api/auth/signup").send({ email: "already-verified@example.com", password: "hunter22" });
     const stored = await prisma.user.findUniqueOrThrow({ where: { email: "already-verified@example.com" } });
-    await request(app).get(`/api/auth/verify-email?token=${stored.verificationToken}`);
+    await request(app).post("/api/auth/verify-email").send({ token: stored.verificationToken });
 
     const res = await agent.post("/api/auth/resend-verification");
     expect(res.status).toBe(409);

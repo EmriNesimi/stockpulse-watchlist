@@ -278,14 +278,17 @@ describe("getCurrentUser", () => {
 });
 
 describe("verifyEmail", () => {
-  it("GETs the verify-email endpoint with the token, URL-encoded", async () => {
+  it("POSTs the token to the verify-email endpoint", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({ user: { id: "1", email: "a@example.com", emailVerified: true } })
     );
 
     const result = await verifyEmail("abc def");
 
-    expect(fetch).toHaveBeenCalledWith(`${API_BASE}/api/auth/verify-email?token=abc%20def`, expect.anything());
+    expect(fetch).toHaveBeenCalledWith(
+      `${API_BASE}/api/auth/verify-email`,
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ token: "abc def" }) })
+    );
     expect(result.user.emailVerified).toBe(true);
   });
 
