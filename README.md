@@ -242,6 +242,8 @@ Font: **Inter**. Icons: **Phosphor** (`@phosphor-icons/react`), no emoji in the 
 
 Requires Node ≥20.19.0 (or ≥22.12.0) — that's what Vite 8/Rolldown need. A `.nvmrc` is committed at the repo root; run `nvm use` to pick it up automatically.
 
+> `jsdom` is held at 27 rather than 30 on purpose: 30 pulls an `undici` that calls `webidl.util.markAsUncloneable`, which only exists on Node 22+, so the whole test suite fails to collect on the pinned Node 20. It moves when the project's Node baseline does.
+
 ```bash
 # backend
 cd backend
