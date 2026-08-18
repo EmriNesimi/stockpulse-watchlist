@@ -36,6 +36,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # jsdom 28+ pulls an undici that calls webidl.util.markAsUncloneable,
+      # a Node 22 API. On the pinned Node 20 the whole suite fails to
+      # collect. Unblocks when the Node baseline moves.
+      - dependency-name: "jsdom"
+        update-types: ["version-update:semver-major"]
     groups:
       minor-and-patch:
         update-types:
