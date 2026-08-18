@@ -43,7 +43,11 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - ⭐ **Watchlist** — add/remove tickers, persisted server-side in a real database (not `localStorage`), so it survives a refresh or a new browser. Capped at 30 tickers — the same limit a single WebSocket connection can ever subscribe to — with the search box disabling itself and explaining why once you hit it, instead of letting you add a 31st ticker that could never get a live price.
 - 📡 **Live prices over WebSocket** — every row updates in place as ticks arrive, with a subtle color-and-icon flash on change (never color alone).
 - 📈 **Sparklines** — a rolling 30-point price history per symbol, rendered as inline SVG, no charting library needed for something this small.
-- 🕯️ **Candlestick chart** — click a symbol to expand a full OHLC candlestick chart for the last 30 days, same no-dependency SVG approach as the sparkline.
+- 🕯️ **Candlestick chart** — click a ticker to open its own screen with a full OHLC chart, switchable across 1W/1M/3M/6M/1Y, same no-dependency SVG approach as the sparkline. (The reference design offered 1-day and 3-year too; `/api/history` only serves 7–365 days, so those pills would have errored and aren't there.)
+- 🧭 **Sidebar app shell** — Dashboard, Wallet, and Profile as real screens, plus a per-ticker Stock screen reached by clicking a row. Navigation is plain state, no router dependency, and the WebSocket subscription stays up across screen changes.
+- 💰 **Wallet** — total value, total cost, and profit in $ and %, computed from the shares and cost basis you enter. While any holding is still waiting on its first tick the totals show a dash rather than a partial sum that would silently understate them.
+- 👤 **Profile** — account email, verification status, and inline shares/cost-basis entry per ticker. This is what turns a watched symbol into a tracked position.
+- 🌓 **Light and dark themes** — light by default (matching the reference), switchable from the header, persisted to `localStorage`. Both palettes are contrast-checked, not just eyeballed.
 - 🟢 **Transparent data source** — a LIVE/SIM badge on every price and a connection-status indicator in the header, so it's never a mystery whether you're looking at real trades or the simulated fallback.
 - 🔔 **Price alerts** — set a one-shot "notify me when AAPL crosses $200" alert per symbol (the bell icon on each row); fires once as soon as a tick crosses the threshold, delivered over the same WebSocket connection as an `{"type":"alert"}` message and shown as a dismissible toast.
 - 🔌 **Works with zero setup** — no API key, no account, no config required to run it and see it working end to end.
@@ -57,9 +61,9 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
 
 **✅ Done**
 - **Backend**: Express API, Prisma/SQLite persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), a WebSocket broadcaster that fans price ticks out to connected clients with per-connection rate/size/subscription limits, and real multi-user auth (scrypt password hashing, signed session cookies, per-user watchlists/alerts).
-- **Frontend**: Vite + React + TS app in the dark trading-terminal design system — a login/signup gate in front of the app, debounced ticker search wired to the real API, a watchlist table with sparklines and a working remove button, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, and a header connection-status indicator.
+- **Frontend**: Vite + React + TS app built against a Figma trading-dashboard reference — a login/signup gate, a sidebar shell with Dashboard/Wallet/Profile/Stock screens, portfolio cards and a watching rail, debounced ticker search wired to the real API, a watchlist table with sparklines, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, a connection-status indicator, and a light/dark theme toggle.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
-- **Testing**: 358 tests total — 171 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 187 on the frontend (hooks, API client, every component including the login/signup gate, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
+- **Testing**: 511 tests total — 215 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 296 on the frontend (hooks, API client, portfolio maths, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
 
 ## 🏗️ Architecture
@@ -160,8 +164,13 @@ stockpulse-watchlist/
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx                      # auth-status gate only — checking/AuthGate/Dashboard (+ .test.tsx, integration suite)
-│   │   ├── Dashboard.tsx                # everything post-login (watchlist, prices, toasts) — remounted per key={user.id} on sign-in
-│   │   ├── App.module.css               # Dashboard's layout styles (header/main/sign-out button)
+│   │   ├── Dashboard.tsx                # authenticated shell: owns watchlist + live ticks, swaps views — remounted per key={user.id}
+│   │   ├── App.module.css               # shell layout (sidebar + content column + top bar)
+│   │   ├── views/                       # one file per screen, each with a .test.tsx and .module.css
+│   │   │   ├── DashboardView.tsx        # stats, portfolio cards, chart panel + watching rail, watchlist table
+│   │   │   ├── WalletView.tsx           # portfolio totals and per-holding breakdown
+│   │   │   ├── ProfileView.tsx          # account details + inline holdings entry
+│   │   │   └── StockDetailView.tsx      # per-symbol chart, position, and price alert
 │   │   ├── main.tsx
 │   │   ├── types.ts                     # shared PriceState type
 │   │   ├── index.css                    # global styles, tabular-nums, sr-only, reduced-motion
@@ -171,13 +180,21 @@ stockpulse-watchlist/
 │   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell
 │   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash
 │   │   │   ├── Sparkline.tsx            # inline SVG price history (SVG presentation attrs, not CSS Modules — nothing to scope)
-│   │   │   ├── CandlestickChart.tsx     # inline SVG OHLC chart, click-through from the symbol
+│   │   │   ├── CandlestickChart.tsx     # inline SVG OHLC chart
+│   │   │   ├── SymbolChartPanel.tsx     # chart + timeframe pills + live price header
+│   │   │   ├── Sidebar.tsx              # persistent nav; collapses to an icon rail under 1000px
+│   │   │   ├── PortfolioCards.tsx       # one card per open position
+│   │   │   ├── FavoritesList.tsx        # compact watching rail beside the chart
+│   │   │   ├── HoldingsForm.tsx         # inline shares/cost-basis entry
+│   │   │   ├── TickerAvatar.tsx         # deterministic coloured initials (no fake brand logos)
+│   │   │   ├── ThemeToggle.tsx          # light/dark switch
 │   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator
 │   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon
 │   │   │   ├── AlertToast.tsx           # dismissible toast for fired price alerts
 │   │   │   ├── ErrorToast.tsx           # dismissible toast for failed load/add/alert-create
 │   │   │   └── AuthGate.tsx             # login/signup form, renders in place of the app until signed in
 │   │   ├── hooks/
+│   │   │   ├── useTheme.ts              # light/dark, persisted to localStorage (+ .test.ts)
 │   │   │   ├── useDebouncedValue.ts     # (+ .test.ts)
 │   │   │   ├── useLiveTicks.ts          # WS client: subscribe diffing, reconnect/backoff, alert events (+ .test.ts)
 │   │   │   ├── useHistory.ts            # fetches candle data for the expanded chart row (+ .test.ts)
@@ -185,6 +202,9 @@ stockpulse-watchlist/
 │   │   │   └── useThrottledAnnouncement.ts  # aria-live summary, throttled to 1/8s (+ .test.ts)
 │   │   ├── lib/
 │   │   │   ├── api.ts                   # fetch wrappers for the backend REST API, credentials: "include" (+ .test.ts)
+│   │   │   ├── holdings.ts              # portfolio maths: cost, market value, profit (+ .test.ts)
+│   │   │   ├── format.ts                # currency/percent/share formatting
+│   │   │   ├── views.ts                 # the View union the shell navigates over
 │   │   │   ├── ws.ts                    # WS URL resolution
 │   │   │   └── limits.ts                # MAX_WATCHLIST_SYMBOLS (30) - mirrors backend/src/wsLimits.ts
 │   │   └── test/
