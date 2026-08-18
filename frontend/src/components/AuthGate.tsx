@@ -33,6 +33,7 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [passwordMismatch, setPasswordMismatch] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,8 +50,19 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
 
     setSubmitting(true);
     try {
-      const { user } = mode === "login" ? await login(email, password) : await signup(email, password);
-      onAuthenticated(user);
+      if (mode === "login") {
+        const { user } = await login(email, password);
+        onAuthenticated(user);
+      } else {
+        // Signup never signs you in - the response is identical whether or
+        // not the address already had an account, so there's nothing to log
+        // in with. Drop the user on the login form with a neutral message.
+        const { message } = await signup(email, password);
+        setMode("login");
+        setPassword("");
+        setConfirmPassword("");
+        setNotice(message);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -61,6 +73,7 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
   function switchMode() {
     setMode(mode === "login" ? "signup" : "login");
     setError(null);
+    setNotice(null);
     setPasswordMismatch(false);
     setConfirmPassword("");
   }
@@ -77,6 +90,11 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           </div>
 
+          {notice && (
+            <div role="status" className={styles.verifySuccess}>
+              {notice}
+            </div>
+          )}
           {verifyEmailNotice && (
             <div
               role={verifyEmailNotice.kind === "error" ? "alert" : "status"}

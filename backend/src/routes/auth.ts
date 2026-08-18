@@ -5,7 +5,7 @@ import { asyncHandler } from "../asyncHandler";
 import { hashPassword, verifyPassword } from "../auth/password";
 import { createSessionCookieValue, SESSION_COOKIE_NAME } from "../auth/session";
 import { generateVerificationToken } from "../auth/verification";
-import { sendEmail, verificationEmailHtml } from "../email/resend";
+import { accountExistsEmailHtml, sendEmail, verificationEmailHtml } from "../email/resend";
 import { getOrCreateWatchlist } from "../watchlistHelper";
 import { credentialsSchema, verifyEmailBodySchema } from "./auth.schemas";
 import { env } from "../env";
@@ -21,6 +21,14 @@ const SESSION_COOKIE_OPTIONS = {
 
 function toPublicUser(user: User) {
   return { id: user.id, email: user.email, emailVerified: user.emailVerifiedAt !== null };
+}
+
+async function sendAccountExistsEmail(email: string) {
+  try {
+    await sendEmail(email, "Someone tried to sign up with your email", accountExistsEmailHtml(env.frontendOrigin));
+  } catch (err) {
+    console.error(`Failed to send account-exists email to ${email}:`, err);
+  }
 }
 
 async function sendVerificationEmail(userId: string, email: string) {
@@ -40,6 +48,11 @@ async function sendVerificationEmail(userId: string, email: string) {
   }
 }
 
+// Deliberately answers the same way whether or not the address is already
+// registered, and never returns a session - an attacker submitting a list of
+// emails learns nothing from the status, the body, or a Set-Cookie header.
+// The cost is one extra step: you log in after signing up rather than being
+// dropped straight into the app.
 router.post(
   "/signup",
   asyncHandler(async (req, res) => {
@@ -49,25 +62,31 @@ router.post(
     }
     const { email, password } = parsed.data;
 
+    // Hashed before we know which branch we're in, so the slow scrypt work
+    // happens either way and the response time doesn't give the answer away.
     const passwordHash = await hashPassword(password);
 
-    let user;
+    let created: User | null = null;
     try {
-      user = await prisma.user.create({ data: { email, passwordHash } });
+      created = await prisma.user.create({ data: { email, passwordHash } });
     } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-        return res.status(409).json({ error: "An account with that email already exists" });
+      // P2002 = unique constraint on email, i.e. the account already exists.
+      if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002")) {
+        throw err;
       }
-      throw err;
     }
 
-    // Every user gets an empty watchlist up front, same as the old
-    // single-user "default-user" flow did implicitly.
-    await getOrCreateWatchlist(user.id);
-    await sendVerificationEmail(user.id, user.email);
+    if (created) {
+      // Every user gets an empty watchlist up front.
+      await getOrCreateWatchlist(created.id);
+      await sendVerificationEmail(created.id, created.email);
+    } else {
+      await sendAccountExistsEmail(email);
+    }
 
-    res.cookie(SESSION_COOKIE_NAME, createSessionCookieValue(user.id), SESSION_COOKIE_OPTIONS);
-    res.status(201).json({ user: toPublicUser(user) });
+    res.status(202).json({
+      message: "Check your email to confirm your address, then log in.",
+    });
   })
 );
 

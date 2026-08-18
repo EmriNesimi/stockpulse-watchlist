@@ -48,3 +48,25 @@ export function verificationEmailHtml(verifyUrl: string): string {
     </div>
   `;
 }
+
+// Sent when someone tries to sign up with an address that already has an
+// account. Signup answers identically either way, so this email is the only
+// thing that differs - and it goes to the address's real owner, not to
+// whoever submitted the form.
+export function accountExistsEmailHtml(loginUrl: string): string {
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px;">
+      <h2 style="margin: 0 0 16px;">Someone tried to sign up with this email</h2>
+      <p style="margin: 0 0 16px; line-height: 1.6;">
+        You already have a StockPulse account, so we didn't create a second one.
+        If this was you, just log in instead:
+      </p>
+      <p style="margin: 0 0 16px;">
+        <a href="${loginUrl}" style="background: #8044fe; color: #ffffff; padding: 12px 20px; border-radius: 999px; text-decoration: none; display: inline-block;">Log in</a>
+      </p>
+      <p style="margin: 0; line-height: 1.6; color: #6b6b7a; font-size: 14px;">
+        If it wasn't you, you can ignore this - nothing has changed on your account.
+      </p>
+    </div>
+  `;
+}

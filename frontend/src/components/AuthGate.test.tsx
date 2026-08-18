@@ -62,8 +62,11 @@ describe("AuthGate", () => {
     expect(screen.getByRole("form", { name: "Log in" })).toBeInTheDocument();
   });
 
-  it("signs up with the entered email/password and calls onAuthenticated", async () => {
-    vi.mocked(signup).mockResolvedValue({ user: { id: "u2", email: "new@example.com", emailVerified: false } });
+  // Signup deliberately doesn't sign you in: the backend answers identically
+  // whether or not the address already exists, so there's no session to
+  // adopt. It drops you on the login form with a neutral message instead.
+  it("signs up, then returns to the login form with the server's message", async () => {
+    vi.mocked(signup).mockResolvedValue({ message: "Check your email to confirm your address, then log in." });
     const onAuthenticated = vi.fn();
     const user = userEvent.setup();
     render(<AuthGate onAuthenticated={onAuthenticated} theme="dark" onToggleTheme={vi.fn()} />);
@@ -75,7 +78,12 @@ describe("AuthGate", () => {
     await user.click(screen.getByRole("button", { name: "Get started" }));
 
     expect(signup).toHaveBeenCalledWith("new@example.com", "brand-new-password");
-    await waitFor(() => expect(onAuthenticated).toHaveBeenCalledWith({ id: "u2", email: "new@example.com", emailVerified: false }));
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Check your email to confirm your address")
+    );
+    expect(screen.getByRole("form", { name: "Log in" })).toBeInTheDocument();
+    // Never authenticated off the back of a signup.
+    expect(onAuthenticated).not.toHaveBeenCalled();
   });
 
   it("shows the server's error message when signup fails (e.g. duplicate email)", async () => {

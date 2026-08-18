@@ -13,6 +13,8 @@ let agent: ReturnType<typeof request.agent>;
 beforeEach(async () => {
   agent = request.agent(app);
   await agent.post("/api/auth/signup").send({ email: "alerts-test@example.com", password: "test-password" });
+  // signup no longer returns a session - log in to get one
+  await agent.post("/api/auth/login").send({ email: "alerts-test@example.com", password: "test-password" });
 });
 
 afterEach(async () => {
@@ -110,6 +112,8 @@ describe("DELETE /api/alerts/:id", () => {
 
     const otherAgent = request.agent(app);
     await otherAgent.post("/api/auth/signup").send({ email: "other-alerts-user@example.com", password: "test-password" });
+    // signup no longer returns a session - log in to get one
+    await otherAgent.post("/api/auth/login").send({ email: "other-alerts-user@example.com", password: "test-password" });
     const res = await otherAgent.delete(`/api/alerts/${created.body.alert.id}`);
 
     expect(res.status).toBe(404);

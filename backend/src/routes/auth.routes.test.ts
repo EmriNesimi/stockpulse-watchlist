@@ -16,28 +16,52 @@ afterAll(async () => {
 });
 
 describe("POST /api/auth/signup", () => {
-  it("creates a new account, an empty watchlist, and sets a session cookie", async () => {
+  it("creates the account and an empty watchlist, without signing you in", async () => {
     const res = await request(app).post("/api/auth/signup").send({ email: "new@example.com", password: "hunter22" });
 
-    expect(res.status).toBe(201);
-    expect(res.body.user).toMatchObject({ email: "new@example.com" });
-    expect(res.body.user.passwordHash).toBeUndefined();
-    expect(res.headers["set-cookie"]?.[0]).toContain("stockpulse_session=");
+    expect(res.status).toBe(202);
+    // No user object and no session: both would differ between the
+    // "new address" and "already registered" branches.
+    expect(res.body.user).toBeUndefined();
+    expect(res.headers["set-cookie"]).toBeUndefined();
 
-    const watchlist = await prisma.watchlist.findUnique({ where: { userId: res.body.user.id } });
+    const user = await prisma.user.findUnique({ where: { email: "new@example.com" } });
+    expect(user).not.toBeNull();
+    const watchlist = await prisma.watchlist.findUnique({ where: { userId: user!.id } });
     expect(watchlist).not.toBeNull();
   });
 
   it("lowercases the email", async () => {
-    const res = await request(app).post("/api/auth/signup").send({ email: "Mixed@Example.com", password: "hunter22" });
-    expect(res.body.user.email).toBe("mixed@example.com");
+    await request(app).post("/api/auth/signup").send({ email: "Mixed@Example.com", password: "hunter22" });
+    expect(await prisma.user.findUnique({ where: { email: "mixed@example.com" } })).not.toBeNull();
   });
 
-  it("rejects a duplicate email with 409", async () => {
-    await request(app).post("/api/auth/signup").send({ email: "dupe@example.com", password: "hunter22" });
-    const res = await request(app).post("/api/auth/signup").send({ email: "dupe@example.com", password: "different1" });
+  // The whole point of the 202: an attacker submitting a list of addresses
+  // can't tell which ones already have accounts.
+  it("answers a duplicate email identically to a fresh one", async () => {
+    const first = await request(app).post("/api/auth/signup").send({ email: "dupe@example.com", password: "hunter22" });
+    const second = await request(app)
+      .post("/api/auth/signup")
+      .send({ email: "dupe@example.com", password: "different1" });
 
-    expect(res.status).toBe(409);
+    expect(second.status).toBe(first.status);
+    expect(second.body).toEqual(first.body);
+    expect(second.headers["set-cookie"]).toBeUndefined();
+  });
+
+  it("doesn't overwrite the existing account's password on a duplicate signup", async () => {
+    await request(app).post("/api/auth/signup").send({ email: "dupe2@example.com", password: "original-pw" });
+    await request(app).post("/api/auth/signup").send({ email: "dupe2@example.com", password: "attacker-pw" });
+
+    const attempt = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "dupe2@example.com", password: "attacker-pw" });
+    expect(attempt.status).toBe(401);
+
+    const real = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "dupe2@example.com", password: "original-pw" });
+    expect(real.status).toBe(200);
   });
 
   it("rejects a short password", async () => {
@@ -93,6 +117,8 @@ describe("GET /api/auth/me", () => {
   it("returns the signed-in user when the session cookie is valid", async () => {
     const agent = request.agent(app);
     await agent.post("/api/auth/signup").send({ email: "me@example.com", password: "hunter22" });
+    // signup no longer returns a session - log in to get one
+    await agent.post("/api/auth/login").send({ email: "me@example.com", password: "hunter22" });
 
     const res = await agent.get("/api/auth/me");
     expect(res.status).toBe(200);
@@ -107,6 +133,8 @@ describe("GET /api/auth/me", () => {
   it("reports emailVerified: false right after signup", async () => {
     const agent = request.agent(app);
     await agent.post("/api/auth/signup").send({ email: "unverified@example.com", password: "hunter22" });
+    // signup no longer returns a session - log in to get one
+    await agent.post("/api/auth/login").send({ email: "unverified@example.com", password: "hunter22" });
 
     const res = await agent.get("/api/auth/me");
     expect(res.body.user.emailVerified).toBe(false);
@@ -117,6 +145,8 @@ describe("POST /api/auth/verify-email", () => {
   it("verifies the account with a valid token and clears it (single-use)", async () => {
     const agent = request.agent(app);
     await agent.post("/api/auth/signup").send({ email: "verifyme@example.com", password: "hunter22" });
+    // signup no longer returns a session - log in to get one
+    await agent.post("/api/auth/login").send({ email: "verifyme@example.com", password: "hunter22" });
     const stored = await prisma.user.findUniqueOrThrow({ where: { email: "verifyme@example.com" } });
 
     const res = await request(app).post("/api/auth/verify-email").send({ token: stored.verificationToken });
@@ -144,6 +174,8 @@ describe("POST /api/auth/verify-email", () => {
   it("rejects an expired token", async () => {
     const agent = request.agent(app);
     await agent.post("/api/auth/signup").send({ email: "expired@example.com", password: "hunter22" });
+    // signup no longer returns a session - log in to get one
+    await agent.post("/api/auth/login").send({ email: "expired@example.com", password: "hunter22" });
     const stored = await prisma.user.findUniqueOrThrow({ where: { email: "expired@example.com" } });
     await prisma.user.update({
       where: { id: stored.id },
@@ -164,6 +196,8 @@ describe("POST /api/auth/resend-verification", () => {
   it("issues a fresh token for an unverified user", async () => {
     const agent = request.agent(app);
     await agent.post("/api/auth/signup").send({ email: "resend@example.com", password: "hunter22" });
+    // signup no longer returns a session - log in to get one
+    await agent.post("/api/auth/login").send({ email: "resend@example.com", password: "hunter22" });
     const before = await prisma.user.findUniqueOrThrow({ where: { email: "resend@example.com" } });
 
     const res = await agent.post("/api/auth/resend-verification");
@@ -176,6 +210,8 @@ describe("POST /api/auth/resend-verification", () => {
   it("returns 409 if the email is already verified", async () => {
     const agent = request.agent(app);
     await agent.post("/api/auth/signup").send({ email: "already-verified@example.com", password: "hunter22" });
+    // signup no longer returns a session - log in to get one
+    await agent.post("/api/auth/login").send({ email: "already-verified@example.com", password: "hunter22" });
     const stored = await prisma.user.findUniqueOrThrow({ where: { email: "already-verified@example.com" } });
     await request(app).post("/api/auth/verify-email").send({ token: stored.verificationToken });
 

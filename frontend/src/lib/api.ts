@@ -112,7 +112,10 @@ export function getHistory(symbol: string, days = 30): Promise<{ candles: Candle
   return request(`/api/history/${encodeURIComponent(symbol)}?days=${days}`);
 }
 
-export function signup(email: string, password: string): Promise<{ user: AuthUser }> {
+// Deliberately returns no user and no session: the backend answers the same
+// way whether or not the address was already registered, so signing in is a
+// separate step. See the signup route for why.
+export function signup(email: string, password: string): Promise<{ message: string }> {
   return request("/api/auth/signup", { method: "POST", body: JSON.stringify({ email, password }) });
 }
 

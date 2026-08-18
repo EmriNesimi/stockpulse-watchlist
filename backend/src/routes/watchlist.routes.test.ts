@@ -17,6 +17,8 @@ let agent: ReturnType<typeof request.agent>;
 beforeEach(async () => {
   agent = request.agent(app);
   await agent.post("/api/auth/signup").send({ email: "watchlist-test@example.com", password: "test-password" });
+  // signup no longer returns a session - log in to get one
+  await agent.post("/api/auth/login").send({ email: "watchlist-test@example.com", password: "test-password" });
 });
 
 afterEach(async () => {
@@ -82,6 +84,8 @@ describe("POST /api/watchlist", () => {
 
     const otherAgent = request.agent(app);
     await otherAgent.post("/api/auth/signup").send({ email: "other-user@example.com", password: "test-password" });
+    // signup no longer returns a session - log in to get one
+    await otherAgent.post("/api/auth/login").send({ email: "other-user@example.com", password: "test-password" });
     const res = await otherAgent.post("/api/watchlist").send({ symbol: "MSFT" });
 
     // Same symbol, different user - not a 409, since it's a different watchlist.
@@ -197,6 +201,8 @@ describe("PATCH /api/watchlist/:symbol", () => {
 
     const otherAgent = request.agent(app);
     await otherAgent.post("/api/auth/signup").send({ email: "patch-other-user@example.com", password: "test-password" });
+    // signup no longer returns a session - log in to get one
+    await otherAgent.post("/api/auth/login").send({ email: "patch-other-user@example.com", password: "test-password" });
     const res = await otherAgent.patch("/api/watchlist/AAPL").send({ shares: 5, costBasis: 200 });
 
     expect(res.status).toBe(404);
