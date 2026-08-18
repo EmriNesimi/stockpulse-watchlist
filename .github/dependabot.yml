@@ -9,6 +9,12 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # @types/node tracks the Node major we actually run, not the newest
+      # release. Types ahead of the runtime would let TypeScript accept calls
+      # that don't exist at execution time. Bump this with the Node baseline.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       # One PR for the routine patch/minor churn; majors still come through
       # individually so breaking changes get read properly.
