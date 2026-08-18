@@ -196,53 +196,27 @@ stockpulse-watchlist/
 
 ## 🎨 Design system
 
-The UI follows a **Trading Stock Market Dashboard** Figma kit: white card surfaces on a near-white canvas, a violet accent, and a persistent left sidebar. Light is the default theme; a full dark theme ships alongside it behind the header toggle (persisted to `localStorage`, applied via `data-theme` on `<html>`).
-
-Colours were sampled directly out of the reference frames rather than eyeballed — the accent is the exact violet from the kit's primary CTA.
+Light-first dashboard built against a Figma trading-dashboard reference, with a full dark theme behind a toggle. Values below are the real tokens in `frontend/src/styles/tokens.css` — the light set is `:root`, the dark set overrides it under `:root[data-theme="dark"]`.
 
 <div align="center">
 
-**☀️ Light (default)**
-
-| Token | Swatch | Value | Use |
-|---|---|---|---|
-| `--color-background` | ![#f6f7f9](https://placehold.co/16x16/f6f7f9/f6f7f9.png) | `#f6f7f9` | page canvas |
-| `--color-secondary` | ![#ffffff](https://placehold.co/16x16/ffffff/ffffff.png) | `#ffffff` | cards, sidebar, top bar |
-| `--color-foreground` | ![#0d0c2b](https://placehold.co/16x16/0d0c2b/0d0c2b.png) | `#0d0c2b` | body text |
-| `--color-foreground-muted` | ![#7c7c8a](https://placehold.co/16x16/7c7c8a/7c7c8a.png) | `#7c7c8a` | labels, secondary text |
-| `--color-accent` | ![#8044fe](https://placehold.co/16x16/8044fe/8044fe.png) | `#8044fe` | CTAs, active nav, focus rings |
-| `--color-accent-soft` | ![#f1ebff](https://placehold.co/16x16/f1ebff/f1ebff.png) | `#f1ebff` | active/hover wash |
-| `--color-bullish` | ![#0b9a63](https://placehold.co/16x16/0b9a63/0b9a63.png) | `#0b9a63` | price up |
-| `--color-bearish` | ![#d92d20](https://placehold.co/16x16/d92d20/d92d20.png) | `#d92d20` | price down |
-| `--color-border` | ![#ececf0](https://placehold.co/16x16/ececf0/ececf0.png) | `#ececf0` | dividers |
-
-**🌙 Dark**
-
-| Token | Swatch | Value | Use |
-|---|---|---|---|
-| `--color-background` | ![#0b0b12](https://placehold.co/16x16/0b0b12/0b0b12.png) | `#0b0b12` | page canvas |
-| `--color-secondary` | ![#14141f](https://placehold.co/16x16/14141f/14141f.png) | `#14141f` | cards, sidebar, top bar |
-| `--color-foreground` | ![#f4f4f6](https://placehold.co/16x16/f4f4f6/f4f4f6.png) | `#f4f4f6` | body text |
-| `--color-foreground-muted` | ![#9494a6](https://placehold.co/16x16/9494a6/9494a6.png) | `#9494a6` | labels, secondary text |
-| `--color-accent` | ![#9b6bff](https://placehold.co/16x16/9b6bff/9b6bff.png) | `#9b6bff` | CTAs, active nav, focus rings |
-| `--color-bullish` | ![#26c281](https://placehold.co/16x16/26c281/26c281.png) | `#26c281` | price up (brightened for dark) |
-| `--color-bearish` | ![#f0554b](https://placehold.co/16x16/f0554b/f0554b.png) | `#f0554b` | price down (brightened for dark) |
-| `--color-border` | ![#262636](https://placehold.co/16x16/262636/262636.png) | `#262636` | dividers |
+| Token | Light | | Dark | | Use |
+|---|---|---|---|---|---|
+| `--color-background` | ![#f6f7f9](https://placehold.co/14x14/f6f7f9/f6f7f9.png) | `#f6f7f9` | ![#0b0b12](https://placehold.co/14x14/0b0b12/0b0b12.png) | `#0b0b12` | page canvas |
+| `--color-secondary` | ![#ffffff](https://placehold.co/14x14/ffffff/ffffff.png) | `#ffffff` | ![#14141f](https://placehold.co/14x14/14141f/14141f.png) | `#14141f` | cards, sidebar, top bar |
+| `--color-foreground` | ![#0d0c2b](https://placehold.co/14x14/0d0c2b/0d0c2b.png) | `#0d0c2b` | ![#f4f4f6](https://placehold.co/14x14/f4f4f6/f4f4f6.png) | `#f4f4f6` | body text |
+| `--color-foreground-muted` | ![#7c7c8a](https://placehold.co/14x14/7c7c8a/7c7c8a.png) | `#7c7c8a` | ![#9494a6](https://placehold.co/14x14/9494a6/9494a6.png) | `#9494a6` | labels, secondary text |
+| `--color-accent` | ![#8044fe](https://placehold.co/14x14/8044fe/8044fe.png) | `#8044fe` | ![#9b6bff](https://placehold.co/14x14/9b6bff/9b6bff.png) | `#9b6bff` | CTAs, active nav |
+| `--color-accent-soft` | ![#f1ebff](https://placehold.co/14x14/f1ebff/f1ebff.png) | `#f1ebff` | ![#241a3d](https://placehold.co/14x14/241a3d/241a3d.png) | `#241a3d` | active/hover fills |
+| `--color-bullish` | ![#0b9a63](https://placehold.co/14x14/0b9a63/0b9a63.png) | `#0b9a63` | ![#26c281](https://placehold.co/14x14/26c281/26c281.png) | `#26c281` | price up, profit |
+| `--color-bearish` | ![#d92d20](https://placehold.co/14x14/d92d20/d92d20.png) | `#d92d20` | ![#f0554b](https://placehold.co/14x14/f0554b/f0554b.png) | `#f0554b` | price down, loss |
+| `--color-border` | ![#ececf0](https://placehold.co/14x14/ececf0/ececf0.png) | `#ececf0` | ![#262636](https://placehold.co/14x14/262636/262636.png) | `#262636` | dividers |
 
 </div>
 
-Two separate "text on a filled surface" tokens exist deliberately: `--color-on-primary` flips between themes (because `--color-primary` inverts), while `--color-on-accent` stays white in both (because the accent and the avatar hues stay saturated). Collapsing them into one produced near-black text on violet fills in dark mode — worth keeping distinct.
+A separate `--color-on-accent` (always `#ffffff`) carries text sitting on the accent or on a ticker avatar, since those fills stay saturated in both themes. Reusing `--color-on-primary` there put near-black text on violet in dark mode — that was a real bug, and this token is the fix.
 
-Font: **Inter**. Icons: **Phosphor** (`@phosphor-icons/react`), no emoji in the UI itself. Prices use `font-variant-numeric: tabular-nums` so digits don't jitter as values update. Micro-interactions run 150–300ms with `ease-out`, respecting `prefers-reduced-motion`.
-
-### What was deliberately *not* copied from the reference
-
-The kit is a marketing mockup, so parts of it depict data this app doesn't have. Those were adapted rather than faked:
-
-- **No brand logos.** The mockup shows Adobe/Airbnb marks on every row; there's no logo data behind a ticker search, so rows use deterministic coloured initials instead.
-- **Chart ranges are 1W–1Y, not 1D–3Y.** `/api/history` accepts 7–365 days, so the mockup's outer pills would have been buttons that error.
-- **No social sign-in, no first/last/username fields.** There's no OAuth and no such columns — they'd have been dead controls.
-- **Empty states instead of filled cards.** "My portfolio" shows a prompt until you actually enter a position, rather than the mockup's four populated cards.
+Font: **Inter**. Icons: **Phosphor** (`@phosphor-icons/react`), no emoji in the UI itself. Prices use `font-variant-numeric: tabular-nums` so digits don't jitter as values update. Micro-interactions run 150–300ms with `ease-out`, respecting `prefers-reduced-motion`. Cards take their lift from a wide, low-opacity shadow rather than a border, matching the reference.
 
 ## 🚀 Setup
 
