@@ -8,20 +8,25 @@
 :root {
   --color-primary: #0d0c2b;
   --color-on-primary: #ffffff;
-  /* Separate from on-primary: the accent and the avatar hues stay saturated
-     in both themes, so text on them is always white. on-primary has to flip
-     with the primary surface, which inverts between themes. */
+  /* Text sitting on the accent fill. Separate from on-primary, which follows
+     the primary surface - this one follows the accent, and the accent is dark
+     in this theme and light in the dark theme, so it flips too. */
   --color-on-accent: #ffffff;
+  /* Avatar initials. The hue set below is identical in both themes, so this
+     never flips - and it is dark rather than white because white clears 3:1
+     on only three of the six hues (amber, cyan and green all fall under
+     2.6:1), while dark ink clears it on all six. */
+  --color-avatar-ink: #0d0c2b;
   --color-secondary: #ffffff;
   --color-accent: #8044fe;
   --color-accent-soft: #f1ebff;
   --color-background: #f6f7f9;
   --color-foreground: #0d0c2b;
-  --color-foreground-muted: #7c7c8a;
+  --color-foreground-muted: #6b6b7a;
   --color-muted: #f6f7f9;
   --color-border: #ececf0;
   --color-destructive: #d92d20;
-  --color-bullish: #0b9a63;
+  --color-bullish: #077a4e;
   --color-bearish: #d92d20;
 
   --font-sans:
@@ -68,6 +73,8 @@
 :root[data-theme="dark"] {
   --color-primary: #ffffff;
   --color-on-primary: #0b0b12;
+  /* 5.55:1 against the light-violet accent fill below; white would be 3.53:1. */
+  --color-on-accent: #0b0b12;
   --color-secondary: #14141f;
   --color-accent: #9b6bff;
   --color-accent-soft: #241a3d;

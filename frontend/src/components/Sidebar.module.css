@@ -24,7 +24,7 @@
   height: 32px;
   border-radius: var(--radius-md);
   background: var(--color-accent);
-  color: #ffffff;
+  color: var(--color-on-accent);
   flex-shrink: 0;
 }
 

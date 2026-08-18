@@ -5,6 +5,6 @@
   flex-shrink: 0;
   border-radius: var(--radius-full);
   font-weight: 700;
-  color: var(--color-on-accent);
+  color: var(--color-avatar-ink);
   letter-spacing: -0.02em;
 }

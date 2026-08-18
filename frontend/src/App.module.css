@@ -47,7 +47,7 @@
   height: 34px;
   border-radius: var(--radius-full);
   background: var(--color-accent);
-  color: #ffffff;
+  color: var(--color-on-accent);
   font-size: 0.8125rem;
   font-weight: 600;
   flex-shrink: 0;
