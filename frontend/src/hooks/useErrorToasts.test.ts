@@ -77,4 +77,18 @@ describe("useErrorToasts", () => {
     act(() => vi.advanceTimersByTime(6000));
     expect(result.current.errors).toHaveLength(0);
   });
+
+  it("keeps pushError and dismissError referentially stable across renders", () => {
+    // Dashboard omits pushError from two effects' dependency arrays on the
+    // grounds that it never changes identity. This is that guarantee.
+    const { result, rerender } = renderHook(() => useErrorToasts());
+    const first = { push: result.current.pushError, dismiss: result.current.dismissError };
+
+    rerender();
+    act(() => result.current.pushError("something broke"));
+    rerender();
+
+    expect(result.current.pushError).toBe(first.push);
+    expect(result.current.dismissError).toBe(first.dismiss);
+  });
 });

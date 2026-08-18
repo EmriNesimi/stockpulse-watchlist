@@ -58,13 +58,15 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
       .then(({ items }) => setItems(items))
       .catch(() => pushError("Couldn't load your watchlist — check your connection and refresh."))
       .finally(() => setIsLoadingWatchlist(false));
-    // pushError is stable for the lifetime of the hook, no need to re-run on identity churn
+    // pushError is referentially stable (useCallback in useErrorToasts), so
+    // leaving it out of the deps can't capture a stale closure.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (wsError) pushError(wsError);
-    // pushError is stable for the lifetime of the hook, no need to re-run on identity churn
+    // pushError is referentially stable (useCallback in useErrorToasts), so
+    // leaving it out of the deps can't capture a stale closure.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wsError]);
 
