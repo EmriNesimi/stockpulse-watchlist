@@ -2,14 +2,15 @@
   "name": "stockpulse-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "StockPulse backend — Express REST API, WebSocket price broadcaster, Prisma/SQLite persistence, Massive integration",
+  "description": "StockPulse backend \u2014 Express REST API, WebSocket price broadcaster, Prisma/SQLite persistence, Massive integration",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "prisma generate && tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.9.1",
