@@ -349,6 +349,8 @@ Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message s
 
 `DATABASE_URL`, `FRONTEND_ORIGIN`, and `SESSION_SECRET` only fall back to their dev defaults when `NODE_ENV` isn't `production`. With `NODE_ENV=production` set, a missing value for any of the three throws at startup instead of silently booting against the wrong database/CORS origin, or - worse, for `SESSION_SECRET` - with a fixed, publicly-known signing key that would let anyone forge a session cookie. See `backend/src/env.ts`.
 
+> **Prisma 7 note:** the connection URL lives in `backend/prisma.config.ts`, not `schema.prisma` — Prisma 7 removed `datasource.url` — and the runtime client uses the better-sqlite3 driver adapter. One behavioural change to know about: Prisma 5 resolved a relative `file:` URL against the *schema* directory, so `file:./prisma/dev.db` landed at `prisma/prisma/dev.db`; Prisma 7's adapter resolves against the working directory, so the same URL now means `prisma/dev.db`. The database was moved to match.
+
 ## 🔒 Security notes
 
 - **Secrets**: `MASSIVE_API_KEY` and `SESSION_SECRET` live only in `backend/.env` (gitignored). Never sent to the client. No `.env` file of any kind is committed — not even a blank `.env.example` template — and CI actively fails the build if one ever gets tracked, on top of a separate grep-based backstop for anything that looks like a committed key.

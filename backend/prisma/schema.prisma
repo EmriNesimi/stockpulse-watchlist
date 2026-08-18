@@ -4,7 +4,8 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  // The url moved to prisma.config.ts in Prisma 7; the runtime client uses a
+  // driver adapter instead of a connection string (see src/db.ts).
 }
 
 model User {
