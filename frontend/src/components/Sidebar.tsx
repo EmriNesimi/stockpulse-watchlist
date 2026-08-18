@@ -28,6 +28,10 @@ export default function Sidebar({ current, onNavigate, onSignOut }: SidebarProps
         type="button"
         onClick={() => onNavigate(view)}
         aria-current={active ? "page" : undefined}
+        // Below 1000px the CSS hides .label with display:none, which drops it
+        // out of the accessibility tree entirely - and the icon is aria-hidden,
+        // so without this the button would have no accessible name at all.
+        aria-label={label}
         className={active ? `${styles.item} ${styles.itemActive}` : styles.item}
       >
         <Icon size={20} className={styles.icon} aria-hidden />
@@ -51,7 +55,12 @@ export default function Sidebar({ current, onNavigate, onSignOut }: SidebarProps
         {ACCOUNT.map(renderItem)}
       </nav>
 
-      <button type="button" onClick={onSignOut} className={`${styles.item} ${styles.signOut}`}>
+      <button
+        type="button"
+        onClick={onSignOut}
+        aria-label="Sign out"
+        className={`${styles.item} ${styles.signOut}`}
+      >
         <SignOut size={20} className={styles.icon} aria-hidden />
         <span className={styles.label}>Sign out</span>
       </button>

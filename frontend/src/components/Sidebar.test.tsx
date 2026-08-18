@@ -36,6 +36,16 @@ describe("Sidebar", () => {
     expect(onNavigate).toHaveBeenCalledWith("profile");
   });
 
+  // The icon rail below 1000px hides the label with display:none, which takes
+  // it out of the accessibility tree. The name has to survive that.
+  it("names every button independently of the visible label text", () => {
+    render(<Sidebar current="dashboard" onNavigate={vi.fn()} onSignOut={vi.fn()} />);
+
+    for (const name of ["Dashboard", "Wallet", "Profile", "Sign out"]) {
+      expect(screen.getByRole("button", { name })).toHaveAttribute("aria-label", name);
+    }
+  });
+
   it("calls onSignOut from the sign-out button, not onNavigate", async () => {
     const onNavigate = vi.fn();
     const onSignOut = vi.fn();
