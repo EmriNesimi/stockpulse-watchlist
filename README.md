@@ -301,8 +301,9 @@ You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,
 | `POST` | `/api/auth/logout` | — | `204`, clears the session cookie |
 | `GET` | `/api/auth/me` | — | `200` `{ user }` · `401` if not signed in |
 | `GET` | `/api/search` | `?q=<string>` | `{ results: [{ symbol, name }], source: "massive" \| "fallback" }` |
-| `GET` | `/api/watchlist` 🔒 | — | `{ items: [{ id, symbol, name, addedAt }] }` |
-| `POST` | `/api/watchlist` 🔒 | `{ symbol, name? }` | `201` `{ item }` · `409` if already on the list or the watchlist is at its 30-ticker cap · `400` on a bad symbol |
+| `GET` | `/api/watchlist` 🔒 | — | `{ items: [{ id, symbol, name, addedAt, shares, costBasis }] }` — `shares`/`costBasis` are `null` for a watched-but-not-held ticker |
+| `POST` | `/api/watchlist` 🔒 | `{ symbol, name?, shares?, costBasis? }` | `201` `{ item }` · `409` if already on the list or the watchlist is at its 30-ticker cap · `400` on a bad symbol, or if only one of `shares`/`costBasis` is given |
+| `PATCH` | `/api/watchlist/:symbol` 🔒 | `{ shares, costBasis }` — both numbers to set a position, both `null` to clear it | `200` `{ item }` · `404` if the symbol isn't on the list · `400` if only one of the two is `null` |
 | `DELETE` | `/api/watchlist/:symbol` 🔒 | — | `204` on success · `404` if it wasn't there |
 | `GET` | `/api/alerts` 🔒 | — | `{ alerts: [{ id, symbol, threshold, direction, createdAt, triggeredAt }] }` |
 | `POST` | `/api/alerts` 🔒 | `{ symbol, threshold, direction: "above" \| "below" }` | `201` `{ alert }` · `400` on a bad symbol/threshold/direction |
