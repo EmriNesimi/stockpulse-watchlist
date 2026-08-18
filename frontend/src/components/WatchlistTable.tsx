@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { TrendUp, TrendDown, X, Bell } from "@phosphor-icons/react";
 import Sparkline from "./Sparkline";
 import PriceCell from "./PriceCell";
@@ -38,6 +38,14 @@ export default function WatchlistTable({
   onSelectSymbol,
 }: WatchlistTableProps) {
   const [alertFormSymbol, setAlertFormSymbol] = useState<string | null>(null);
+  // The alert form unmounts with focus still inside it, which drops focus to
+  // <body>. Hand it back to the bell that opened it.
+  const bellRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  function closeAlertForm(symbol: string) {
+    setAlertFormSymbol(null);
+    bellRefs.current[symbol]?.focus();
+  }
 
   if (loading) {
     return (
@@ -120,6 +128,9 @@ export default function WatchlistTable({
                   </td>
                   <td className={styles.actionsCell}>
                     <button
+                      ref={(el) => {
+                        bellRefs.current[item.symbol] = el;
+                      }}
                       onClick={() => setAlertFormSymbol(alertFormOpen ? null : item.symbol)}
                       aria-label={`Set a price alert for ${item.symbol}`}
                       aria-expanded={alertFormOpen}
@@ -144,9 +155,9 @@ export default function WatchlistTable({
                         defaultThreshold={state?.price}
                         onSubmit={(threshold, direction) => {
                           onCreateAlert(item.symbol, threshold, direction);
-                          setAlertFormSymbol(null);
+                          closeAlertForm(item.symbol);
                         }}
-                        onCancel={() => setAlertFormSymbol(null)}
+                        onCancel={() => closeAlertForm(item.symbol)}
                       />
                     </td>
                   </tr>

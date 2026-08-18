@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Search from "./components/Search";
 import Sidebar from "./components/Sidebar";
 import ConnectionBadge from "./components/ConnectionBadge";
@@ -110,6 +110,22 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
     setItems((prev) => prev.map((i) => (i.symbol === symbol ? item : i)));
   }
 
+  // Swapping the content column leaves focus wherever it was - often on a
+  // control that just unmounted, which drops focus to <body>. Moving it to
+  // <main> (already tabIndex={-1} for the skip link) keeps keyboard and
+  // screen-reader users oriented. Skipped on first render so we don't yank
+  // focus on load.
+  const mainRef = useRef<HTMLElement>(null);
+  const viewKey = view.name === "stock" ? `stock:${view.symbol}` : view.name;
+  const isFirstView = useRef(true);
+  useEffect(() => {
+    if (isFirstView.current) {
+      isFirstView.current = false;
+      return;
+    }
+    mainRef.current?.focus();
+  }, [viewKey]);
+
   function handleNavigate(name: ViewName) {
     // "stock" is deliberately unreachable from the nav - it needs a symbol,
     // so it's only entered by picking one out of a list.
@@ -153,7 +169,7 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
 
         {!user.emailVerified && <VerificationBanner onError={pushError} />}
 
-        <main id="main-content" tabIndex={-1} className={styles.main}>
+        <main id="main-content" ref={mainRef} tabIndex={-1} className={styles.main}>
           {view.name === "dashboard" && (
             <DashboardView
               items={items}

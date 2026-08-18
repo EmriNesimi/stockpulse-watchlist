@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import TickerAvatar from "../components/TickerAvatar";
 import HoldingsForm from "../components/HoldingsForm";
@@ -15,6 +15,14 @@ interface ProfileViewProps {
 
 export default function ProfileView({ user, items, onSaveHoldings, onClearHoldings }: ProfileViewProps) {
   const [editing, setEditing] = useState<string | null>(null);
+  // Same as the alert form: the holdings form unmounts with focus inside it,
+  // so hand focus back to the Edit/Add button that opened it.
+  const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  function closeForm(symbol: string) {
+    setEditing(null);
+    triggerRefs.current[symbol]?.focus();
+  }
 
   return (
     <div className={styles.view}>
@@ -82,6 +90,9 @@ export default function ProfileView({ user, items, onSaveHoldings, onClearHoldin
                       </span>
                       <button
                         type="button"
+                        ref={(el) => {
+                          triggerRefs.current[item.symbol] = el;
+                        }}
                         onClick={() => setEditing(open ? null : item.symbol)}
                         aria-expanded={open}
                         aria-label={`${held ? "Edit" : "Add"} holdings for ${item.symbol}`}
@@ -98,13 +109,13 @@ export default function ProfileView({ user, items, onSaveHoldings, onClearHoldin
                         item={item}
                         onSave={async (shares, costBasis) => {
                           await onSaveHoldings(item.symbol, shares, costBasis);
-                          setEditing(null);
+                          closeForm(item.symbol);
                         }}
                         onClear={async () => {
                           await onClearHoldings(item.symbol);
-                          setEditing(null);
+                          closeForm(item.symbol);
                         }}
-                        onCancel={() => setEditing(null)}
+                        onCancel={() => closeForm(item.symbol)}
                       />
                     </div>
                   )}

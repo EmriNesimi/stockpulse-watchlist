@@ -95,6 +95,31 @@ describe("ProfileView", () => {
     await waitFor(() => expect(onClearHoldings).toHaveBeenCalledWith("AAPL"));
   });
 
+  // Without this, closing the form leaves focus on a button that just
+  // unmounted, and the browser drops focus to <body>.
+  it("returns focus to the trigger when the form is cancelled", async () => {
+    const { user: u } = setup([item({ symbol: "AAPL" })]);
+    const trigger = screen.getByRole("button", { name: "Add holdings for AAPL" });
+
+    await u.click(trigger);
+    await u.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.getByRole("button", { name: "Add holdings for AAPL" })).toHaveFocus();
+  });
+
+  it("returns focus to the trigger after a successful save", async () => {
+    const { user: u } = setup([item({ symbol: "AAPL" })]);
+
+    await u.click(screen.getByRole("button", { name: "Add holdings for AAPL" }));
+    await u.type(screen.getByLabelText("Shares"), "5");
+    await u.type(screen.getByLabelText("Cost per share"), "100");
+    await u.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Add holdings for AAPL" })).toHaveFocus()
+    );
+  });
+
   it("only opens one row's form at a time", async () => {
     const { user: u } = setup([item({ symbol: "AAPL" }), item({ symbol: "TSLA" })]);
 

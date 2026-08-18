@@ -295,6 +295,26 @@ describe("WatchlistTable — setting an alert", () => {
   });
 });
 
+describe("WatchlistTable — focus management", () => {
+  it("returns focus to the bell when the alert form is cancelled", async () => {
+    const user = userEvent.setup();
+    render(
+      <WatchlistTable
+        items={[item({ symbol: "AAPL" })]}
+        prices={{}}
+        onRemove={noop}
+        onCreateAlert={noop}
+        onSelectSymbol={noop}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Set a price alert for AAPL" }));
+    await user.click(screen.getByRole("button", { name: "Cancel setting alert" }));
+
+    expect(screen.getByRole("button", { name: "Set a price alert for AAPL" })).toHaveFocus();
+  });
+});
+
 describe("WatchlistTable — opening a symbol", () => {
   it("calls onSelectSymbol with the row that was clicked", async () => {
     const onSelectSymbol = vi.fn();
