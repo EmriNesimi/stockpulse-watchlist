@@ -15,6 +15,14 @@ updates:
       # that don't exist at execution time. Bump this with the Node baseline.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # cookie v2 renamed `parse` to `parseCookie` and publishes its types
+      # only through an "exports" map, which this package's `moduleResolution:
+      # node` can't read. Taking it means migrating the backend to node16
+      # resolution (explicit .js extensions on every relative dynamic import),
+      # which isn't worth it for a dependency with no outstanding advisory.
+      # Revisit alongside that migration.
+      - dependency-name: "cookie"
+        update-types: ["version-update:semver-major"]
     groups:
       # One PR for the routine patch/minor churn; majors still come through
       # individually so breaking changes get read properly.
