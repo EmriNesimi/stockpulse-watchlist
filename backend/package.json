@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@prisma/client": "5.20.0",
+    "@prisma/client": "7.9.1",
     "cookie": "^0.7.2",
     "cookie-parser": "^1.4.7",
     "cors": "2.8.6",
