@@ -296,10 +296,12 @@ You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,
 | Method | Path | Body / Query | Response |
 |---|---|---|---|
 | `GET` | `/health` | — | `{ "status": "ok" }` |
-| `POST` | `/api/auth/signup` | `{ email, password }` | `201` `{ user: { id, email } }` + sets session cookie · `409` if email's taken · `400` on invalid input |
+| `POST` | `/api/auth/signup` | `{ email, password }` | `202` `{ message }` — identical whether or not the address is already registered, and never sets a session (log in as a separate step) · `400` on invalid input |
 | `POST` | `/api/auth/login` | `{ email, password }` | `200` `{ user }` + sets session cookie · `401` on bad credentials (same error either way, doesn't reveal which was wrong) |
 | `POST` | `/api/auth/logout` | — | `204`, clears the session cookie |
 | `GET` | `/api/auth/me` | — | `200` `{ user }` · `401` if not signed in |
+| `POST` | `/api/auth/verify-email` | `{ token }` | `200` `{ user }` · `400` if the token is unknown, already used, or expired. POST rather than GET because it consumes a single-use token |
+| `POST` | `/api/auth/resend-verification` 🔒 | — | `204` · `409` if the address is already verified |
 | `GET` | `/api/search` | `?q=<string>` | `{ results: [{ symbol, name }], source: "massive" \| "fallback" }` |
 | `GET` | `/api/watchlist` 🔒 | — | `{ items: [{ id, symbol, name, addedAt, shares, costBasis }] }` — `shares`/`costBasis` are `null` for a watched-but-not-held ticker |
 | `POST` | `/api/watchlist` 🔒 | `{ symbol, name?, shares?, costBasis? }` | `201` `{ item }` · `409` if already on the list or the watchlist is at its 30-ticker cap · `400` on a bad symbol, or if only one of `shares`/`costBasis` is given |
