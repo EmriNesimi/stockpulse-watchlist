@@ -62,12 +62,14 @@ export default function WatchlistTable({
       <table className={styles.table}>
         <thead>
           <tr className={styles.headerRow}>
-            <th className={styles.th}>Symbol</th>
-            <th className={styles.th}>Price</th>
-            <th className={styles.th}>Change</th>
-            <th className={styles.th}>Session range</th>
-            <th className={styles.th}>Trend</th>
-            <th className={styles.th} />
+            <th scope="col" className={styles.th}>Symbol</th>
+            <th scope="col" className={styles.th}>Price</th>
+            <th scope="col" className={styles.th}>Change</th>
+            <th scope="col" className={styles.th}>Session range</th>
+            <th scope="col" className={styles.th}>Trend</th>
+            <th scope="col" className={styles.th}>
+              <span className="sr-only">Actions</span>
+            </th>
           </tr>
         </thead>
         <tbody>

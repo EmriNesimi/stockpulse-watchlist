@@ -175,4 +175,19 @@ describe("MassiveLiveFeed", () => {
     vi.advanceTimersByTime(60_000);
     expect(FakeWebSocket.instances).toHaveLength(1); // never reconnects once failed over
   });
+
+  it("drops a frame that parses to something other than an array", () => {
+    new MassiveLiveFeed();
+    const socket = latestSocket();
+    socket.emit("open");
+
+    // Some WS APIs send a single object rather than a batch. That used to hit
+    // a for..of over a non-iterable inside the "message" listener, which
+    // nothing catches - it would take the process down instead of skipping
+    // the frame.
+    expect(() => socket.emit("message", JSON.stringify({ ev: "T", sym: "AAPL", p: 1 }))).not.toThrow();
+    expect(() => socket.emit("message", "null")).not.toThrow();
+    expect(() => socket.emit("message", "42")).not.toThrow();
+    expect(() => socket.emit("message", '"a string"')).not.toThrow();
+  });
 });

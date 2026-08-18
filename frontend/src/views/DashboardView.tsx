@@ -33,6 +33,7 @@ export default function DashboardView({
 
   return (
     <div className={styles.view}>
+      <h1 className="sr-only">Dashboard</h1>
       <StatsRow items={items} prices={prices} />
 
       <section>

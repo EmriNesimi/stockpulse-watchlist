@@ -149,8 +149,9 @@
   color: var(--color-foreground-muted);
 }
 
-@media (max-width: 640px) {
-  .scroll {
-    overflow-x: auto;
-  }
+/* Always scrollable rather than only under a breakpoint: the wrapper carries
+   tabIndex={0} so keyboard users can pan it, and a focus stop that sometimes
+   scrolls and sometimes doesn't is worse than one that always can. */
+.scroll {
+  overflow-x: auto;
 }

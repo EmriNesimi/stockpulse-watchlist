@@ -140,12 +140,19 @@ export class MassiveLiveFeed implements PriceFeed {
   }
 
   private handleMessage(raw: string) {
-    let events: MassiveEvent[];
+    let parsed: unknown;
     try {
-      events = JSON.parse(raw);
+      parsed = JSON.parse(raw);
     } catch {
       return;
     }
+
+    // Massive batches events into an array, but a frame that parses to
+    // anything else would make the loop below throw inside a "message"
+    // listener - nothing catches that, so it would take the process down.
+    // Drop the frame instead.
+    if (!Array.isArray(parsed)) return;
+    const events = parsed as MassiveEvent[];
 
     for (const event of events) {
       if (event.ev === "status") {

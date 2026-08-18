@@ -85,16 +85,16 @@ export default function WalletView({ items, prices }: WalletViewProps) {
         <h2 id="wallet-breakdown" className={styles.sectionTitle}>
           Holdings
         </h2>
-        <div className={styles.scroll}>
+        <div className={styles.scroll} tabIndex={0} role="region" aria-label="Holdings breakdown">
           <table className={styles.table}>
             <thead>
               <tr>
-                <th className={styles.th}>Symbol</th>
-                <th className={`${styles.th} ${styles.thNumeric}`}>Shares</th>
-                <th className={`${styles.th} ${styles.thNumeric}`}>Cost basis</th>
-                <th className={`${styles.th} ${styles.thNumeric}`}>Price</th>
-                <th className={`${styles.th} ${styles.thNumeric}`}>Value</th>
-                <th className={`${styles.th} ${styles.thNumeric}`}>Profit</th>
+                <th scope="col" className={styles.th}>Symbol</th>
+                <th scope="col" className={`${styles.th} ${styles.thNumeric}`}>Shares</th>
+                <th scope="col" className={`${styles.th} ${styles.thNumeric}`}>Cost basis</th>
+                <th scope="col" className={`${styles.th} ${styles.thNumeric}`}>Price</th>
+                <th scope="col" className={`${styles.th} ${styles.thNumeric}`}>Value</th>
+                <th scope="col" className={`${styles.th} ${styles.thNumeric}`}>Profit</th>
               </tr>
             </thead>
             <tbody>
