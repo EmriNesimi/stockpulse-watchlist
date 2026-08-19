@@ -70,8 +70,7 @@ export default function Search({ onAdd, alreadyAdded, atCapacity = false }: Sear
               : "Search tickers (e.g. Apple, AAPL)"
           }
           aria-label="Search for a stock ticker to add to your watchlist"
-          aria-expanded={debouncedQuery.length > 0}
-          aria-controls="search-results"
+          aria-describedby="search-results-status"
           className={styles.input}
         />
         {status === "loading" && (
@@ -79,8 +78,18 @@ export default function Search({ onAdd, alreadyAdded, atCapacity = false }: Sear
         )}
       </div>
 
+      {/* Without the combobox pattern there's no aria-expanded to signal that
+          results appeared, so announce the count instead. */}
+      <span id="search-results-status" role="status" className="sr-only">
+        {!atCapacity && debouncedQuery && status === "idle"
+          ? results.length === 0
+            ? `No matches for ${debouncedQuery}`
+            : `${results.length} result${results.length === 1 ? "" : "s"} for ${debouncedQuery}`
+          : ""}
+      </span>
+
       {!atCapacity && debouncedQuery && (
-        <div id="search-results" role="listbox" aria-label="Ticker search results" className={styles.results}>
+        <div id="search-results" aria-label="Ticker search results" className={styles.results}>
           {status === "error" && (
             <div className={styles.resultsError}>Couldn't reach search right now. Try again in a moment.</div>
           )}
@@ -92,8 +101,6 @@ export default function Search({ onAdd, alreadyAdded, atCapacity = false }: Sear
             return (
               <button
                 key={ticker.symbol}
-                role="option"
-                aria-selected={false}
                 disabled={added}
                 onClick={() => onAdd(ticker)}
                 className={`${styles.option} ${added ? styles.optionAdded : ""}`}

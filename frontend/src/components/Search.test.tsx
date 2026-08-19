@@ -24,7 +24,7 @@ afterEach(() => {
 describe("Search", () => {
   it("doesn't show a results list before anything is typed", () => {
     render(<Search onAdd={vi.fn()} alreadyAdded={() => false} />);
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Ticker search results")).not.toBeInTheDocument();
   });
 
   it("searches (debounced) and shows the results", async () => {
@@ -38,7 +38,7 @@ describe("Search", () => {
     await user.type(screen.getByLabelText(/search for a stock ticker/i), "apple");
 
     await waitFor(() => expect(searchTickers).toHaveBeenCalledWith("apple"), { timeout: 2000 });
-    await waitFor(() => expect(screen.getByRole("option", { name: /AAPL/ })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /AAPL/ })).toBeInTheDocument());
   }, 10000);
 
   it("shows 'No matches' when the search comes back empty", async () => {
@@ -76,8 +76,8 @@ describe("Search", () => {
     render(<Search onAdd={onAdd} alreadyAdded={() => false} />);
 
     await user.type(screen.getByLabelText(/search for a stock ticker/i), "apple");
-    await waitFor(() => screen.getByRole("option", { name: /AAPL/ }), { timeout: 2000 });
-    await user.click(screen.getByRole("option", { name: /AAPL/ }));
+    await waitFor(() => screen.getByRole("button", { name: /AAPL/ }), { timeout: 2000 });
+    await user.click(screen.getByRole("button", { name: /AAPL/ }));
 
     expect(onAdd).toHaveBeenCalledWith({ symbol: "AAPL", name: "Apple Inc." });
   }, 10000);
@@ -92,7 +92,7 @@ describe("Search", () => {
 
     await user.type(screen.getByLabelText(/search for a stock ticker/i), "apple");
 
-    await waitFor(() => expect(screen.getByRole("option", { name: /AAPL/ })).toBeDisabled(), {
+    await waitFor(() => expect(screen.getByRole("button", { name: /AAPL/ })).toBeDisabled(), {
       timeout: 2000,
     });
   }, 10000);
@@ -107,14 +107,14 @@ describe("Search", () => {
 
     const input = screen.getByLabelText(/search for a stock ticker/i);
     await user.type(input, "apple");
-    await waitFor(() => expect(screen.getByRole("listbox")).toBeInTheDocument(), { timeout: 2000 });
+    await waitFor(() => expect(screen.getByLabelText("Ticker search results")).toBeInTheDocument(), { timeout: 2000 });
 
     await user.keyboard("{Escape}");
 
     expect(input).toHaveValue(""); // clears immediately, no debounce on the input itself
     // The listbox is gated on the *debounced* query though, so it takes
     // another ~300ms to catch up to the now-empty value and unmount.
-    await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument(), {
+    await waitFor(() => expect(screen.queryByLabelText("Ticker search results")).not.toBeInTheDocument(), {
       timeout: 2000,
     });
   }, 10000);
@@ -134,7 +134,7 @@ describe("Search", () => {
     });
     render(<Search onAdd={vi.fn()} alreadyAdded={() => false} atCapacity />);
 
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Ticker search results")).not.toBeInTheDocument();
   });
 
   it("clears an in-progress query when the watchlist fills up mid-typing", async () => {
