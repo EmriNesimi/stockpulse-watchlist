@@ -30,6 +30,7 @@ npm-debug.log*
 # OS
 .DS_Store
 
-# Editor
+# Editor / tooling
 .vscode/
 .idea/
+.serena/
