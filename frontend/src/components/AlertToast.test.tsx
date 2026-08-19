@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AlertToast from "./AlertToast";
-import type { AlertEvent } from "../hooks/useLiveTicks";
+import type { AlertEvent } from "../lib/wsMessages";
 
 function alert(overrides: Partial<AlertEvent> = {}): AlertEvent {
   return {

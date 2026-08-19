@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { WS_URL } from "../lib/ws";
+import { parseServerMessage, type AlertEvent } from "../lib/wsMessages";
 import type { PriceState } from "../types";
 
 export type ConnectionStatus = "connecting" | "open" | "reconnecting" | "closed";
@@ -9,32 +10,6 @@ const RECONNECT_MAX_MS = 15_000;
 const HISTORY_LENGTH = 30;
 
 const MAX_ALERT_EVENTS = 20;
-
-interface TickMessage {
-  type: "tick";
-  symbol: string;
-  price: number;
-  changePercent: number;
-  source: "live" | "simulated";
-}
-
-export interface AlertEvent {
-  id: string;
-  symbol: string;
-  threshold: number;
-  direction: "above" | "below";
-  price: number;
-  triggeredAt: string;
-}
-
-interface AlertMessage extends AlertEvent {
-  type: "alert";
-}
-
-interface ErrorMessage {
-  type: "error";
-  message: string;
-}
 
 export function useLiveTicks(symbols: string[]) {
   const [prices, setPrices] = useState<Record<string, PriceState>>({});
@@ -99,12 +74,10 @@ export function useLiveTicks(symbols: string[]) {
       };
 
       ws.onmessage = (event) => {
-        let msg: TickMessage | AlertMessage | ErrorMessage;
-        try {
-          msg = JSON.parse(event.data);
-        } catch {
-          return;
-        }
+        // Validated rather than cast: a frame with, say, a string price used
+        // to flow straight through and blow up later inside a render.
+        const msg = parseServerMessage(event.data);
+        if (!msg) return;
 
         if (msg.type === "error") {
           setWsError(msg.message);

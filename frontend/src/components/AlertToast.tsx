@@ -1,5 +1,5 @@
 import { Bell, X, TrendUp, TrendDown } from "@phosphor-icons/react";
-import type { AlertEvent } from "../hooks/useLiveTicks";
+import type { AlertEvent } from "../lib/wsMessages";
 import styles from "./AlertToast.module.css";
 
 interface AlertToastProps {
