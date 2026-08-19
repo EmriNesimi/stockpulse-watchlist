@@ -51,7 +51,6 @@ export function useLiveTicks(symbols: string[]) {
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const subscribedSymbols = useRef<Set<string>>(new Set());
   const desiredSymbols = useRef<string[]>(symbols);
-  desiredSymbols.current = symbols;
 
   // Diffs desiredSymbols against what the socket currently has active and
   // sends only the delta — called both right after connecting and whenever
@@ -164,13 +163,20 @@ export function useLiveTicks(symbols: string[]) {
     };
     // Reconnect lifecycle only runs on mount/unmount — symbol changes are
     // pushed over the existing connection via the effect below, not by
-    // tearing the socket down and reconnecting.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // tearing the socket down and reconnecting. (The effect body only touches
+    // refs and stable setters, so no disable directive is needed here.)
   }, []);
 
-  // Keep subscriptions in sync whenever the watchlist itself changes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(syncSubscriptions, [symbols.join(",")]);
+  // Keep subscriptions in sync whenever the watchlist itself changes. The
+  // desired set is recorded here rather than during render - a render-time ref
+  // write can be left behind by a render React discards.
+  useEffect(() => {
+    desiredSymbols.current = symbols;
+    syncSubscriptions();
+    // syncSubscriptions only reads refs and stable setters, so it doesn't need
+    // to be a dependency; symbols is compared by value via the join.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbols.join(",")]);
 
   return { prices, status, alertEvents, dismissAlert, wsError };
 }
