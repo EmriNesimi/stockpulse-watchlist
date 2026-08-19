@@ -38,6 +38,12 @@ export default tseslint.config(
       // visible as a warning so new instances get looked at, rather than
       // silenced or worked around with a contorted refactor.
       "react-hooks/set-state-in-effect": "warn",
+      // A scrollable container has to be focusable or keyboard users can't pan
+      // it (WCAG 2.1.1), and the correct wrapper role for one is "region".
+      // The rule doesn't know about that pairing, so allow tabIndex there -
+      // it still flags tabIndex on genuinely non-interactive, non-scrollable
+      // elements, which is what it's for.
+      "jsx-a11y/no-noninteractive-tabindex": ["error", { tags: [], roles: ["region"], allowExpressionValues: true }],
       // Reporting unused disable comments is the whole reason for adding this
       // config: a stale one silently turns a rule off forever.
       "no-unused-private-class-members": "error",
