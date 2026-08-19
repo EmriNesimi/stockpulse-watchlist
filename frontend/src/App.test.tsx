@@ -211,8 +211,8 @@ describe("App — search and add to watchlist", () => {
     await waitFor(() => expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument());
 
     await user.type(screen.getByLabelText(/search for a stock ticker/i), "apple");
-    await waitFor(() => screen.getByRole("option", { name: /AAPL/ }), { timeout: 2000 });
-    await user.click(screen.getByRole("option", { name: /AAPL/ }));
+    await waitFor(() => screen.getByRole("button", { name: /AAPL/ }), { timeout: 2000 });
+    await user.click(screen.getByRole("button", { name: /AAPL/ }));
 
     expect(addToWatchlist).toHaveBeenCalledWith("AAPL", "Apple Inc.");
     await waitFor(() => expect(screen.queryByText(/nothing on your watchlist yet/i)).not.toBeInTheDocument());
@@ -230,8 +230,8 @@ describe("App — search and add to watchlist", () => {
     await waitFor(() => expect(screen.getByText(/nothing on your watchlist yet/i)).toBeInTheDocument());
 
     await user.type(screen.getByLabelText(/search for a stock ticker/i), "apple");
-    await waitFor(() => screen.getByRole("option", { name: /AAPL/ }), { timeout: 2000 });
-    await user.click(screen.getByRole("option", { name: /AAPL/ }));
+    await waitFor(() => screen.getByRole("button", { name: /AAPL/ }), { timeout: 2000 });
+    await user.click(screen.getByRole("button", { name: /AAPL/ }));
 
     await waitFor(() => expect(addToWatchlist).toHaveBeenCalled());
     // The empty state should still be showing — the add never actually landed.
@@ -253,9 +253,15 @@ describe("App — search and add to watchlist", () => {
 
     await user.type(screen.getByLabelText(/search for a stock ticker/i), "apple");
 
-    await waitFor(() => expect(screen.getByRole("option", { name: /AAPL/ })).toBeDisabled(), {
-      timeout: 2000,
-    });
+    // AAPL is on the watchlist too, so scope to the results dropdown - both
+    // are plain buttons now that the option role is gone.
+    await waitFor(
+      () =>
+        expect(
+          within(screen.getByLabelText("Ticker search results")).getByRole("button", { name: /AAPL/ })
+        ).toBeDisabled(),
+      { timeout: 2000 }
+    );
   }, 10000);
 
   it("disables search once the watchlist has 30 items", async () => {
