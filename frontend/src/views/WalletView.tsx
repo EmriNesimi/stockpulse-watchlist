@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { TrendDown, TrendUp } from "@phosphor-icons/react";
 import TickerAvatar from "../components/TickerAvatar";
 import { portfolioTotals, toHoldings, valueHolding } from "../lib/holdings";
@@ -16,8 +17,11 @@ interface WalletViewProps {
 // screen says so, and while a price is still missing the affected totals
 // render as a dash rather than a number that would quietly be wrong.
 export default function WalletView({ items, prices }: WalletViewProps) {
-  const valued = toHoldings(items).map((h) => valueHolding(h, prices));
-  const totals = portfolioTotals(valued);
+  // Recomputed on every tick otherwise, and a tick arrives roughly every 1.5s
+  // per symbol - so this ran O(holdings) times a second while the screen was
+  // just sitting there.
+  const valued = useMemo(() => toHoldings(items).map((h) => valueHolding(h, prices)), [items, prices]);
+  const totals = useMemo(() => portfolioTotals(valued), [valued]);
   const up = (totals.gain ?? 0) >= 0;
 
   if (valued.length === 0) {

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import Sparkline from "./Sparkline";
 import TickerAvatar from "./TickerAvatar";
 import { toHoldings, valueHolding } from "../lib/holdings";
@@ -15,7 +16,7 @@ interface PortfolioCardsProps {
 // cost basis the user entered plus the live price - nothing is stubbed, so a
 // user with no positions gets a prompt instead of invented numbers.
 export default function PortfolioCards({ items, prices }: PortfolioCardsProps) {
-  const holdings = toHoldings(items);
+  const holdings = useMemo(() => toHoldings(items), [items]);
 
   if (holdings.length === 0) {
     return (
