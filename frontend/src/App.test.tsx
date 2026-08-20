@@ -82,11 +82,20 @@ class FakeWebSocket {
 vi.stubGlobal("WebSocket", FakeWebSocket);
 
 // noUncheckedIndexedAccess types every array index as possibly-undefined, which
-// is correct - these tests just happen to know the socket exists by this point.
+// is correct - these call sites have already awaited the socket's existence.
 function socketAt(index = 0): FakeWebSocket {
   const socket = FakeWebSocket.instances[index];
   if (!socket) throw new Error(`no FakeWebSocket at index ${index}`);
   return socket;
+}
+
+// The socket is constructed inside an effect, but "Connecting…" renders from
+// the initial status *before* that runs - so waiting on the text doesn't mean
+// the socket exists yet. On a slow machine (CI) it often doesn't. Wait for the
+// thing we actually need.
+async function waitForSocket(index = 0): Promise<FakeWebSocket> {
+  await waitFor(() => expect(FakeWebSocket.instances.length).toBeGreaterThan(index));
+  return socketAt(index);
 }
 
 // Symbols and prices now appear in the chart panel and the watching rail as
@@ -353,6 +362,7 @@ describe("App — live connection status and price updates", () => {
   it("shows 'Connected' once the websocket opens", async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText("Connecting…")).toBeInTheDocument());
+    await waitForSocket(0);
 
     act(() => socketAt(0).triggerOpen());
 
@@ -366,6 +376,7 @@ describe("App — live connection status and price updates", () => {
     render(<App />);
     await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
 
+    await waitForSocket(0);
     act(() => socketAt(0).triggerOpen());
 
     const sent = socketAt(0).sent.map((s) => JSON.parse(s));
@@ -376,6 +387,7 @@ describe("App — live connection status and price updates", () => {
     vi.mocked(getWatchlist).mockResolvedValue({ items: [watchlistItem({ symbol: "AAPL" })] });
     render(<App />);
     await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+    await waitForSocket(0);
     act(() => socketAt(0).triggerOpen());
 
     act(() => {
@@ -397,6 +409,7 @@ describe("App — live connection status and price updates", () => {
     });
     render(<App />);
     await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+    await waitForSocket(0);
     act(() => socketAt(0).triggerOpen());
 
     act(() => {
@@ -417,6 +430,7 @@ describe("App — live connection status and price updates", () => {
   it("shows 'Reconnecting…' if the connection drops", async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText("Connecting…")).toBeInTheDocument());
+    await waitForSocket(0);
     act(() => socketAt(0).triggerOpen());
     await waitFor(() => expect(screen.getByText("Connected")).toBeInTheDocument());
 
@@ -514,6 +528,7 @@ describe("App — WS protocol errors", () => {
   it("surfaces a WS error message as a dismissible error toast", async () => {
     render(<App />);
     await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+    await waitForSocket(0);
     act(() => socketAt(0).triggerOpen());
 
     act(() => {
@@ -528,6 +543,7 @@ describe("App — receiving fired alerts", () => {
   it("shows a toast when an alert message arrives over the websocket", async () => {
     render(<App />);
     await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+    await waitForSocket(0);
     act(() => socketAt(0).triggerOpen());
 
     act(() => {
@@ -549,6 +565,7 @@ describe("App — receiving fired alerts", () => {
     const user = userEvent.setup();
     render(<App />);
     await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+    await waitForSocket(0);
     act(() => socketAt(0).triggerOpen());
     act(() => {
       socketAt(0).triggerMessage({
@@ -571,6 +588,7 @@ describe("App — receiving fired alerts", () => {
   it("shows multiple fired alerts as separate toasts", async () => {
     render(<App />);
     await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
+    await waitForSocket(0);
     act(() => socketAt(0).triggerOpen());
 
     act(() => {
