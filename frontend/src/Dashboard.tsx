@@ -54,10 +54,24 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
   const { errors, pushError, dismissError } = useErrorToasts();
 
   useEffect(() => {
+    // Guarded the same way useHistory is: signing out (or the key={user.id}
+    // remount in App.tsx swapping users) unmounts this while the request is
+    // still in flight, and there's no point writing state into a tree that's
+    // gone.
+    let cancelled = false;
     getWatchlist()
-      .then(({ items }) => setItems(items))
-      .catch(() => pushError("Couldn't load your watchlist — check your connection and refresh."))
-      .finally(() => setIsLoadingWatchlist(false));
+      .then(({ items }) => {
+        if (!cancelled) setItems(items);
+      })
+      .catch(() => {
+        if (!cancelled) pushError("Couldn't load your watchlist — check your connection and refresh.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingWatchlist(false);
+      });
+    return () => {
+      cancelled = true;
+    };
     // pushError is referentially stable (useCallback in useErrorToasts), so
     // leaving it out of the deps can't capture a stale closure.
     // eslint-disable-next-line react-hooks/exhaustive-deps
