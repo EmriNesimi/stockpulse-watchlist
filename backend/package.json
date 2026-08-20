@@ -2,13 +2,14 @@
   "name": "stockpulse-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "StockPulse backend — Express REST API, WebSocket price broadcaster, Prisma/SQLite persistence, Massive integration",
+  "description": "StockPulse backend \u2014 Express REST API, WebSocket price broadcaster, Prisma/SQLite persistence, Massive integration",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
     "test": "vitest run",
     "postinstall": "prisma generate"
   },
@@ -26,6 +27,7 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/cookie": "^0.6.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "2.8.19",
@@ -33,10 +35,13 @@
     "@types/node": "^20.19.43",
     "@types/supertest": "7.2.1",
     "@types/ws": "8.18.1",
+    "eslint": "^9.39.5",
+    "globals": "^17.11.0",
     "prisma": "^7.9.1",
     "supertest": "7.2.2",
     "tsx": "4.23.12",
     "typescript": "5.6.3",
+    "typescript-eslint": "^8.67.0",
     "vitest": "^4.1.11"
   },
   "overrides": {
