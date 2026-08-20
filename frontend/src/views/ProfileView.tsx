@@ -63,8 +63,12 @@ export default function ProfileView({ user, items, onSaveHoldings, onClearHoldin
         ) : (
           <div className={styles.list}>
             {items.map((item) => {
-              const held = item.shares !== null && item.costBasis !== null;
+              // Destructured so TypeScript actually narrows them. Checking
+              // `item.shares !== null` through a boolean alias doesn't
+              // propagate, which is why this used to need `!` assertions.
+              const { shares, costBasis } = item;
               const open = editing === item.symbol;
+              const held = shares !== null && costBasis !== null;
 
               return (
                 <div key={item.id} className={styles.entry}>
@@ -80,7 +84,7 @@ export default function ProfileView({ user, items, onSaveHoldings, onClearHoldin
                         {held ? (
                           <>
                             <span className={`tabular-nums ${styles.positionValue}`}>
-                              {formatShares(item.shares!)} @ {formatCurrency(item.costBasis!)}
+                              {formatShares(shares)} @ {formatCurrency(costBasis)}
                             </span>
                             <span className={styles.positionLabel}>shares @ cost</span>
                           </>
