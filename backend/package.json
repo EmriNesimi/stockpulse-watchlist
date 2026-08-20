@@ -2,7 +2,7 @@
   "name": "stockpulse-backend",
   "version": "0.1.0",
   "private": true,
-  "description": "StockPulse backend \u2014 Express REST API, WebSocket price broadcaster, Prisma/SQLite persistence, Massive integration",
+  "description": "StockPulse backend — Express REST API, WebSocket price broadcaster, Prisma/SQLite persistence, Massive integration",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -21,8 +21,8 @@
     "cors": "2.8.6",
     "dotenv": "16.4.5",
     "express": "^5.2.1",
-    "express-rate-limit": "7.4.1",
-    "helmet": "7.1.0",
+    "express-rate-limit": "^8.6.2",
+    "helmet": "^8.3.0",
     "ws": "8.21.3",
     "zod": "3.23.8"
   },
