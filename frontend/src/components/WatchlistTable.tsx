@@ -1,9 +1,6 @@
-import { Fragment, useRef, useState } from "react";
-import { TrendUp, TrendDown, X, Bell } from "@phosphor-icons/react";
-import Sparkline from "./Sparkline";
-import PriceCell from "./PriceCell";
+import { Fragment, useCallback, useRef, useState } from "react";
 import AlertForm from "./AlertForm";
-import TickerAvatar from "./TickerAvatar";
+import WatchlistRow from "./WatchlistRow";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./WatchlistTable.module.css";
@@ -17,16 +14,6 @@ interface WatchlistTableProps {
   onRemove: (symbol: string) => void;
   onCreateAlert: (symbol: string, threshold: number, direction: "above" | "below") => void;
   onSelectSymbol: (symbol: string) => void;
-}
-
-// The rolling tick history each row already tracks (for the sparkline) also
-// gives us a real intraday-session range for free - no extra API call, and
-// no invented 52-week-high/low we don't actually have data for.
-function sessionRange(history: number[] | undefined): string {
-  if (!history || history.length < 2) return "—";
-  const low = Math.min(...history);
-  const high = Math.max(...history);
-  return `$${low.toFixed(2)} – $${high.toFixed(2)}`;
 }
 
 export default function WatchlistTable({
@@ -46,6 +33,14 @@ export default function WatchlistTable({
     setAlertFormSymbol(null);
     bellRefs.current[symbol]?.focus();
   }
+
+  // Stable identities, or memo() on the row buys nothing.
+  const registerBellRef = useCallback((symbol: string, el: HTMLButtonElement | null) => {
+    bellRefs.current[symbol] = el;
+  }, []);
+  const toggleAlertForm = useCallback((symbol: string) => {
+    setAlertFormSymbol((open) => (open === symbol ? null : symbol));
+  }, []);
 
   if (loading) {
     return (
@@ -83,70 +78,20 @@ export default function WatchlistTable({
         <tbody>
           {items.map((item, index) => {
             const state = prices[item.symbol];
-            const bullish = (state?.changePercent ?? 0) >= 0;
             const alertFormOpen = alertFormSymbol === item.symbol;
-            const striped = index % 2 === 1 ? ` ${styles.rowStriped}` : "";
-            const rowClass = (alertFormOpen ? styles.rowNoBorder : styles.row) + striped;
 
             return (
               <Fragment key={item.id}>
-                <tr className={rowClass}>
-                  <td className={styles.td}>
-                    <button
-                      onClick={() => onSelectSymbol(item.symbol)}
-                      aria-label={`Open ${item.symbol}`}
-                      className={styles.symbolButton}
-                    >
-                      <TickerAvatar symbol={item.symbol} />
-                      <span>
-                        <strong className={`tabular-nums ${styles.symbolText}`}>{item.symbol}</strong>
-                        <div className={styles.symbolName}>{item.name}</div>
-                      </span>
-                    </button>
-                  </td>
-                  <td className={styles.td}>
-                    <PriceCell state={state} />
-                  </td>
-                  <td
-                    className={`tabular-nums ${styles.changeCell} ${
-                      state ? (bullish ? styles.changeBullish : styles.changeBearish) : ""
-                    }`}
-                  >
-                    {state ? (
-                      <>
-                        {bullish ? <TrendUp size={16} aria-hidden /> : <TrendDown size={16} aria-hidden />}
-                        {bullish ? "+" : ""}
-                        {state.changePercent.toFixed(2)}%
-                      </>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className={`tabular-nums ${styles.td} ${styles.rangeCell}`}>{sessionRange(state?.history)}</td>
-                  <td className={styles.td}>
-                    <Sparkline values={state?.history ?? []} bullish={bullish} />
-                  </td>
-                  <td className={styles.actionsCell}>
-                    <button
-                      ref={(el) => {
-                        bellRefs.current[item.symbol] = el;
-                      }}
-                      onClick={() => setAlertFormSymbol(alertFormOpen ? null : item.symbol)}
-                      aria-label={`Set a price alert for ${item.symbol}`}
-                      aria-expanded={alertFormOpen}
-                      className={`${styles.iconButton} ${alertFormOpen ? styles.iconButtonActive : ""}`}
-                    >
-                      <Bell size={18} weight={alertFormOpen ? "fill" : "regular"} aria-hidden />
-                    </button>
-                    <button
-                      onClick={() => onRemove(item.symbol)}
-                      aria-label={`Remove ${item.symbol} from watchlist`}
-                      className={styles.iconButton}
-                    >
-                      <X size={18} aria-hidden />
-                    </button>
-                  </td>
-                </tr>
+                <WatchlistRow
+                  item={item}
+                  state={state}
+                  striped={index % 2 === 1}
+                  alertOpen={alertFormOpen}
+                  onSelectSymbol={onSelectSymbol}
+                  onRemove={onRemove}
+                  onToggleAlert={toggleAlertForm}
+                  registerBellRef={registerBellRef}
+                />
                 {alertFormOpen && (
                   <tr className={styles.row}>
                     <td colSpan={COLUMN_COUNT} className={styles.expandedCell}>

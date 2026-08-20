@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Search from "./components/Search";
 import Sidebar from "./components/Sidebar";
 import ConnectionBadge from "./components/ConnectionBadge";
@@ -82,23 +82,30 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
     }
   }
 
-  async function handleRemove(symbol: string) {
-    const previous = items;
-    setItems((prev) => prev.filter((i) => i.symbol !== symbol)); // optimistic
-    try {
-      await removeFromWatchlist(symbol);
-    } catch {
-      setItems(previous); // roll back if the backend rejected it
-    }
-  }
+  // Depends on `items` because the optimistic rollback needs the list as it
+  // was before the removal. That means a new identity whenever the watchlist
+  // changes - which is fine: the memoised rows only need stability across
+  // price ticks, and a tick never changes `items`.
+  const handleRemove = useCallback(
+    async (symbol: string) => {
+      const previous = items;
+      setItems((prev) => prev.filter((i) => i.symbol !== symbol)); // optimistic
+      try {
+        await removeFromWatchlist(symbol);
+      } catch {
+        setItems(previous); // roll back if the backend rejected it
+      }
+    },
+    [items]
+  );
 
-  async function handleCreateAlert(symbol: string, threshold: number, direction: "above" | "below") {
+  const handleCreateAlert = useCallback(async (symbol: string, threshold: number, direction: "above" | "below") => {
     try {
       await createAlert(symbol, threshold, direction);
     } catch (err) {
       pushError(err instanceof Error ? err.message : `Couldn't create the alert for ${symbol} — try again.`);
     }
-  }
+  }, [pushError]);
 
   // Rethrows so HoldingsForm can show the failure inline next to the inputs
   // it came from, rather than as a toast detached from the form.
@@ -127,6 +134,10 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
     }
     mainRef.current?.focus();
   }, [viewKey]);
+
+  const handleOpenSymbol = useCallback((symbol: string) => {
+    setView({ name: "stock", symbol });
+  }, []);
 
   function handleNavigate(name: ViewName) {
     // "stock" is deliberately unreachable from the nav - it needs a symbol,
@@ -179,7 +190,7 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
               loading={isLoadingWatchlist}
               onRemove={handleRemove}
               onCreateAlert={handleCreateAlert}
-              onOpenSymbol={(symbol) => setView({ name: "stock", symbol })}
+              onOpenSymbol={handleOpenSymbol}
             />
           )}
           {view.name === "stock" && (
