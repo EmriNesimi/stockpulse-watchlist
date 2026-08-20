@@ -27,7 +27,7 @@ describe("toHoldings", () => {
     ]);
 
     expect(holdings).toHaveLength(1);
-    expect(holdings[0].item.symbol).toBe("AAPL");
+    expect(holdings[0]!.item.symbol).toBe("AAPL");
   });
 
   it("skips a row with only one of the two set", () => {
@@ -40,7 +40,7 @@ describe("valueHolding", () => {
   it("computes cost, market value and gain from the live price", () => {
     const [holding] = toHoldings([item({ symbol: "AAPL", shares: 10, costBasis: 100 })]);
 
-    const valued = valueHolding(holding, { AAPL: price(120) });
+    const valued = valueHolding(holding!, { AAPL: price(120) });
 
     expect(valued.cost).toBe(1000);
     expect(valued.marketValue).toBe(1200);
@@ -51,7 +51,7 @@ describe("valueHolding", () => {
   it("reports a loss as a negative gain", () => {
     const [holding] = toHoldings([item({ symbol: "AAPL", shares: 4, costBasis: 50 })]);
 
-    const valued = valueHolding(holding, { AAPL: price(25) });
+    const valued = valueHolding(holding!, { AAPL: price(25) });
 
     expect(valued.gain).toBe(-100);
     expect(valued.gainPercent).toBeCloseTo(-50);
@@ -60,7 +60,7 @@ describe("valueHolding", () => {
   it("leaves value and gain undefined until a price arrives", () => {
     const [holding] = toHoldings([item({ symbol: "AAPL", shares: 10, costBasis: 100 })]);
 
-    const valued = valueHolding(holding, {});
+    const valued = valueHolding(holding!, {});
 
     expect(valued.cost).toBe(1000); // knowable without a price
     expect(valued.marketValue).toBeUndefined();

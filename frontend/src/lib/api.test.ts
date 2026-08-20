@@ -69,7 +69,7 @@ describe("addToWatchlist", () => {
 
     await addToWatchlist("AAPL", "Apple Inc.");
 
-    const [, init] = vi.mocked(fetch).mock.calls[0];
+    const [, init] = vi.mocked(fetch).mock.calls[0]!;
     expect(init?.method).toBe("POST");
     expect(JSON.parse(init?.body as string)).toEqual({ symbol: "AAPL", name: "Apple Inc." });
   });
@@ -101,7 +101,7 @@ describe("removeFromWatchlist", () => {
 
     await removeFromWatchlist("BRK.B");
 
-    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    const [url, init] = vi.mocked(fetch).mock.calls[0]!;
     expect(url).toBe(`${API_BASE}/api/watchlist/BRK.B`);
     expect(init?.method).toBe("DELETE");
   });
@@ -143,7 +143,7 @@ describe("createAlert", () => {
 
     await createAlert("AAPL", 200, "above");
 
-    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    const [url, init] = vi.mocked(fetch).mock.calls[0]!;
     expect(url).toBe(`${API_BASE}/api/alerts`);
     expect(init?.method).toBe("POST");
     expect(JSON.parse(init?.body as string)).toEqual({ symbol: "AAPL", threshold: 200, direction: "above" });
@@ -164,7 +164,7 @@ describe("removeAlert", () => {
 
     await removeAlert("alert-1");
 
-    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    const [url, init] = vi.mocked(fetch).mock.calls[0]!;
     expect(url).toBe(`${API_BASE}/api/alerts/alert-1`);
     expect(init?.method).toBe("DELETE");
   });
@@ -212,7 +212,7 @@ describe("signup", () => {
 
     await signup("a@example.com", "hunter22");
 
-    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    const [url, init] = vi.mocked(fetch).mock.calls[0]!;
     expect(url).toBe(`${API_BASE}/api/auth/signup`);
     expect(init?.method).toBe("POST");
     expect(JSON.parse(init?.body as string)).toEqual({ email: "a@example.com", password: "hunter22" });
@@ -233,7 +233,7 @@ describe("login", () => {
 
     await login("a@example.com", "hunter22");
 
-    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    const [url, init] = vi.mocked(fetch).mock.calls[0]!;
     expect(url).toBe(`${API_BASE}/api/auth/login`);
     expect(init?.method).toBe("POST");
     expect(JSON.parse(init?.body as string)).toEqual({ email: "a@example.com", password: "hunter22" });
@@ -254,7 +254,7 @@ describe("logout", () => {
 
     await logout();
 
-    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    const [url, init] = vi.mocked(fetch).mock.calls[0]!;
     expect(url).toBe(`${API_BASE}/api/auth/logout`);
     expect(init?.method).toBe("POST");
   });
@@ -307,7 +307,7 @@ describe("resendVerificationEmail", () => {
 
     await resendVerificationEmail();
 
-    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    const [url, init] = vi.mocked(fetch).mock.calls[0]!;
     expect(url).toBe(`${API_BASE}/api/auth/resend-verification`);
     expect(init?.method).toBe("POST");
   });

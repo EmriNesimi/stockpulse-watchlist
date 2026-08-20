@@ -12,6 +12,12 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
+    // `prices[symbol]` is genuinely partial - useLiveTicks fills it in per
+    // tick and deletes entries on unsubscribe - but without this the compiler
+    // types every index lookup as always-present. Every call site already
+    // guards defensively; this makes the compiler enforce that rather than
+    // relying on the next person remembering.
+    "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },

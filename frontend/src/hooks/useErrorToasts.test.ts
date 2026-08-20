@@ -22,8 +22,8 @@ describe("useErrorToasts", () => {
     act(() => result.current.pushError("Couldn't load your watchlist"));
 
     expect(result.current.errors).toHaveLength(1);
-    expect(result.current.errors[0].message).toBe("Couldn't load your watchlist");
-    expect(result.current.errors[0].id).toBeTruthy();
+    expect(result.current.errors[0]!.message).toBe("Couldn't load your watchlist");
+    expect(result.current.errors[0]!.id).toBeTruthy();
   });
 
   it("supports multiple errors at once, each with a distinct id", () => {
@@ -35,7 +35,7 @@ describe("useErrorToasts", () => {
     });
 
     expect(result.current.errors).toHaveLength(2);
-    expect(result.current.errors[0].id).not.toBe(result.current.errors[1].id);
+    expect(result.current.errors[0]!.id).not.toBe(result.current.errors[1]!.id);
   });
 
   it("dismisses a specific error by id, leaving the rest", () => {
@@ -47,7 +47,7 @@ describe("useErrorToasts", () => {
     });
     const [first, second] = result.current.errors;
 
-    act(() => result.current.dismissError(first.id));
+    act(() => result.current.dismissError(first!.id));
 
     expect(result.current.errors).toEqual([second]);
   });
@@ -69,7 +69,7 @@ describe("useErrorToasts", () => {
     const { result } = renderHook(() => useErrorToasts());
 
     act(() => result.current.pushError("dismissed early"));
-    const id = result.current.errors[0].id;
+    const id = result.current.errors[0]!.id;
 
     act(() => result.current.dismissError(id));
     expect(result.current.errors).toHaveLength(0);

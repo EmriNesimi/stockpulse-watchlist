@@ -81,6 +81,14 @@ class FakeWebSocket {
 
 vi.stubGlobal("WebSocket", FakeWebSocket);
 
+// noUncheckedIndexedAccess types every array index as possibly-undefined, which
+// is correct - these tests just happen to know the socket exists by this point.
+function socketAt(index = 0): FakeWebSocket {
+  const socket = FakeWebSocket.instances[index];
+  if (!socket) throw new Error(`no FakeWebSocket at index ${index}`);
+  return socket;
+}
+
 // Symbols and prices now appear in the chart panel and the watching rail as
 // well as the table, so assertions about "the row for X" scope themselves to
 // the table rather than the whole page.
@@ -346,7 +354,7 @@ describe("App — live connection status and price updates", () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText("Connecting…")).toBeInTheDocument());
 
-    act(() => FakeWebSocket.instances[0].triggerOpen());
+    act(() => socketAt(0).triggerOpen());
 
     await waitFor(() => expect(screen.getByText("Connected")).toBeInTheDocument());
   });
@@ -358,9 +366,9 @@ describe("App — live connection status and price updates", () => {
     render(<App />);
     await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
 
-    act(() => FakeWebSocket.instances[0].triggerOpen());
+    act(() => socketAt(0).triggerOpen());
 
-    const sent = FakeWebSocket.instances[0].sent.map((s) => JSON.parse(s));
+    const sent = socketAt(0).sent.map((s) => JSON.parse(s));
     expect(sent).toContainEqual({ action: "subscribe", symbols: ["AAPL", "MSFT"] });
   });
 
@@ -368,10 +376,10 @@ describe("App — live connection status and price updates", () => {
     vi.mocked(getWatchlist).mockResolvedValue({ items: [watchlistItem({ symbol: "AAPL" })] });
     render(<App />);
     await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
-    act(() => FakeWebSocket.instances[0].triggerOpen());
+    act(() => socketAt(0).triggerOpen());
 
     act(() => {
-      FakeWebSocket.instances[0].triggerMessage({
+      socketAt(0).triggerMessage({
         type: "tick",
         symbol: "AAPL",
         price: 231.5,
@@ -389,10 +397,10 @@ describe("App — live connection status and price updates", () => {
     });
     render(<App />);
     await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
-    act(() => FakeWebSocket.instances[0].triggerOpen());
+    act(() => socketAt(0).triggerOpen());
 
     act(() => {
-      FakeWebSocket.instances[0].triggerMessage({
+      socketAt(0).triggerMessage({
         type: "tick",
         symbol: "AAPL",
         price: 200,
@@ -409,12 +417,12 @@ describe("App — live connection status and price updates", () => {
   it("shows 'Reconnecting…' if the connection drops", async () => {
     render(<App />);
     await waitFor(() => expect(screen.getByText("Connecting…")).toBeInTheDocument());
-    act(() => FakeWebSocket.instances[0].triggerOpen());
+    act(() => socketAt(0).triggerOpen());
     await waitFor(() => expect(screen.getByText("Connected")).toBeInTheDocument());
 
     act(() => {
-      FakeWebSocket.instances[0].readyState = FakeWebSocket.CLOSED;
-      FakeWebSocket.instances[0].onclose?.();
+      socketAt(0).readyState = FakeWebSocket.CLOSED;
+      socketAt(0).onclose?.();
     });
 
     await waitFor(() => expect(screen.getByText("Reconnecting…")).toBeInTheDocument());
@@ -506,10 +514,10 @@ describe("App — WS protocol errors", () => {
   it("surfaces a WS error message as a dismissible error toast", async () => {
     render(<App />);
     await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
-    act(() => FakeWebSocket.instances[0].triggerOpen());
+    act(() => socketAt(0).triggerOpen());
 
     act(() => {
-      FakeWebSocket.instances[0].triggerMessage({ type: "error", message: "Too many messages, slow down" });
+      socketAt(0).triggerMessage({ type: "error", message: "Too many messages, slow down" });
     });
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Too many messages, slow down"));
@@ -520,10 +528,10 @@ describe("App — receiving fired alerts", () => {
   it("shows a toast when an alert message arrives over the websocket", async () => {
     render(<App />);
     await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
-    act(() => FakeWebSocket.instances[0].triggerOpen());
+    act(() => socketAt(0).triggerOpen());
 
     act(() => {
-      FakeWebSocket.instances[0].triggerMessage({
+      socketAt(0).triggerMessage({
         type: "alert",
         id: "a1",
         symbol: "AAPL",
@@ -541,9 +549,9 @@ describe("App — receiving fired alerts", () => {
     const user = userEvent.setup();
     render(<App />);
     await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
-    act(() => FakeWebSocket.instances[0].triggerOpen());
+    act(() => socketAt(0).triggerOpen());
     act(() => {
-      FakeWebSocket.instances[0].triggerMessage({
+      socketAt(0).triggerMessage({
         type: "alert",
         id: "a1",
         symbol: "AAPL",
@@ -563,10 +571,10 @@ describe("App — receiving fired alerts", () => {
   it("shows multiple fired alerts as separate toasts", async () => {
     render(<App />);
     await waitFor(() => expect(FakeWebSocket.instances).toHaveLength(1));
-    act(() => FakeWebSocket.instances[0].triggerOpen());
+    act(() => socketAt(0).triggerOpen());
 
     act(() => {
-      FakeWebSocket.instances[0].triggerMessage({
+      socketAt(0).triggerMessage({
         type: "alert",
         id: "a1",
         symbol: "AAPL",
@@ -577,7 +585,7 @@ describe("App — receiving fired alerts", () => {
       });
     });
     act(() => {
-      FakeWebSocket.instances[0].triggerMessage({
+      socketAt(0).triggerMessage({
         type: "alert",
         id: "a2",
         symbol: "MSFT",

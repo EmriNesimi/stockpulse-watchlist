@@ -95,8 +95,8 @@ describe("WalletView", () => {
 
     const rows = within(screen.getByRole("table")).getAllByRole("row");
     expect(rows).toHaveLength(2); // header + one holding
-    expect(within(rows[1]).getByText("AAPL")).toBeInTheDocument();
-    expect(within(rows[1]).getByText("10")).toBeInTheDocument();
+    expect(within(rows[1]!).getByText("AAPL")).toBeInTheDocument();
+    expect(within(rows[1]!).getByText("10")).toBeInTheDocument();
   });
 
   it("counts the positions, not the whole watchlist", () => {

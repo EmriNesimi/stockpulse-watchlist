@@ -128,9 +128,9 @@ describe("useLiveTicks", () => {
       });
     }
 
-    expect(result.current.prices.AAPL.history).toHaveLength(30);
-    expect(result.current.prices.AAPL.history[0]).toBe(5); // oldest 5 (0-4) dropped
-    expect(result.current.prices.AAPL.history.at(-1)).toBe(34);
+    expect(result.current.prices.AAPL!.history).toHaveLength(30);
+    expect(result.current.prices.AAPL!.history[0]).toBe(5); // oldest 5 (0-4) dropped
+    expect(result.current.prices.AAPL!.history.at(-1)).toBe(34);
   });
 });
 
