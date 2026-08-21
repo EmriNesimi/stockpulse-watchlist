@@ -27,9 +27,9 @@ services:
         fromDatabase:
           name: stockpulse-db
           property: connectionString
-      # Must match the static site's URL below exactly or CORS rejects it.
+      # Must match the static site's live URL exactly or CORS rejects it.
       - key: FRONTEND_ORIGIN
-        value: https://stockpulse.onrender.com
+        value: https://stockpulse-b449.onrender.com
       - key: SESSION_SECRET
         generateValue: true
       - key: MASSIVE_API_KEY
@@ -41,7 +41,10 @@ services:
 
   - type: web
     runtime: static
-    name: stockpulse # pinned: FRONTEND_ORIGIN above depends on this exact name
+    # Render appended -b449 because the bare name was already taken globally;
+    # the live host is stockpulse-b449.onrender.com, which FRONTEND_ORIGIN above
+    # must keep matching.
+    name: stockpulse
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
@@ -50,4 +53,4 @@ services:
       # derives the socket URL from this by swapping http -> ws, so it needs
       # the full origin with no trailing slash.
       - key: VITE_API_URL
-        value: https://stockpulse-api.onrender.com
+        value: https://stockpulse-api-n3yu.onrender.com
