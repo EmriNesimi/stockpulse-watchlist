@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+// env.ts does `import "dotenv/config"`, which re-reads backend/.env every time
+// vi.resetModules() forces a re-import — refilling the exact vars these tests
+// delete. The suite only passed because CI has no .env file. Stub it so these
+// tests exercise process.env and nothing else.
+vi.mock("dotenv/config", () => ({}));
+
 const ENV_KEYS = ["NODE_ENV", "DATABASE_URL", "FRONTEND_ORIGIN", "SESSION_SECRET"] as const;
 
 describe("env", () => {
