@@ -12,10 +12,21 @@ import { env } from "../env";
 
 const router = Router();
 
+// Deployed, the frontend and this API are two different onrender.com
+// subdomains — and onrender.com is on the Public Suffix List, so browsers
+// count them as cross-site rather than merely cross-origin. A SameSite=Lax
+// cookie is set fine at login and then silently never sent back, so every
+// call after it reads as signed out. Cross-site needs SameSite=None, which
+// browsers only honour together with Secure.
+//
+// Locally both ends are localhost (ports don't affect same-site), where Lax
+// works and Secure would stop the cookie working over plain http.
+const isCrossSite = env.frontendOrigin.startsWith("https://");
+
 const SESSION_COOKIE_OPTIONS = {
   httpOnly: true,
-  sameSite: "lax" as const,
-  secure: env.frontendOrigin.startsWith("https://"),
+  sameSite: isCrossSite ? ("none" as const) : ("lax" as const),
+  secure: isCrossSite,
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
 };
 
