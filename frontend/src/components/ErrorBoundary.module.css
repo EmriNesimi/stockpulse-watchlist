@@ -1,0 +1,58 @@
+.wrapper {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: var(--color-background);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: flex-start;
+  max-width: 32rem;
+  padding: var(--space-6);
+  background: var(--color-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.body {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--color-foreground-muted);
+}
+
+.button {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0 var(--space-5);
+  min-height: 44px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.button:hover {
+  filter: brightness(1.08);
+}
+
+/* The raw message, kept small and quiet - useful when someone reports the
+   problem, but not the first thing they read. */
+.detail {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  color: var(--color-foreground-muted);
+  word-break: break-word;
+}
