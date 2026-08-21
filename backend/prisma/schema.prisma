@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   // The url moved to prisma.config.ts in Prisma 7; the runtime client uses a
   // driver adapter instead of a connection string (see src/db.ts).
 }

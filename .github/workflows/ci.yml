@@ -41,6 +41,23 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    # The suite talks to a real database rather than mocking Prisma, so CI
+    # needs one. globalSetup drops and recreates the schema each run, which is
+    # only safe because this container is thrown away with the job.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: stockpulse_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -58,6 +75,8 @@ jobs:
         run: npm run build
       - name: Test
         run: npm test
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stockpulse_test
       - name: Audit (high severity)
         run: npm audit --audit-level=high
 

@@ -8,7 +8,9 @@ export default defineConfig({
     // one — globalSetup below creates it fresh before the run and removes it
     // after.
     env: {
-      DATABASE_URL: "file:./prisma/test.db",
+      // Local throwaway Postgres. globalSetup refuses anything non-local,
+      // because it drops and recreates the schema before every run.
+      DATABASE_URL: process.env.TEST_DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/stockpulse_test",
     },
     globalSetup: ["./src/test/globalSetup.ts"],
     // Route test files that hit the db all share the same underlying SQLite

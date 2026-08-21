@@ -83,7 +83,7 @@ describe("env", () => {
     vi.resetModules();
 
     const { env } = await import("./env");
-    expect(env.databaseUrl).toBe("file:./prisma/dev.db");
+    expect(env.databaseUrl).toBe("postgresql://postgres:postgres@localhost:5432/stockpulse_dev");
     expect(env.frontendOrigin).toBe("http://localhost:5173");
     expect(env.sessionSecret).toBe("dev-only-session-secret-do-not-use-in-production");
   });

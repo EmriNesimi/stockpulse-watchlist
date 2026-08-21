@@ -18,7 +18,7 @@ export const env = {
   // Massive is the market-data provider (formerly branded Polygon.io — same
   // account/API, they renamed in Oct 2025). Var name reflects the new brand.
   massiveApiKey: process.env.MASSIVE_API_KEY?.trim() || undefined,
-  databaseUrl: required("DATABASE_URL", "file:./prisma/dev.db"),
+  databaseUrl: required("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/stockpulse_dev"),
   frontendOrigin: required("FRONTEND_ORIGIN", "http://localhost:5173"),
   // Signs the session cookie (see src/auth/session.ts). Dev fallback is
   // fine for local use, but a fixed value would let anyone forge a session
