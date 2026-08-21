@@ -12,9 +12,14 @@ services:
     plan: free
     region: oregon # must match stockpulse-db, or the internal DB host will not resolve
     rootDir: backend
+    # --include=dev is load-bearing: NODE_ENV=production below makes npm skip
+    # devDependencies, and the build needs them — typescript, the prisma CLI
+    # and every @types/* package. Without it tsc compiles with no type
+    # declarations at all and dies on hundreds of implicit-any errors.
+    #
     # migrate:deploy is deliberately not part of `npm run build` — CI runs
     # build, and CI has no business migrating the production database.
-    buildCommand: npm ci && npm run build && npm run migrate:deploy
+    buildCommand: npm ci --include=dev && npm run build && npm run migrate:deploy
     startCommand: npm start
     healthCheckPath: /health
     envVars:
