@@ -1,0 +1,53 @@
+# Render Blueprint — the deploy config lives here rather than in dashboard
+# forms so it is reviewable and survives someone rebuilding the services.
+#
+# Create with: Render dashboard -> New -> Blueprint -> pick this repo.
+# Render prompts for every var marked `sync: false`; none of those values
+# are ever committed here.
+
+services:
+  - type: web
+    name: stockpulse-api
+    runtime: node
+    plan: free
+    region: oregon # must match stockpulse-db, or the internal DB host will not resolve
+    rootDir: backend
+    # migrate:deploy is deliberately not part of `npm run build` — CI runs
+    # build, and CI has no business migrating the production database.
+    buildCommand: npm ci && npm run build && npm run migrate:deploy
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Resolves to the *internal* connection string automatically, which is
+      # what we want: it never leaves Render's network and does not burn one
+      # of the database's external connection slots.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: stockpulse-db
+          property: connectionString
+      # Must match the static site's URL below exactly or CORS rejects it.
+      - key: FRONTEND_ORIGIN
+        value: https://stockpulse.onrender.com
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: MASSIVE_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: StockPulse <onboarding@resend.dev>
+
+  - type: web
+    runtime: static
+    name: stockpulse # pinned: FRONTEND_ORIGIN above depends on this exact name
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      # No scheme is available from a fromService reference, and src/lib/ws.ts
+      # derives the socket URL from this by swapping http -> ws, so it needs
+      # the full origin with no trailing slash.
+      - key: VITE_API_URL
+        value: https://stockpulse-api.onrender.com
