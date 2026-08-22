@@ -14,7 +14,7 @@ describe("sendEmail", () => {
   it("does not call fetch when NODE_ENV is 'test'", async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
-    const { sendEmail } = await import("./resend");
+    const { sendEmail } = await import("./resend.js");
 
     await sendEmail("someone@example.com", "Subject", "<p>hi</p>");
 
@@ -27,7 +27,7 @@ describe("sendEmail", () => {
     vi.resetModules();
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
-    const { sendEmail } = await import("./resend");
+    const { sendEmail } = await import("./resend.js");
 
     await sendEmail("someone@example.com", "Subject", "<p>hi</p>");
 
@@ -41,7 +41,7 @@ describe("sendEmail", () => {
     vi.resetModules();
     const fetchSpy = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchSpy);
-    const { sendEmail } = await import("./resend");
+    const { sendEmail } = await import("./resend.js");
 
     await sendEmail("someone@example.com", "Subject", "<p>hi</p>");
 
@@ -69,7 +69,7 @@ describe("sendEmail", () => {
       "fetch",
       vi.fn().mockResolvedValue({ ok: false, status: 422, text: async () => "bad request" })
     );
-    const { sendEmail } = await import("./resend");
+    const { sendEmail } = await import("./resend.js");
 
     await expect(sendEmail("someone@example.com", "Subject", "<p>hi</p>")).rejects.toThrow(
       "Resend API request failed with status 422"
@@ -81,7 +81,7 @@ describe("verificationEmailHtml", () => {
   beforeEach(() => vi.resetModules());
 
   it("embeds the verify URL as a link", async () => {
-    const { verificationEmailHtml } = await import("./resend");
+    const { verificationEmailHtml } = await import("./resend.js");
     const html = verificationEmailHtml("https://example.com/verify-email?token=abc123");
     expect(html).toContain("https://example.com/verify-email?token=abc123");
     expect(html).toContain("<a href=");

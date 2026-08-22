@@ -8,7 +8,7 @@ import { resetEmailQuota } from "../email/sendThrottle";
 // unreachable without forcing it. Resend really does reject like this: it
 // 403s any recipient other than the account owner until a domain is verified.
 vi.mock("../email/resend", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../email/resend")>()),
+  ...(await importOriginal<typeof import("../email/resend.js")>()),
   sendEmail: vi.fn(async () => {
     throw new Error("Resend API request failed with status 403");
   }),

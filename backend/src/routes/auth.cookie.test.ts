@@ -13,8 +13,8 @@ async function sessionCookieFor(frontendOrigin: string): Promise<string> {
   vi.stubEnv("FRONTEND_ORIGIN", frontendOrigin);
   vi.resetModules();
 
-  const { createApp } = await import("../app");
-  const { prisma } = await import("../db");
+  const { createApp } = await import("../app.js");
+  const { prisma } = await import("../db.js");
   const app = createApp();
 
   try {

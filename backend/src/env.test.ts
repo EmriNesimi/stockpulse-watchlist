@@ -37,7 +37,7 @@ describe("env", () => {
     });
     vi.resetModules();
 
-    await expect(import("./env")).rejects.toThrow("Missing required env var: DATABASE_URL");
+    await expect(import("./env.js")).rejects.toThrow("Missing required env var: DATABASE_URL");
   });
 
   it("throws at import time if FRONTEND_ORIGIN is missing in production", async () => {
@@ -49,7 +49,7 @@ describe("env", () => {
     });
     vi.resetModules();
 
-    await expect(import("./env")).rejects.toThrow("Missing required env var: FRONTEND_ORIGIN");
+    await expect(import("./env.js")).rejects.toThrow("Missing required env var: FRONTEND_ORIGIN");
   });
 
   it("throws at import time if SESSION_SECRET is missing in production", async () => {
@@ -61,7 +61,7 @@ describe("env", () => {
     });
     vi.resetModules();
 
-    await expect(import("./env")).rejects.toThrow("Missing required env var: SESSION_SECRET");
+    await expect(import("./env.js")).rejects.toThrow("Missing required env var: SESSION_SECRET");
   });
 
   it("does not throw in production when all three vars are set", async () => {
@@ -73,7 +73,7 @@ describe("env", () => {
     });
     vi.resetModules();
 
-    const { env } = await import("./env");
+    const { env } = await import("./env.js");
     expect(env.databaseUrl).toBe("postgres://prod");
     expect(env.frontendOrigin).toBe("https://example.com");
     expect(env.sessionSecret).toBe("prod-secret");
@@ -88,7 +88,7 @@ describe("env", () => {
     });
     vi.resetModules();
 
-    const { env } = await import("./env");
+    const { env } = await import("./env.js");
     expect(env.databaseUrl).toBe("postgresql://postgres:postgres@localhost:5432/stockpulse_dev");
     expect(env.frontendOrigin).toBe("http://localhost:5173");
     expect(env.sessionSecret).toBe("dev-only-session-secret-do-not-use-in-production");

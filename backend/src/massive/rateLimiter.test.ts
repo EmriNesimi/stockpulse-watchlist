@@ -6,7 +6,7 @@ import type { tryConsumeMassiveQuota as TryConsume } from "./rateLimiter";
 // quota consumed in one test would bleed into the next.
 async function freshLimiter(): Promise<typeof TryConsume> {
   vi.resetModules();
-  const mod = await import("./rateLimiter");
+  const mod = await import("./rateLimiter.js");
   return mod.tryConsumeMassiveQuota;
 }
 

@@ -27,7 +27,7 @@ describe("POST /api/auth/login — rate limiting", () => {
     vi.stubEnv("FRONTEND_ORIGIN", "http://localhost:5173");
     vi.stubEnv("SESSION_SECRET", "test-secret");
     vi.resetModules();
-    const { createApp } = await import("../app");
+    const { createApp } = await import("../app.js");
     const app = createApp();
 
     const attempts = await Promise.all(
