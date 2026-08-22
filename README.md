@@ -401,7 +401,7 @@ Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message s
 | `FRONTEND_ORIGIN` | in production | `http://localhost:5173` outside production | locks down CORS to this origin |
 | `SESSION_SECRET` | in production | a fixed dev-only value outside production | signs the session cookie (see [Security notes](#-security-notes)) |
 | `RESEND_API_KEY` | no | — | verification emails silently don't send without it; signup and login still work |
-| `RESEND_FROM_EMAIL` | no | `StockPulse <onboarding@resend.dev>` | the default is Resend's shared test sender, which **only delivers to the Resend account owner's own address** — sending to real users needs a domain verified at resend.com/domains |
+| `RESEND_FROM_EMAIL` | no | `StockPulse <onboarding@resend.dev>` | Resend's shared test sender, which **only delivers to the Resend account owner's own address**. Reaching anyone else needs a verified domain, which this project deliberately doesn't buy — see [Roadmap](#️-roadmap) |
 
 `backend/.env` is gitignored, and no `.env` file of any kind — not even an example/template with blank values — is committed to this repo, to keep the risk surface at zero. The API key never reaches the frontend; all Massive calls happen server-side.
 
@@ -447,10 +447,12 @@ Things that would make sense to add next, roughly in order of value:
 - [x] ~~Match Postgres versions~~ — done: CI and the setup container both run 18 now, the same major as the Render instance. They were on 16, which meant every green build was evidence about a database this doesn't deploy to. Suite verified on 18.6 before the switch.
 - [x] ~~Password reset~~ — done: `POST /api/auth/forgot-password` and `/reset-password`, plus the two screens. `forgot-password` answers `202` whatever happens, because an unauthenticated caller doesn't get to learn which addresses have accounts — and an unknown token and an expired one give the same answer for the same reason. The token lives an hour rather than the verification token's 24: that one only confirms an address, this one hands over the account. It's spent in the same write that changes the password, so it can't be replayed. Reset deliberately doesn't sign you in — reading the inbox proves you own the address, typing the new password proves you know it. Sends go through the same per-recipient throttle as everything else.
 - [x] ~~Branch protection on `main`~~ — done: direct pushes are refused, changes go through a pull request, and all three CI jobs must pass before it can merge. `enforce_admins` is on, so that applies to the repo owner too — which is the entire point, since a solo repo where the owner can push straight past a red build has advisory CI, not enforced CI. Approvals are set to 0 rather than 1, because GitHub won't let you approve your own PR and a solo repo requiring one approval can never merge anything. Turn it off in Settings → Branches if it ever gets in the way.
+- [x] ~~Decide what to do about email delivery~~ — **decided: not doing it.** Resend's default sender only delivers to the Resend account owner; reaching anyone else needs a domain verified at resend.com/domains, and a domain costs money. This is a portfolio project, so that spend isn't justified — and every provider worth using has the same requirement, so there's no free way around it rather than a cheaper one I've missed.
+
+  What that means in practice: the verification email works, and you can watch it work by signing up with the Resend account owner's address. Any other address gets a 403 that's logged server-side and never reaches an inbox. Nothing gates on being verified — signup, login and the whole app work regardless — so this costs a trust badge, not a feature.
 
 **Still open:**
 
-- [ ] **A verified Resend domain.** Until one exists, the default sender only delivers to the Resend account owner — every other recipient gets rejected with a 403. This is the single thing standing between the app and working email for real users.
 - [ ] **`typescript` 6 → 7.** Held, not skipped: typescript-eslint's current release (8.67) declares `typescript ">=4.8.4 <6.1.0"` and hard-throws `does not support TS 7.0` at config load, so taking 7 today means shipping with no linting — and lint is a CI gate. Revisit when typescript-eslint ships TS 7 support.
 
 ## 🧰 Tech stack
