@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { createApp } from "../app";
 import { prisma } from "../db";
+import { resetEmailQuota } from "../email/sendThrottle";
 
 // The real sendEmail no-ops under NODE_ENV=test, so the failure branch is
 // unreachable without forcing it. Resend really does reject like this: it
@@ -17,6 +18,7 @@ const app = createApp();
 const CREDENTIALS = { email: "bounces@example.com", password: "hunter22" };
 
 afterEach(async () => {
+  resetEmailQuota();
   await prisma.watchlistItem.deleteMany();
   await prisma.watchlist.deleteMany();
   await prisma.user.deleteMany();
@@ -29,6 +31,11 @@ describe("POST /api/auth/resend-verification when the send fails", () => {
     const agent = request.agent(app);
     await agent.post("/api/auth/signup").send(CREDENTIALS);
     await agent.post("/api/auth/login").send(CREDENTIALS);
+
+    // Signup already spent this address's send slot; a real user clicking
+    // resend does so after the cooldown, so clear it rather than assert on
+    // the throttled path here.
+    resetEmailQuota();
 
     const res = await agent.post("/api/auth/resend-verification");
 

@@ -6,6 +6,7 @@ import { hashPassword, verifyPassword } from "../auth/password";
 import { createSessionCookieValue, SESSION_COOKIE_NAME } from "../auth/session";
 import { generateVerificationToken } from "../auth/verification";
 import { accountExistsEmailHtml, sendEmail, verificationEmailHtml } from "../email/resend";
+import { tryConsumeEmailQuota } from "../email/sendThrottle";
 import { getOrCreateWatchlist } from "../watchlistHelper";
 import { credentialsSchema, verifyEmailBodySchema } from "./auth.schemas";
 import { env } from "../env";
@@ -35,6 +36,8 @@ function toPublicUser(user: User) {
 }
 
 async function sendAccountExistsEmail(email: string) {
+  if (!tryConsumeEmailQuota(email)) return;
+
   try {
     await sendEmail(email, "Someone tried to sign up with your email", accountExistsEmailHtml(env.frontendOrigin));
   } catch (err) {
@@ -51,6 +54,12 @@ async function sendVerificationEmail(userId: string, email: string): Promise<boo
   });
 
   const verifyUrl = `${env.frontendOrigin}/verify-email?token=${token}`;
+
+  // Reported as a success: the token above was still issued, so from the
+  // caller's side a verification really is pending — there just isn't a second
+  // email going out this soon. Returning false here would make the resend
+  // route claim a delivery failure that didn't happen.
+  if (!tryConsumeEmailQuota(email)) return true;
   // Swallowed on the signup path on purpose: that response has to look
   // identical whether or not the address is already registered. Callers that
   // aren't leaking anything should check the return value instead.
