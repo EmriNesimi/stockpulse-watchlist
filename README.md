@@ -264,7 +264,7 @@ The backend needs a Postgres to talk to. The quickest local one is a container:
 ```bash
 docker run -d --name stockpulse-pg \
   -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=stockpulse_test -p 5432:5432 postgres:16
+  -e POSTGRES_DB=stockpulse_test -p 5432:5432 postgres:18
 ```
 
 ```bash
