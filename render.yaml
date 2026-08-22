@@ -53,6 +53,14 @@ services:
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
+    # The verification email links to /verify-email?token=..., and a static
+    # site has no file at that path — clicking it returned a 404. There is no
+    # client-side router; App.tsx just reads ?token= off the query string, so
+    # serving index.html for any path is all that is needed.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       # No scheme is available from a fromService reference, and src/lib/ws.ts
       # derives the socket URL from this by swapping http -> ws, so it needs
