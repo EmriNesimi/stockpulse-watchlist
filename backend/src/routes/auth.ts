@@ -42,7 +42,8 @@ async function sendAccountExistsEmail(email: string) {
   }
 }
 
-async function sendVerificationEmail(userId: string, email: string) {
+/** Returns whether the send actually succeeded, so authenticated callers can say so. */
+async function sendVerificationEmail(userId: string, email: string): Promise<boolean> {
   const { token, expiresAt } = generateVerificationToken();
   await prisma.user.update({
     where: { id: userId },
@@ -50,12 +51,15 @@ async function sendVerificationEmail(userId: string, email: string) {
   });
 
   const verifyUrl = `${env.frontendOrigin}/verify-email?token=${token}`;
-  // Best-effort: a failed send shouldn't break signup/login, and there's a
-  // resend button in the UI for exactly this case.
+  // Swallowed on the signup path on purpose: that response has to look
+  // identical whether or not the address is already registered. Callers that
+  // aren't leaking anything should check the return value instead.
   try {
     await sendEmail(email, "Confirm your StockPulse account", verificationEmailHtml(verifyUrl));
+    return true;
   } catch (err) {
     console.error(`Failed to send verification email to ${email}:`, err);
+    return false;
   }
 }
 
@@ -179,7 +183,15 @@ router.post(
     if (!user) return res.status(401).json({ error: "Not signed in" });
     if (user.emailVerifiedAt) return res.status(409).json({ error: "Email is already verified" });
 
-    await sendVerificationEmail(user.id, user.email);
+    // Unlike signup, this route is authenticated — it already 401s anyone who
+    // isn't signed in, so it gives away nothing by admitting the send failed.
+    // Reporting 204 regardless just left people waiting for mail that never
+    // left the building.
+    const sent = await sendVerificationEmail(user.id, user.email);
+    if (!sent) {
+      return res.status(502).json({ error: "We couldn't send that email just now. Please try again shortly." });
+    }
+
     res.status(204).send();
   })
 );
