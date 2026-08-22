@@ -7,6 +7,7 @@ import { checkAndTriggerAlerts, type AlertTrigger } from "../alerts/checkAndTrig
 import { SESSION_COOKIE_NAME, verifySessionCookieValue } from "../auth/session";
 import { env } from "../env";
 import { MAX_SYMBOLS_PER_CLIENT } from "../wsLimits";
+import { symbolSchema } from "../routes/watchlist.schemas";
 
 const MAX_MESSAGES_PER_MINUTE = 60;
 const MAX_PAYLOAD_BYTES = 2 * 1024; // subscribe messages are tiny, no reason to allow more
@@ -33,7 +34,11 @@ export function clientIpFrom(headers: Record<string, unknown>, remoteAddress: st
 
 const clientMessageSchema = z.object({
   action: z.enum(["subscribe", "unsubscribe"]),
-  symbols: z.array(z.string().trim().toUpperCase().min(1).max(10)).min(1).max(MAX_SYMBOLS_PER_CLIENT),
+  // Same ticker regex the REST routes use. This used to be a loose 1-10 char
+  // string, so punctuation could ride through and get interpolated into an
+  // outbound Massive URL — bounded by the global quota, but no reason for the
+  // socket to validate more weakly than the routes.
+  symbols: z.array(symbolSchema).min(1).max(MAX_SYMBOLS_PER_CLIENT),
 });
 
 interface SymbolFanout {

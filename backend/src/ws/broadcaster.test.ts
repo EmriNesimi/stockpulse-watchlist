@@ -239,10 +239,15 @@ describe("broadcaster — rejects bad input instead of crashing", () => {
 describe("broadcaster — per-connection symbol cap", () => {
   const MAX_SYMBOLS = 30;
 
+  // Letters only: the socket now validates symbols with the same ticker regex
+  // the REST routes use, and "SYM0" isn't a ticker.
+  const tickers = (count: number) =>
+    Array.from({ length: count }, (_, i) => `T${String.fromCharCode(65 + Math.floor(i / 26))}${String.fromCharCode(65 + (i % 26))}`);
+
   it("allows subscribing up to the cap in a single message", async () => {
     const { feed, port } = await setup();
     const { ws } = await client(port);
-    const symbols = Array.from({ length: MAX_SYMBOLS }, (_, i) => `SYM${i}`);
+    const symbols = tickers(MAX_SYMBOLS);
 
     ws.send(JSON.stringify({ action: "subscribe", symbols }));
     await wait(50);
@@ -253,7 +258,7 @@ describe("broadcaster — per-connection symbol cap", () => {
   it("rejects a single message that's already over the cap, subscribing to nothing", async () => {
     const { feed, port } = await setup();
     const { ws, collector } = await client(port);
-    const symbols = Array.from({ length: MAX_SYMBOLS + 1 }, (_, i) => `SYM${i}`);
+    const symbols = tickers(MAX_SYMBOLS + 1);
 
     ws.send(JSON.stringify({ action: "subscribe", symbols }));
 
@@ -268,12 +273,12 @@ describe("broadcaster — per-connection symbol cap", () => {
   it("rejects going over the cap across multiple messages, with an explanatory error", async () => {
     const { port } = await setup();
     const { ws, collector } = await client(port);
-    const symbols = Array.from({ length: MAX_SYMBOLS }, (_, i) => `SYM${i}`);
+    const symbols = tickers(MAX_SYMBOLS);
 
     ws.send(JSON.stringify({ action: "subscribe", symbols })); // exactly at the cap
     await wait(50);
 
-    ws.send(JSON.stringify({ action: "subscribe", symbols: ["EXTRA1"] })); // valid shape, just one over the cap
+    ws.send(JSON.stringify({ action: "subscribe", symbols: ["ZZZZ"] })); // valid ticker, just one over the cap
 
     const msg = await collector.next();
     expect(msg).toMatchObject({ type: "error", message: `Max ${MAX_SYMBOLS} symbols per connection` });
@@ -282,7 +287,7 @@ describe("broadcaster — per-connection symbol cap", () => {
   it("doesn't count a symbol twice toward the cap if subscribed again", async () => {
     const { feed, port } = await setup();
     const { ws } = await client(port);
-    const symbols = Array.from({ length: MAX_SYMBOLS }, (_, i) => `SYM${i}`);
+    const symbols = tickers(MAX_SYMBOLS);
 
     ws.send(JSON.stringify({ action: "subscribe", symbols }));
     await wait(50);
