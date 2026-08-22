@@ -29,6 +29,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - [Project structure](#-project-structure)
 - [Design system](#-design-system)
 - [Setup](#-setup)
+- [Contributing](#-contributing-to-this-repo)
 - [Deployment](#-deployment)
 - [API reference](#-api-reference)
 - [Environment variables](#️-environment-variables-backendenv)
@@ -318,6 +319,17 @@ npx wscat -c ws://localhost:4000/ws
 
 You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,"source":"simulated"}` messages roughly every 1.5s per symbol.
 
+## 🌿 Contributing to this repo
+
+`main` is protected: no direct pushes, and the secret scan plus both package pipelines have to be green before a pull request can merge. That applies to the repo owner too — protection that the owner can walk past isn't protection.
+
+```bash
+git switch -c your-branch
+# ...work, commit...
+git push -u origin your-branch
+gh pr create --fill && gh pr merge --squash
+```
+
 ## 🚢 Deployment
 
 Everything is declared in `render.yaml` at the repo root — a Render Blueprint covering the web service, the static site, and how they wire to the managed Postgres. It's deliberately not configured through dashboard forms: config in a file is reviewable in a diff, and survives someone rebuilding a service from scratch.
@@ -434,12 +446,12 @@ Things that would make sense to add next, roughly in order of value:
 - [x] ~~Move the backend off node10 module resolution~~ — done: `moduleResolution` is now `node16`, which can read a package's `exports` map. That was the blocker on the `cookie` v2 upgrade, and TypeScript 7 removes the old option outright, so this had to happen either way. Emit is unchanged — no `"type": "module"`, so it's still CommonJS; the only code change was the `.js` extension node16 requires on relative *dynamic* imports.
 - [x] ~~Match Postgres versions~~ — done: CI and the setup container both run 18 now, the same major as the Render instance. They were on 16, which meant every green build was evidence about a database this doesn't deploy to. Suite verified on 18.6 before the switch.
 - [x] ~~Password reset~~ — done: `POST /api/auth/forgot-password` and `/reset-password`, plus the two screens. `forgot-password` answers `202` whatever happens, because an unauthenticated caller doesn't get to learn which addresses have accounts — and an unknown token and an expired one give the same answer for the same reason. The token lives an hour rather than the verification token's 24: that one only confirms an address, this one hands over the account. It's spent in the same write that changes the password, so it can't be replayed. Reset deliberately doesn't sign you in — reading the inbox proves you own the address, typing the new password proves you know it. Sends go through the same per-recipient throttle as everything else.
+- [x] ~~Branch protection on `main`~~ — done: direct pushes are refused, changes go through a pull request, and all three CI jobs must pass before it can merge. `enforce_admins` is on, so that applies to the repo owner too — which is the entire point, since a solo repo where the owner can push straight past a red build has advisory CI, not enforced CI. Approvals are set to 0 rather than 1, because GitHub won't let you approve your own PR and a solo repo requiring one approval can never merge anything. Turn it off in Settings → Branches if it ever gets in the way.
 
 **Still open:**
 
 - [ ] **A verified Resend domain.** Until one exists, the default sender only delivers to the Resend account owner — every other recipient gets rejected with a 403. This is the single thing standing between the app and working email for real users.
 - [ ] **`typescript` 6 → 7.** Held, not skipped: typescript-eslint's current release (8.67) declares `typescript ">=4.8.4 <6.1.0"` and hard-throws `does not support TS 7.0` at config load, so taking 7 today means shipping with no linting — and lint is a CI gate. Revisit when typescript-eslint ships TS 7 support.
-- [ ] **Branch protection on `main`.** Still unprotected, so CI is advisory rather than enforced. Worth turning on now that the pipeline is real.
 
 ## 🧰 Tech stack
 
