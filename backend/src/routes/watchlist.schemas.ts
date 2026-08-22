@@ -26,7 +26,7 @@ export const addItemSchema = z
     costBasis: costBasisSchema.optional(),
   })
   .refine((data) => (data.shares === undefined) === (data.costBasis === undefined), {
-    message: "shares and costBasis must be provided together, or not at all",
+    error: "shares and costBasis must be provided together, or not at all",
     path: ["shares"],
   });
 
@@ -39,6 +39,6 @@ export const updateHoldingsSchema = z
     costBasis: costBasisSchema.nullable(),
   })
   .refine((data) => (data.shares === null) === (data.costBasis === null), {
-    message: "shares and costBasis must both be set or both be null",
+    error: "shares and costBasis must both be set or both be null",
     path: ["shares"],
   });
