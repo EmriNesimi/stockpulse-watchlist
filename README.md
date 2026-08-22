@@ -17,7 +17,7 @@
 
 ---
 
-A real-time stock watchlist: search for tickers, add them to your list, and watch prices update live over a WebSocket. Full-stack — React frontend, Express + WebSocket backend, SQLite persistence via Prisma, [Massive](https://massive.com) (formerly Polygon.io — same company/API, renamed October 2025) for market data.
+A real-time stock watchlist: search for tickers, add them to your list, and watch prices update live over a WebSocket. Full-stack — React frontend, Express + WebSocket backend, Postgres persistence via Prisma, [Massive](https://massive.com) (formerly Polygon.io — same company/API, renamed October 2025) for market data.
 
 Built as a portfolio project to demonstrate working with an external API, real-time data over WebSockets, and a properly separated frontend/backend with real persistence — not just a static demo.
 
@@ -29,6 +29,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - [Project structure](#-project-structure)
 - [Design system](#-design-system)
 - [Setup](#-setup)
+- [Deployment](#-deployment)
 - [API reference](#-api-reference)
 - [Environment variables](#️-environment-variables-backendenv)
 - [Security notes](#-security-notes)
@@ -57,13 +58,22 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 
 ## 📍 Status
 
+**Live**, on Render's free tier:
+
+| | |
+|---|---|
+| App | https://stockpulse-b449.onrender.com |
+| API | https://stockpulse-api-n3yu.onrender.com |
+
+Both come out of `render.yaml` (see [Deployment](#-deployment)). The free instance sleeps when idle, so the first request after a quiet spell takes ~50s to wake — that's the platform, not the app.
+
 Feature-complete for the initial build. Built incrementally, commit by commit — full history on the repo shows each piece landing and getting manually tested before the next one started.
 
 **✅ Done**
-- **Backend**: Express API, Prisma/SQLite persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), a WebSocket broadcaster that fans price ticks out to connected clients with per-connection rate/size/subscription limits, and real multi-user auth (scrypt password hashing, signed session cookies, per-user watchlists/alerts).
+- **Backend**: Express API, Prisma/Postgres persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), a WebSocket broadcaster that fans price ticks out to connected clients with per-IP rate limits and per-connection size/subscription limits, and real multi-user auth (scrypt password hashing, signed session cookies, per-user watchlists/alerts).
 - **Frontend**: Vite + React + TS app built against a Figma trading-dashboard reference — a login/signup gate, a sidebar shell with Dashboard/Wallet/Profile/Stock screens, portfolio cards and a watching rail, debounced ticker search wired to the real API, a watchlist table with sparklines, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, a connection-status indicator, and a light/dark theme toggle.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
-- **Testing**: 524 tests total — 216 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 308 on the frontend (hooks, API client, portfolio maths, WebSocket message validation, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
+- **Testing**: 534 tests total — 226 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 308 on the frontend (hooks, API client, portfolio maths, WebSocket message validation, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
 
 ## 🏗️ Architecture
@@ -82,11 +92,11 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
                                                        ┌───────────────────┼───────────────────┐
                                                        │                                       │
                                               ┌────────▼─────────┐               ┌─────────────▼──────────┐
-                                              │  Massive REST     │               │  Prisma → SQLite        │
-                                              │  (ticker search,  │               │  (Watchlist,             │
-                                              │   previous close, │               │   WatchlistItem)         │
-                                              │   rate-limited)   │               │                          │
-                                              └───────────────────┘               └─────────────────────────┘
+                                              │  Massive REST    │               │  Prisma → Postgres     │
+                                              │  (ticker search, │               │  (User, Watchlist,     │
+                                              │   previous close,│               │   WatchlistItem,       │
+                                              │   rate-limited)  │               │   PriceAlert)          │
+                                              └──────────────────┘               └────────────────────────┘
 ```
 
 <details>
@@ -240,7 +250,7 @@ Font: **Inter**. Icons: **Phosphor** (`@phosphor-icons/react`), no emoji in the 
 
 ## 🚀 Setup
 
-Requires Node ≥20.19.0 (or ≥22.12.0) — that's what Vite 8/Rolldown need. A `.nvmrc` is committed at the repo root; run `nvm use` to pick it up automatically.
+Requires Node ≥20.19.0 (or ≥22.12.0) — that's what Vite 8/Rolldown need. A `.nvmrc` is committed at the repo root *and* in each package — the root one is what `nvm use` and CI read, and the per-package copies are what Render reads, since it resolves the version file from a service's root directory rather than the repo's.
 
 > **Dependencies deliberately held back**, so nobody "helpfully" bumps them and breaks the build:
 >
@@ -248,6 +258,14 @@ Requires Node ≥20.19.0 (or ≥22.12.0) — that's what Vite 8/Rolldown need. A
 > - **`@types/node` at 20** — types should track the Node major actually being run. Types ahead of the runtime let TypeScript accept calls that don't exist at execution time, which quietly removes the guard rail.
 > - **`cookie` at 0.7** — v2 renames the `parse` export to `parseCookie` and publishes types only through an `exports` map, which this package's `moduleResolution: "node"` can't read. Taking it means migrating the backend to `node16` resolution (explicit `.js` extensions on every relative dynamic import). No outstanding advisory, so it isn't worth it yet.
 > - **`deepmerge-ts` forced to 8** via an `overrides` entry — Prisma 7's CLI pins 7.1.5, which carries a high-severity stack-exhaustion advisory (GHSA-ggr8-5vv4-36mx). The CLI works fine on 8, and `npm audit` is a CI gate.
+
+The backend needs a Postgres to talk to. The quickest local one is a container:
+
+```bash
+docker run -d --name stockpulse-pg \
+  -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=stockpulse_test -p 5432:5432 postgres:16
+```
 
 ```bash
 # backend
@@ -266,9 +284,11 @@ Then open `http://localhost:5173` — search a ticker, add it, and it should sta
 
 Linting: `npm run lint` in either package (ESLint 9 flat config; the frontend adds `react-hooks` and `jsx-a11y`, both wired into CI).
 
-Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts/history routes via `supertest` against a real throwaway SQLite database, price-alert triggering logic, the simulated OHLC candle generator, the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits, shared-subscription cleanup, and alert delivery — and `env.ts`'s production fail-fast behavior via fresh module re-imports. 129 tests total, no real network calls anywhere in the suite).
+Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts/history routes via `supertest` against a real throwaway Postgres database, price-alert triggering logic, the simulated OHLC candle generator, the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits including the per-IP budget surviving a reconnect, shared-subscription cleanup, and alert delivery — and `env.ts`'s production fail-fast behavior via fresh module re-imports. 226 tests total, no real network calls anywhere in the suite).
 
-Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, `useHistory` and the `CandlestickChart` it feeds, `useErrorToasts` and the `ErrorToast` it feeds, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load and its loading state, search → add, optimistic remove + rollback, live connection status and price updates, both halves of the alert feature, and the three error-toast failure paths, end to end. 155 tests total.)
+The suite drops and recreates the schema before every run, so it refuses to start against anything that isn't localhost — that guard is the only thing standing between a stray `DATABASE_URL` and your production data. See `src/test/globalSetup.ts`.
+
+Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, `useHistory` and the `CandlestickChart` it feeds, `useErrorToasts` and the `ErrorToast` it feeds, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load and its loading state, search → add, optimistic remove + rollback, live connection status and price updates, both halves of the alert feature, and the three error-toast failure paths, end to end. 308 tests total.)
 
 The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Massive account to run or demo this.
 
@@ -297,6 +317,23 @@ npx wscat -c ws://localhost:4000/ws
 ```
 
 You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,"source":"simulated"}` messages roughly every 1.5s per symbol.
+
+## 🚢 Deployment
+
+Everything is declared in `render.yaml` at the repo root — a Render Blueprint covering the web service, the static site, and how they wire to the managed Postgres. It's deliberately not configured through dashboard forms: config in a file is reviewable in a diff, and survives someone rebuilding a service from scratch.
+
+Pushing a change to that file **auto-syncs and redeploys**. It is live infrastructure, not documentation.
+
+To stand it up from nothing: **New → Blueprint** in Render, point it at the repo. It prompts for the two secrets marked `sync: false` (`MASSIVE_API_KEY`, `RESEND_API_KEY`) and derives the rest — `DATABASE_URL` resolves through a `fromDatabase` reference to the **internal** connection string, so the database password never appears in the repo and never crosses the public internet, and `SESSION_SECRET` is generated by Render.
+
+Four things about deploying this bit, none of which reproduce locally:
+
+- **`npm ci --include=dev` is load-bearing.** The service sets `NODE_ENV=production` because the app needs it at runtime, but npm reads it at *install* time too and skips devDependencies — which is where `typescript`, the Prisma CLI, and every `@types/*` package live. Without the flag `tsc` runs with no type declarations at all and dies on hundreds of implicit-any errors.
+- **Migrations run in the build**, via `npm run migrate:deploy`. Deliberately not part of `npm run build`, because CI runs `build` and CI has no business migrating production.
+- **The hostnames are pinned.** Render appends a random suffix when a name is already taken globally, which is why the services are `stockpulse-b449` and `stockpulse-api-n3yu` rather than the bare names. `FRONTEND_ORIGIN` and `VITE_API_URL` refer to those exact hosts and must be changed together — a mismatch means CORS rejects every request.
+- **The static site rewrites all paths to `index.html`.** There's no client-side router, but the verification email links to `/verify-email?token=...`, and a static host has no file there — clicking the link returned a 404 until the rewrite went in. `App.tsx` only ever reads `?token=` off the query string, so serving `index.html` everywhere is enough.
+
+`VITE_API_URL` is read at *build* time, not run time — Vite inlines it into the bundle. Changing it needs a rebuild, not a restart.
 
 ## 📖 API reference
 
@@ -348,22 +385,24 @@ Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message s
 |---|---|---|---|
 | `PORT` | no | `4000` | |
 | `MASSIVE_API_KEY` | no | — | app runs on the simulated feed without it; free tier is rate-limited (5 REST calls/min) and doesn't include real-time WS |
-| `DATABASE_URL` | in production | `file:./prisma/dev.db` outside production | SQLite connection string |
+| `DATABASE_URL` | in production | `postgresql://postgres:postgres@localhost:5432/stockpulse_dev` outside production | Postgres connection string |
 | `FRONTEND_ORIGIN` | in production | `http://localhost:5173` outside production | locks down CORS to this origin |
 | `SESSION_SECRET` | in production | a fixed dev-only value outside production | signs the session cookie (see [Security notes](#-security-notes)) |
+| `RESEND_API_KEY` | no | — | verification emails silently don't send without it; signup and login still work |
+| `RESEND_FROM_EMAIL` | no | `StockPulse <onboarding@resend.dev>` | the default is Resend's shared test sender, which **only delivers to the Resend account owner's own address** — sending to real users needs a domain verified at resend.com/domains |
 
 `backend/.env` is gitignored, and no `.env` file of any kind — not even an example/template with blank values — is committed to this repo, to keep the risk surface at zero. The API key never reaches the frontend; all Massive calls happen server-side.
 
 `DATABASE_URL`, `FRONTEND_ORIGIN`, and `SESSION_SECRET` only fall back to their dev defaults when `NODE_ENV` isn't `production`. With `NODE_ENV=production` set, a missing value for any of the three throws at startup instead of silently booting against the wrong database/CORS origin, or - worse, for `SESSION_SECRET` - with a fixed, publicly-known signing key that would let anyone forge a session cookie. See `backend/src/env.ts`.
 
-> **Prisma 7 note:** the connection URL lives in `backend/prisma.config.ts`, not `schema.prisma` — Prisma 7 removed `datasource.url` — and the runtime client uses the better-sqlite3 driver adapter. One behavioural change to know about: Prisma 5 resolved a relative `file:` URL against the *schema* directory, so `file:./prisma/dev.db` landed at `prisma/prisma/dev.db`; Prisma 7's adapter resolves against the working directory, so the same URL now means `prisma/dev.db`. The database was moved to match.
+> **Prisma 7 note:** the connection URL lives in `backend/prisma.config.ts`, not `schema.prisma` — Prisma 7 removed `datasource.url` — and the runtime client is built around a driver adapter (`@prisma/adapter-pg`) rather than a connection string baked into the schema. See `src/db.ts`, which constructs exactly one client for the process so `tsx watch` reloads don't open a new pool each time.
 
 ## 🔒 Security notes
 
 - **Secrets**: `MASSIVE_API_KEY` and `SESSION_SECRET` live only in `backend/.env` (gitignored). Never sent to the client. No `.env` file of any kind is committed — not even a blank `.env.example` template — and CI actively fails the build if one ever gets tracked, on top of a separate grep-based backstop for anything that looks like a committed key.
-- **Auth**: passwords are hashed with Node's built-in `crypto.scrypt` (random salt per password, `timingSafeEqual` for the comparison) — not bcrypt/argon2, to avoid a native-binding dependency (this project has had enough native-binding trouble already, see the Vite 8/Rolldown note in the roadmap). Sessions are an HMAC-SHA256-signed `httpOnly` cookie (`SameSite=Lax`, `Secure` when `FRONTEND_ORIGIN` is https) containing just the user id — tamper-evident, not encrypted, since there's nothing sensitive in the payload beyond an opaque id. Login returns the same generic `Invalid email or password` whether the account exists or the password was wrong, so a failed login can't be used to enumerate registered emails; signup **does** still reveal whether an address is taken (`409 An account with that email already exists`), which is a known and deliberate UX trade-off rather than an oversight — see [Roadmap](#️-roadmap). Both sit behind a tighter rate limit (10/min) than the general API limit. `/api/watchlist` and `/api/alerts` require a valid session and are scoped to the signed-in user; the WS broadcaster resolves the same session cookie on the raw upgrade request (outside the Express middleware chain) so price-alert notifications go only to the alert's owner, never to every client subscribed to that symbol.
+- **Auth**: passwords are hashed with Node's built-in `crypto.scrypt` (random salt per password, `timingSafeEqual` for the comparison) — not bcrypt/argon2, to avoid a native-binding dependency (this project has had enough native-binding trouble already, see the Vite 8/Rolldown note in the roadmap). Sessions are an HMAC-SHA256-signed `httpOnly` cookie containing just the user id. When `FRONTEND_ORIGIN` is https the cookie goes out `SameSite=None; Secure`, because deployed the app and API are separate `onrender.com` subdomains — and `onrender.com` is on the Public Suffix List, so browsers treat them as cross-site and would silently drop a `Lax` cookie on every API call. Locally both ends are `localhost`, which is same-site, so it stays `Lax` there (`Secure` would break it over plain http) — tamper-evident, not encrypted, since there's nothing sensitive in the payload beyond an opaque id. Login returns the same generic `Invalid email or password` whether the account exists or the password was wrong, so a failed login can't be used to enumerate registered emails; signup no longer leaks it either: it answers `202` with the same body whether the address was free or already registered, never returns a session, and hashes the password on both branches so the response *time* doesn't give it away. The only thing that differs is which email goes out, and that lands in the real owner's inbox rather than the submitter's. Both sit behind a tighter rate limit (10/min) than the general API limit. `/api/watchlist` and `/api/alerts` require a valid session and are scoped to the signed-in user; the WS broadcaster resolves the same session cookie on the raw upgrade request (outside the Express middleware chain) so price-alert notifications go only to the alert's owner, never to every client subscribed to that symbol.
 - **Input validation**: every REST endpoint validates its input with `zod` before touching Prisma or building a Massive URL. WebSocket subscribe/unsubscribe messages are validated the same way.
-- **Rate limiting**: `express-rate-limit` on all `/api` routes (60 req/min, 10/min on `/api/auth`, both skipped under `NODE_ENV=test` since the route test files share one app instance across far more requests than either limit allows — see `auth.ratelimit.test.ts` for a test that exercises the real limiter with `NODE_ENV` overridden back); the WS broadcaster caps each connection at 30 subscribed symbols, 60 messages/min, and a 2KB max message size, so one misbehaving client can't exhaust server resources. `POST /api/watchlist` enforces that same 30-symbol number as a hard cap on watchlist size (`409` past it) — without it, a user could add more tickers than a WS connection can ever subscribe to, and the broadcaster would reject the *entire* subscribe batch, not just the extras, silently breaking live prices for their whole watchlist.
+- **Rate limiting**: `express-rate-limit` on all `/api` routes (60 req/min, 10/min on `/api/auth`, both skipped under `NODE_ENV=test` since the route test files share one app instance across far more requests than either limit allows — see `auth.ratelimit.test.ts` for a test that exercises the real limiter with `NODE_ENV` overridden back); the WS broadcaster caps 30 subscribed symbols and a 2KB message size per connection, and 60 messages/min plus 8 concurrent connections **per IP**. The message budget deliberately outlives the socket: it used to live on per-connection state, which meant hitting the cap and reconnecting handed back a fresh 60 and made the limit decorative. The IP comes from the last `x-forwarded-for` hop, matching the `trust proxy` setting — earlier entries are client-supplied, and trusting them would let anyone choose their own bucket. `POST /api/watchlist` enforces that same 30-symbol number as a hard cap on watchlist size (`409` past it) — without it, a user could add more tickers than a WS connection can ever subscribe to, and the broadcaster would reject the *entire* subscribe batch, not just the extras, silently breaking live prices for their whole watchlist.
 - **Headers/CORS**: `helmet` for standard security headers; CORS locked to `FRONTEND_ORIGIN` with `credentials: true` (needed for the session cookie), no wildcard.
 - **Dependencies**: lockfiles committed for both workspaces. `npm audit` is clean on both — the frontend used to carry an accepted set of Vite/esbuild dev-server-only advisories, resolved by the Vite 8 upgrade below rather than left as a permanent exception. (Audit actually caught something for real once, separately: CI's audit step failed on a previously-untouched backend commit when a new high-severity advisory landed against a transitive test-tooling dependency — `npm audit` checks live against the advisory database, not just the lockfile, so a clean pipeline can go red with zero code changes if something upstream gets flagged. Patched via `npm audit fix` the same day.)
 - **CI**: `.github/workflows/ci.yml` runs typecheck + build + tests (backend) + `npm audit` + a secret-pattern grep on every push/PR for both workspaces.
@@ -375,23 +414,36 @@ Things that would make sense to add next, roughly in order of value:
 
 - [x] ~~Candlestick/OHLC chart on click-through for a single symbol~~ — done: clicking a symbol expands a hand-rolled SVG candlestick chart (same no-dependency approach as the sparkline) fed by a new `useHistory` hook against the existing `/api/history/:symbol` endpoint. Loading/error/empty states covered, and only one chart fetches/renders at a time.
 - [x] ~~Price alerts~~ — done: one-shot "notify me when AAPL crosses $200" alerts, evaluated per tick in the WS broadcaster and delivered as a dismissible toast. No test coverage gap left behind either — schema, route, trigger logic, and broadcaster delivery are all covered.
-- [x] ~~Multi-user auth~~ — done: email/password signup and login, scrypt-hashed passwords, signed session cookies. `/api/watchlist` and `/api/alerts` require a signed-in user and are scoped to `req.userId`; the WebSocket broadcaster resolves the connecting user from the same session cookie (parsed by hand, since the WS upgrade request sits outside the Express middleware chain) so price-alert notifications - unlike ticks, which stay public - are only delivered to the alert's actual owner. Out of scope for now: password reset and email verification.
+- [x] ~~Multi-user auth~~ — done: email/password signup and login, scrypt-hashed passwords, signed session cookies. `/api/watchlist` and `/api/alerts` require a signed-in user and are scoped to `req.userId`; the WebSocket broadcaster resolves the connecting user from the same session cookie (parsed by hand, since the WS upgrade request sits outside the Express middleware chain) so price-alert notifications - unlike ticks, which stay public - are only delivered to the alert's actual owner. Password reset is still out of scope; email verification since landed (below).
 - [x] ~~A real test suite~~ — done: Vitest covering the `PriceFeed` implementations, the Massive rate limiter, and the zod schemas.
-- [x] ~~Route-level test coverage~~ — done: the watchlist and search routes are tested through `supertest` against a real (throwaway) SQLite db, not just the validation logic underneath them.
+- [x] ~~Route-level test coverage~~ — done: the watchlist and search routes are tested through `supertest` against a real (throwaway) Postgres db, not just the validation logic underneath them.
 - [x] ~~WS broadcaster test coverage~~ — done: real socket connections (not mocked), covering shared-subscription fan-out, unsubscribe/disconnect cleanup, malformed input, and all three per-connection limits (symbol cap, message rate, payload size). 70 tests total across the whole backend suite now, wired into CI.
 - [x] ~~Frontend hook/logic test coverage~~ — done: `useDebouncedValue`, `useThrottledAnnouncement`, the API client, and `useLiveTicks` (the WS client hook, tested against a fake browser `WebSocket`) are all covered. 30 tests, wired into CI.
 - [x] ~~Frontend component test coverage~~ — done: every component has rendering/interaction tests (`Search`, `WatchlistTable`, `AlertForm`, `AlertToast`, `Sparkline`, `PriceCell`, `ConnectionBadge`).
 - [x] ~~App.tsx integration coverage~~ — done: a dedicated integration suite mounts the real component tree (nothing but the API client and the WebSocket global are faked) and exercises the actual flows a user would hit — load, search/add, remove/rollback, live status and prices, alert create and receive. Frontend testing is now complete top to bottom: hooks → API client → components → App wiring.
 - [x] ~~Swap the frontend's inline styles for a proper CSS approach~~ — done: every component moved from inline `style={{...}}` objects to a co-located `.module.css` file (CSS Modules, not Tailwind — smaller diff against the existing design-token setup, no new build tooling). Dynamic styling (flash-on-tick, bullish/bearish color, open/active states) became conditional class names instead of inline style objects. A few component tests that had asserted on inline `style.backgroundColor` now assert on the module's exported class names instead, since jsdom doesn't compute real CSS from scoped classes.
 - [x] ~~Revisit the Vite 8 upgrade~~ — done: the actual blocker was Rolldown needing Node ≥20.19.0 while the dev machine was on 20.12.2, not Vite 8 itself. A minor Node bump (via `nvm`, see `.nvmrc`) unblocked it — Vite 5→8, Vitest 3→4, and `@vitejs/plugin-react` 4→6 all went through with zero config changes, all tests green, and the production build got noticeably faster (~2.7s → ~0.3s) now that Rolldown does the bundling.
+- [x] ~~Email verification~~ — done: a signed token mailed via Resend, a `/verify-email` screen that reads the token off the query string, and a resend button. Nothing gates on being verified, so an unverified account still works — it's a trust signal, not a wall. The resend endpoint reports a failed send honestly (`502`) rather than answering `204` and leaving you waiting for mail that was never accepted; signup keeps swallowing the same failure, because its response has to stay identical whether or not the address was already registered.
+- [x] ~~Move off SQLite~~ — done: Postgres via Prisma 7's `@prisma/adapter-pg`. The test harness drops and recreates the schema per run and refuses any non-localhost `DATABASE_URL`, which is what keeps that from being terrifying.
+- [x] ~~Deploy it~~ — done: Render, declared in `render.yaml` — see [Deployment](#-deployment).
+- [x] ~~Close the WebSocket rate-limit hole~~ — done: the 60/min budget moved from per-connection to per-IP and now survives a reconnect, and the upgrade is refused past 8 concurrent connections from one address. Previously a client could hit the cap, hang up, dial back and get a fresh allowance.
+
+**Still open:**
+
+- [ ] **A verified Resend domain.** Until one exists, the default sender only delivers to the Resend account owner — every other recipient gets rejected with a 403. This is the single thing standing between the app and working email for real users.
+- [ ] **`zod` 3.23 → 4.x** and **`typescript` 5.6 → 7.x** — both majors, both worth doing deliberately rather than in the middle of something else.
+- [ ] **Branch protection on `main`.** Still unprotected, so CI is advisory rather than enforced. Worth turning on now that the pipeline is real.
+- [ ] **Match Postgres versions.** Production is 18; the local test container in [Setup](#-setup) is 16. Fine so far, but testing against a different major than you deploy to is a bet, not a plan.
+- [ ] **Password reset.**
 
 ## 🧰 Tech stack
 
-- **Frontend**: React 18, TypeScript, Vite, CSS Modules
-- **Backend**: Node.js, Express 4, TypeScript, `ws`
-- **Database**: SQLite via Prisma
+- **Frontend**: React 19, TypeScript, Vite 8 (Rolldown), CSS Modules
+- **Backend**: Node.js 20, Express 5, TypeScript, `ws`
+- **Database**: Postgres via Prisma 7 (`@prisma/adapter-pg`)
 - **Validation**: Zod
 - **External API**: Massive (REST + WebSocket), formerly Polygon.io
+- **Hosting**: Render — web service, static site, and managed Postgres, all declared in `render.yaml`
 
 ---
 
