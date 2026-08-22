@@ -70,3 +70,21 @@ export function accountExistsEmailHtml(loginUrl: string): string {
     </div>
   `;
 }
+
+// The reset link carries a token that can take over the account, so the copy
+// says plainly what to do if it wasn't requested — that notice is the only
+// signal the real owner gets that someone tried.
+export function passwordResetEmailHtml(resetUrl: string): string {
+  return `
+    <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; color: #0f172a;">
+      <h1 style="font-size: 20px;">Reset your StockPulse password</h1>
+      <p>Click the link below to choose a new password. This link expires in an hour and can only be used once.</p>
+      <p>
+        <a href="${resetUrl}" style="display: inline-block; background: #8044fe; color: #fff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+          Reset password
+        </a>
+      </p>
+      <p style="color: #64748b; font-size: 13px;">If you didn't ask to reset your password, you can ignore this email — your password hasn't changed.</p>
+    </div>
+  `;
+}

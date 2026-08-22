@@ -5,10 +5,11 @@ import { asyncHandler } from "../asyncHandler";
 import { hashPassword, verifyPassword } from "../auth/password";
 import { createSessionCookieValue, SESSION_COOKIE_NAME } from "../auth/session";
 import { generateVerificationToken } from "../auth/verification";
-import { accountExistsEmailHtml, sendEmail, verificationEmailHtml } from "../email/resend";
+import { accountExistsEmailHtml, passwordResetEmailHtml, sendEmail, verificationEmailHtml } from "../email/resend";
 import { tryConsumeEmailQuota } from "../email/sendThrottle";
+import { generateResetToken } from "../auth/passwordReset";
 import { getOrCreateWatchlist } from "../watchlistHelper";
-import { credentialsSchema, verifyEmailBodySchema } from "./auth.schemas";
+import { credentialsSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailBodySchema } from "./auth.schemas";
 import { env } from "../env";
 
 const router = Router();
@@ -133,6 +134,69 @@ router.post(
 
     res.cookie(SESSION_COOKIE_NAME, createSessionCookieValue(user.id), SESSION_COOKIE_OPTIONS);
     res.json({ user: toPublicUser(user) });
+  })
+);
+
+// Answers 202 no matter what, same as signup: whether an address has an
+// account is not something an unauthenticated caller gets to learn, and this
+// endpoint would otherwise be the easiest place to ask.
+router.post(
+  "/forgot-password",
+  asyncHandler(async (req, res) => {
+    const parsed = forgotPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
+    }
+    const { email } = parsed.data;
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (user && tryConsumeEmailQuota(email)) {
+      const { token, expiresAt } = generateResetToken();
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { resetToken: token, resetTokenExpires: expiresAt },
+      });
+
+      const resetUrl = `${env.frontendOrigin}/reset-password?reset=${token}`;
+      try {
+        await sendEmail(email, "Reset your StockPulse password", passwordResetEmailHtml(resetUrl));
+      } catch (err) {
+        console.error(`Failed to send password reset email to ${email}:`, err);
+      }
+    }
+
+    res.status(202).json({ message: "If that address has an account, a reset link is on its way." });
+  })
+);
+
+router.post(
+  "/reset-password",
+  asyncHandler(async (req, res) => {
+    const parsed = resetPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
+    }
+    const { token, password } = parsed.data;
+
+    const user = await prisma.user.findUnique({ where: { resetToken: token } });
+    // Expiry is checked here rather than in the query so an expired token and
+    // an unknown one produce the same answer.
+    if (!user || !user.resetTokenExpires || user.resetTokenExpires < new Date()) {
+      return res.status(400).json({ error: "That reset link is invalid or has expired" });
+    }
+
+    const passwordHash = await hashPassword(password);
+    await prisma.user.update({
+      where: { id: user.id },
+      // Cleared in the same write that sets the password, so the token is
+      // spent whether or not the user ever logs in with it.
+      data: { passwordHash, resetToken: null, resetTokenExpires: null },
+    });
+
+    // Deliberately does not sign the user in. Someone who can read the inbox
+    // proves they own the address, but making them type the new password once
+    // more is a cheap confirmation that they know it.
+    res.status(204).send();
   })
 );
 

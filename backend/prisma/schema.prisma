@@ -19,6 +19,11 @@ model User {
   emailVerifiedAt          DateTime?
   verificationToken        String?   @unique
   verificationTokenExpires DateTime?
+  // Separate from the verification pair above: a reset token grants account
+  // takeover, so it gets a much shorter life (1h vs 24h) and is cleared the
+  // moment it's spent.
+  resetToken               String?   @unique
+  resetTokenExpires        DateTime?
 }
 
 // userId isn't a Prisma relation to User.id on purpose - it's kept as a

@@ -22,3 +22,14 @@ export const credentialsSchema = z.object({
 export const verifyEmailBodySchema = z.object({
   token: z.string().trim().min(1).max(64).regex(/^[a-f0-9]+$/, "Invalid verification token"),
 });
+
+export const forgotPasswordSchema = z.object({
+  email: credentialsSchema.shape.email,
+});
+
+// Same hex shape as the verification token, and the password reuses the
+// credentials rule so a reset can't set something signup would have refused.
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(1).max(64).regex(/^[a-f0-9]+$/, "Invalid reset token"),
+  password: credentialsSchema.shape.password,
+});
