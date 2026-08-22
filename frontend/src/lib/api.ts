@@ -138,3 +138,13 @@ export function verifyEmail(token: string): Promise<{ user: AuthUser }> {
 export function resendVerificationEmail(): Promise<void> {
   return request("/api/auth/resend-verification", { method: "POST" });
 }
+
+// Answers 202 whether or not the address has an account, so there is no
+// success/failure to branch on here — only the neutral message.
+export function requestPasswordReset(email: string): Promise<{ message: string }> {
+  return request("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
+}
+
+export function resetPassword(token: string, password: string): Promise<void> {
+  return request("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ token, password }) });
+}

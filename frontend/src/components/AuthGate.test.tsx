@@ -2,16 +2,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AuthGate from "./AuthGate";
-import { login, signup } from "../lib/api";
+import { login, requestPasswordReset, resetPassword, signup } from "../lib/api";
 
 vi.mock("../lib/api", () => ({
   login: vi.fn(),
   signup: vi.fn(),
+  requestPasswordReset: vi.fn(),
+  resetPassword: vi.fn(),
 }));
 
 beforeEach(() => {
   vi.mocked(login).mockReset();
   vi.mocked(signup).mockReset();
+  vi.mocked(requestPasswordReset).mockReset();
+  vi.mocked(resetPassword).mockReset();
 });
 
 afterEach(() => {
@@ -222,5 +226,71 @@ describe("AuthGate", () => {
 
     resolveLogin!({ user: { id: "u1", email: "trader@example.com", emailVerified: true } });
     await waitFor(() => expect(screen.getByRole("button", { name: "Log in" })).not.toBeDisabled());
+  });
+});
+
+describe("AuthGate — password reset", () => {
+  const props = { onAuthenticated: vi.fn(), theme: "dark" as const, onToggleTheme: vi.fn() };
+
+  it("reaches the forgot form from login and asks for a link", async () => {
+    const user = userEvent.setup();
+    vi.mocked(requestPasswordReset).mockResolvedValue({ message: "If that address has an account, a reset link is on its way." });
+    render(<AuthGate {...props} />);
+
+    await user.click(screen.getByRole("button", { name: /forgot your password/i }));
+    await user.type(screen.getByLabelText("Email"), "me@example.com");
+    await user.click(screen.getByRole("button", { name: "Send reset link" }));
+
+    expect(requestPasswordReset).toHaveBeenCalledWith("me@example.com");
+    // Lands back on login showing the server's deliberately neutral wording,
+    // which must not reveal whether that address exists.
+    await waitFor(() => expect(screen.getByRole("form", { name: "Log in" })).toBeInTheDocument());
+    expect(screen.getByRole("status")).toHaveTextContent(/if that address has an account/i);
+  });
+
+  it("asks for a password, not an email, when arriving with a reset token", () => {
+    render(<AuthGate {...props} resetToken="abc123" />);
+
+    expect(screen.getByRole("form", { name: "Choose a new password" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("New password")).toBeInTheDocument();
+  });
+
+  it("submits the token with the new password and returns to login", async () => {
+    const user = userEvent.setup();
+    vi.mocked(resetPassword).mockResolvedValue(undefined);
+    render(<AuthGate {...props} resetToken="abc123" />);
+
+    await user.type(screen.getByLabelText("New password"), "correct-horse-battery");
+    await user.type(screen.getByLabelText("Confirm password"), "correct-horse-battery");
+    await user.click(screen.getByRole("button", { name: "Update password" }));
+
+    expect(resetPassword).toHaveBeenCalledWith("abc123", "correct-horse-battery");
+    await waitFor(() => expect(screen.getByRole("form", { name: "Log in" })).toBeInTheDocument());
+    expect(screen.getByRole("status")).toHaveTextContent(/log in with your new password/i);
+  });
+
+  it("won't submit mismatched passwords", async () => {
+    const user = userEvent.setup();
+    render(<AuthGate {...props} resetToken="abc123" />);
+
+    await user.type(screen.getByLabelText("New password"), "correct-horse-battery");
+    await user.type(screen.getByLabelText("Confirm password"), "something-else-entirely");
+    await user.click(screen.getByRole("button", { name: "Update password" }));
+
+    expect(resetPassword).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(/passwords don't match/i);
+  });
+
+  it("surfaces a rejected token instead of claiming success", async () => {
+    const user = userEvent.setup();
+    vi.mocked(resetPassword).mockRejectedValue(new Error("That reset link is invalid or has expired"));
+    render(<AuthGate {...props} resetToken="expired" />);
+
+    await user.type(screen.getByLabelText("New password"), "correct-horse-battery");
+    await user.type(screen.getByLabelText("Confirm password"), "correct-horse-battery");
+    await user.click(screen.getByRole("button", { name: "Update password" }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/invalid or has expired/i));
   });
 });

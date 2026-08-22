@@ -16,6 +16,12 @@ export default function App() {
   // email and, if that happens to be the currently-signed-in user, flips
   // their emailVerified locally so the banner clears without a refetch.
   const [emailVerifyResult, setEmailVerifyResult] = useState<"success" | "error" | null>(null);
+  // Read once at mount, before the effect below strips the query string.
+  // ?reset= rather than ?token= because there's no router to tell the two
+  // email links apart by path — the parameter name is what distinguishes them.
+  const [resetToken] = useState<string | null>(() =>
+    new URLSearchParams(window.location.search).get("reset")
+  );
   const [emailVerifyMessage, setEmailVerifyMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -28,7 +34,16 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get("token");
+    const params = new URLSearchParams(window.location.search);
+
+    // A reset link also needs the URL cleaned up, but it's handled by
+    // AuthGate rather than consumed here.
+    if (params.get("reset")) {
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+
+    const token = params.get("token");
     if (!token) return;
     // Strip the token from the URL immediately so a refresh doesn't
     // re-consume it (it's single-use server-side anyway, but a stale
@@ -66,6 +81,7 @@ export default function App() {
   if (authStatus === "unauthenticated" || !user) {
     return (
       <AuthGate
+        resetToken={resetToken}
         onAuthenticated={handleAuthenticated}
         theme={theme}
         onToggleTheme={toggleTheme}

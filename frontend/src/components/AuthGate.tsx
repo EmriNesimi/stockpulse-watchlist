@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChartLineUp } from "@phosphor-icons/react";
-import { login, signup, type AuthUser } from "../lib/api";
+import { login, requestPasswordReset, resetPassword, signup, type AuthUser } from "../lib/api";
 import type { Theme } from "../hooks/useTheme";
 import ThemeToggle from "./ThemeToggle";
 import styles from "./AuthGate.module.css";
@@ -23,12 +23,46 @@ interface AuthGateProps {
   theme: Theme;
   onToggleTheme: () => void;
   verifyEmailNotice?: VerifyEmailNotice | null;
+  /** Present when the user arrived from a password-reset email link. */
+  resetToken?: string | null;
 }
 
-type Mode = "login" | "signup";
+// "reset" isn't reachable from the UI — it's entered only by arriving with a
+// token in the URL, which App.tsx passes down.
+type Mode = "login" | "signup" | "forgot" | "reset";
 
-export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verifyEmailNotice }: AuthGateProps) {
-  const [mode, setMode] = useState<Mode>("login");
+const TITLES: Record<Mode, string> = {
+  login: "Welcome back",
+  signup: "Join StockPulse",
+  forgot: "Reset your password",
+  reset: "Choose a new password",
+};
+
+const SUBTITLES: Record<Mode, string> = {
+  login: "Log in to your dashboard",
+  signup: "Create your account for free",
+  forgot: "We'll email you a link if that address has an account",
+  reset: "Pick something you haven't used here before",
+};
+
+// The form's accessible name describes the action, not the display heading —
+// "Welcome back" tells a screen-reader user nothing about what the form does.
+const FORM_LABELS: Record<Mode, string> = {
+  login: "Log in",
+  signup: "Sign up",
+  forgot: "Reset your password",
+  reset: "Choose a new password",
+};
+
+const SUBMIT_LABELS: Record<Mode, string> = {
+  login: "Log in",
+  signup: "Get started",
+  forgot: "Send reset link",
+  reset: "Update password",
+};
+
+export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verifyEmailNotice, resetToken }: AuthGateProps) {
+  const [mode, setMode] = useState<Mode>(resetToken ? "reset" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -42,7 +76,7 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
     setError(null);
     setPasswordMismatch(false);
 
-    if (mode === "signup" && password !== confirmPassword) {
+    if ((mode === "signup" || mode === "reset") && password !== confirmPassword) {
       setError("Passwords don't match");
       setPasswordMismatch(true);
       return;
@@ -50,7 +84,20 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
 
     setSubmitting(true);
     try {
-      if (mode === "login") {
+      if (mode === "forgot") {
+        const { message } = await requestPasswordReset(email);
+        setMode("login");
+        setPassword("");
+        setNotice(message);
+      } else if (mode === "reset") {
+        await resetPassword(resetToken!, password);
+        // Reset doesn't sign you in, by design on the backend — so land on
+        // the login form with the new password rather than pretending to.
+        setMode("login");
+        setPassword("");
+        setConfirmPassword("");
+        setNotice("Password updated. Log in with your new password.");
+      } else if (mode === "login") {
         const { user } = await login(email, password);
         onAuthenticated(user);
       } else {
@@ -68,6 +115,15 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function goTo(next: Mode) {
+    setMode(next);
+    setError(null);
+    setNotice(null);
+    setPasswordMismatch(false);
+    setPassword("");
+    setConfirmPassword("");
   }
 
   function switchMode() {
@@ -105,15 +161,12 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
           )}
 
           <div className={styles.heading}>
-            <h1 className={styles.title}>
-              {mode === "login" ? "Welcome back" : "Join StockPulse"}
-            </h1>
-            <p className={styles.subtitle}>
-              {mode === "login" ? "Log in to your dashboard" : "Create your account for free"}
-            </p>
+            <h1 className={styles.title}>{TITLES[mode]}</h1>
+            <p className={styles.subtitle}>{SUBTITLES[mode]}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className={styles.form} aria-label={mode === "login" ? "Log in" : "Sign up"}>
+          <form onSubmit={handleSubmit} className={styles.form} aria-label={FORM_LABELS[mode]}>
+            {mode !== "reset" && (
             <div className={styles.field}>
               <label htmlFor="auth-email" className={styles.label}>
                 Email
@@ -129,10 +182,12 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
                 className={styles.input}
               />
             </div>
+            )}
 
+            {mode !== "forgot" && (
             <div className={styles.field}>
               <label htmlFor="auth-password" className={styles.label}>
-                Password
+                {mode === "reset" ? "New password" : "Password"}
               </label>
               <input
                 id="auth-password"
@@ -140,14 +195,15 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
                 placeholder="Password"
                 required
-                minLength={mode === "signup" ? 8 : undefined}
+                minLength={mode === "signup" || mode === "reset" ? 8 : undefined}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={styles.input}
               />
             </div>
+            )}
 
-            {mode === "signup" && (
+            {(mode === "signup" || mode === "reset") && (
               <div className={styles.field}>
                 <label htmlFor="auth-confirm-password" className={styles.label}>
                   Confirm password
@@ -174,13 +230,27 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
             )}
 
             <button type="submit" disabled={submitting} className={styles.submitButton}>
-              {mode === "login" ? "Log in" : "Get started"}
+              {SUBMIT_LABELS[mode]}
             </button>
           </form>
 
+          {mode === "login" && (
+            <div className={styles.toggle}>
+              <button type="button" onClick={() => goTo("forgot")} className={styles.toggleButton}>
+                Forgot your password?
+              </button>
+            </div>
+          )}
+
           <div className={styles.toggle}>
-            {mode === "login" ? "New here? " : "Already have an account? "}
-            <button type="button" onClick={switchMode} className={styles.toggleButton}>
+            {mode === "login" && "New here? "}
+            {mode === "signup" && "Already have an account? "}
+            {(mode === "forgot" || mode === "reset") && "Remembered it? "}
+            <button
+              type="button"
+              onClick={() => (mode === "login" || mode === "signup" ? switchMode() : goTo("login"))}
+              className={styles.toggleButton}
+            >
               {mode === "login" ? "Sign up" : "Log in"}
             </button>
           </div>
