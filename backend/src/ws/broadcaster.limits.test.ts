@@ -83,7 +83,7 @@ describe("websocket abuse limits", () => {
   it("frees a slot when a connection closes", async () => {
     const port = await start();
 
-    const sockets = [];
+    const sockets: WebSocket[] = [];
     for (let i = 0; i < MAX_CONNECTIONS_PER_IP; i++) sockets.push(track(await connectClient(port)));
 
     await new Promise<void>((resolve) => {
