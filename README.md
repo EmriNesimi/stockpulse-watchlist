@@ -431,13 +431,13 @@ Things that would make sense to add next, roughly in order of value:
 - [x] ~~`zod` 3.23 → 4~~ — done: the schemas only used the stable core, so 4.4 compiled and the suite passed untouched. The work was in the two spellings zod 4 deprecates — `z.email()` replacing `.email()` on a string, and refine's `error` replacing `message`. Worth knowing that `z.email().trim()` validates *before* trimming, the reverse of the old chain, so a pasted `"  Me@Example.com  "` gets rejected rather than cleaned up; piping keeps normalisation first. `auth.schemas.ts` had no test file at all, which is how that nearly shipped.
 - [x] ~~`typescript` 5.6 → 6~~ — done, in both packages. Stopped at 6 deliberately; see the note below.
 - [x] ~~Move the backend off node10 module resolution~~ — done: `moduleResolution` is now `node16`, which can read a package's `exports` map. That was the blocker on the `cookie` v2 upgrade, and TypeScript 7 removes the old option outright, so this had to happen either way. Emit is unchanged — no `"type": "module"`, so it's still CommonJS; the only code change was the `.js` extension node16 requires on relative *dynamic* imports.
+- [x] ~~Match Postgres versions~~ — done: CI and the setup container both run 18 now, the same major as the Render instance. They were on 16, which meant every green build was evidence about a database this doesn't deploy to. Suite verified on 18.6 before the switch.
 
 **Still open:**
 
 - [ ] **A verified Resend domain.** Until one exists, the default sender only delivers to the Resend account owner — every other recipient gets rejected with a 403. This is the single thing standing between the app and working email for real users.
 - [ ] **`typescript` 6 → 7.** Held, not skipped: typescript-eslint's current release (8.67) declares `typescript ">=4.8.4 <6.1.0"` and hard-throws `does not support TS 7.0` at config load, so taking 7 today means shipping with no linting — and lint is a CI gate. Revisit when typescript-eslint ships TS 7 support.
 - [ ] **Branch protection on `main`.** Still unprotected, so CI is advisory rather than enforced. Worth turning on now that the pipeline is real.
-- [ ] **Match Postgres versions.** Production is 18; the local test container in [Setup](#-setup) is 16. Fine so far, but testing against a different major than you deploy to is a bet, not a plan.
 - [ ] **Password reset.**
 
 ## 🧰 Tech stack
