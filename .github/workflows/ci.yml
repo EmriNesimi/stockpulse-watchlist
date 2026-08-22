@@ -46,7 +46,9 @@ jobs:
     # only safe because this container is thrown away with the job.
     services:
       postgres:
-        image: postgres:16
+        # Matches the Render instance this deploys to. Testing against a
+        # different major than production runs is a bet, not a plan.
+        image: postgres:18
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
