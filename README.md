@@ -256,7 +256,7 @@ Requires Node ≥20.19.0 (or ≥22.12.0) — that's what Vite 8/Rolldown need. A
 >
 > - **`jsdom` at 27** — 28+ pulls an `undici` that calls `webidl.util.markAsUncloneable`, a Node 22 API. On the pinned Node 20 the test suite fails to collect at all.
 > - **`@types/node` at 20** — types should track the Node major actually being run. Types ahead of the runtime let TypeScript accept calls that don't exist at execution time, which quietly removes the guard rail.
-> - **`cookie` at 0.7** — v2 renames the `parse` export to `parseCookie` and publishes types only through an `exports` map, which this package's `moduleResolution: "node"` can't read. Taking it means migrating the backend to `node16` resolution (explicit `.js` extensions on every relative dynamic import). No outstanding advisory, so it isn't worth it yet.
+> - **`cookie` at 0.7** — v2 renames the `parse` export to `parseCookie`. The resolution half of this hold is gone: the backend moved to `node16`, so the `exports`-map-only types now resolve fine. What's left is the rename itself, and there's no outstanding advisory, so it's a tidy-up rather than a fix.
 > - **`deepmerge-ts` forced to 8** via an `overrides` entry — Prisma 7's CLI pins 7.1.5, which carries a high-severity stack-exhaustion advisory (GHSA-ggr8-5vv4-36mx). The CLI works fine on 8, and `npm audit` is a CI gate.
 
 The backend needs a Postgres to talk to. The quickest local one is a container:
@@ -428,18 +428,22 @@ Things that would make sense to add next, roughly in order of value:
 - [x] ~~Deploy it~~ — done: Render, declared in `render.yaml` — see [Deployment](#-deployment).
 - [x] ~~Close the WebSocket rate-limit hole~~ — done: the 60/min budget moved from per-connection to per-IP and now survives a reconnect, and the upgrade is refused past 8 concurrent connections from one address. Previously a client could hit the cap, hang up, dial back and get a fresh allowance.
 
+- [x] ~~`zod` 3.23 → 4~~ — done: the schemas only used the stable core, so 4.4 compiled and the suite passed untouched. The work was in the two spellings zod 4 deprecates — `z.email()` replacing `.email()` on a string, and refine's `error` replacing `message`. Worth knowing that `z.email().trim()` validates *before* trimming, the reverse of the old chain, so a pasted `"  Me@Example.com  "` gets rejected rather than cleaned up; piping keeps normalisation first. `auth.schemas.ts` had no test file at all, which is how that nearly shipped.
+- [x] ~~`typescript` 5.6 → 6~~ — done, in both packages. Stopped at 6 deliberately; see the note below.
+- [x] ~~Move the backend off node10 module resolution~~ — done: `moduleResolution` is now `node16`, which can read a package's `exports` map. That was the blocker on the `cookie` v2 upgrade, and TypeScript 7 removes the old option outright, so this had to happen either way. Emit is unchanged — no `"type": "module"`, so it's still CommonJS; the only code change was the `.js` extension node16 requires on relative *dynamic* imports.
+
 **Still open:**
 
 - [ ] **A verified Resend domain.** Until one exists, the default sender only delivers to the Resend account owner — every other recipient gets rejected with a 403. This is the single thing standing between the app and working email for real users.
-- [ ] **`zod` 3.23 → 4.x** and **`typescript` 5.6 → 7.x** — both majors, both worth doing deliberately rather than in the middle of something else.
+- [ ] **`typescript` 6 → 7.** Held, not skipped: typescript-eslint's current release (8.67) declares `typescript ">=4.8.4 <6.1.0"` and hard-throws `does not support TS 7.0` at config load, so taking 7 today means shipping with no linting — and lint is a CI gate. Revisit when typescript-eslint ships TS 7 support.
 - [ ] **Branch protection on `main`.** Still unprotected, so CI is advisory rather than enforced. Worth turning on now that the pipeline is real.
 - [ ] **Match Postgres versions.** Production is 18; the local test container in [Setup](#-setup) is 16. Fine so far, but testing against a different major than you deploy to is a bet, not a plan.
 - [ ] **Password reset.**
 
 ## 🧰 Tech stack
 
-- **Frontend**: React 19, TypeScript, Vite 8 (Rolldown), CSS Modules
-- **Backend**: Node.js 20, Express 5, TypeScript, `ws`
+- **Frontend**: React 19, TypeScript 6, Vite 8 (Rolldown), CSS Modules
+- **Backend**: Node.js 20, Express 5, TypeScript 6, `ws`
 - **Database**: Postgres via Prisma 7 (`@prisma/adapter-pg`)
 - **Validation**: Zod
 - **External API**: Massive (REST + WebSocket), formerly Polygon.io
