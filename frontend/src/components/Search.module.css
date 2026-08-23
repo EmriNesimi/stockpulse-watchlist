@@ -26,8 +26,13 @@
   color: var(--color-foreground-muted);
 }
 
+  /* The input itself has outline: none because the ring belongs on the
+     wrapper, which is what visually reads as the field. A border tint
+     alone was thinner than every other focus target in the app. */
 .inputRow:focus-within {
   border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .results {

@@ -116,9 +116,12 @@
   color: var(--color-foreground-muted);
 }
 
+  /* No outline: none here. The global :focus-visible ring in index.css is
+     the app's advertised focus indicator; swapping it for a 1px border tint
+     made these fields — login, password reset, search, holdings — the least
+     visible focus targets in the app, which is backwards. */
 .input:focus-visible {
   border-color: var(--color-accent);
-  outline: none;
 }
 
 .submitButton {

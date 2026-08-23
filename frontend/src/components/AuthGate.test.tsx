@@ -294,3 +294,42 @@ describe("AuthGate — password reset", () => {
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/invalid or has expired/i));
   });
 });
+
+describe("AuthGate — accessibility", () => {
+  const props = { onAuthenticated: vi.fn(), theme: "dark" as const, onToggleTheme: vi.fn() };
+
+  // Regression: "Forgot your password?" only renders in login mode, so clicking
+  // it unmounted the very button holding focus and the browser fell back to
+  // <body> — a keyboard user lost their place with no announcement.
+  it("moves focus to the new heading when the mode changes", async () => {
+    const user = userEvent.setup();
+    render(<AuthGate {...props} />);
+
+    await user.click(screen.getByRole("button", { name: /forgot your password/i }));
+
+    const heading = await screen.findByRole("heading", { name: "Reset your password" });
+    expect(heading).toHaveFocus();
+    expect(document.body).not.toHaveFocus();
+  });
+
+  it("does not steal focus on first paint", () => {
+    render(<AuthGate {...props} />);
+    expect(screen.getByRole("heading", { name: "Welcome back" })).not.toHaveFocus();
+  });
+
+  it("keeps the showcase copy readable by assistive tech", () => {
+    render(<AuthGate {...props} />);
+
+    // getByText alone is not enough here — it ignores aria-hidden, so it
+    // passes whether or not the copy is exposed. Walk up and assert nothing
+    // between the text and the root hides it.
+    let node: HTMLElement | null = screen.getByText(/real-time prices/i);
+    while (node) {
+      expect(node.getAttribute("aria-hidden")).not.toBe("true");
+      node = node.parentElement;
+    }
+
+    // The chart itself is decorative and should still be hidden.
+    expect(document.querySelector("svg[aria-hidden='true']")).toBeInTheDocument();
+  });
+});

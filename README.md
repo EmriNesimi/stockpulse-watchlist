@@ -30,6 +30,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - [Design system](#-design-system)
 - [Setup](#-setup)
 - [Contributing](#-contributing-to-this-repo)
+- [Accessibility](#-accessibility)
 - [Deployment](#-deployment)
 - [API reference](#-api-reference)
 - [Environment variables](#️-environment-variables-backendenv)
@@ -49,11 +50,11 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - 🧭 **Sidebar app shell** — Dashboard, Wallet, and Profile as real screens, plus a per-ticker Stock screen reached by clicking a row. Navigation is plain state, no router dependency, and the WebSocket subscription stays up across screen changes.
 - 💰 **Wallet** — total value, total cost, and profit in $ and %, computed from the shares and cost basis you enter. While any holding is still waiting on its first tick the totals show a dash rather than a partial sum that would silently understate them.
 - 👤 **Profile** — account email, verification status, and inline shares/cost-basis entry per ticker. This is what turns a watched symbol into a tracked position.
-- 🌓 **Light and dark themes** — light by default (matching the reference), switchable from the header, persisted to `localStorage`. Both palettes are contrast-checked, not just eyeballed.
+- 🌓 **Light and dark themes** — light by default (matching the reference), switchable from the header, persisted to `localStorage`. Both palettes are contrast-checked against composed UI, not just base tokens — the light theme originally wasn't, and three real failures came out of checking it properly.
 - 🟢 **Transparent data source** — a LIVE/SIM badge on every price and a connection-status indicator in the header, so it's never a mystery whether you're looking at real trades or the simulated fallback.
 - 🔔 **Price alerts** — set a one-shot "notify me when AAPL crosses $200" alert per symbol (the bell icon on each row); fires once as soon as a tick crosses the threshold, delivered over the same WebSocket connection as an `{"type":"alert"}` message and shown as a dismissible toast.
 - 🔌 **Works with zero setup** — no API key, no account, no config required to run it and see it working end to end.
-- ♿ **Accessible by default** — throttled screen-reader announcements, keyboard support, visible focus states, and full `prefers-reduced-motion` compliance.
+- ♿ **Accessible by default** — throttled screen-reader announcements, keyboard support, visible focus states, and full `prefers-reduced-motion` compliance. Audited against WCAG 2.2 AA rather than assumed; see [Accessibility](#-accessibility) for what that audit found and what's still open.
 - ⚠️ **Visible failure states** — a failed watchlist load, ticker add, or alert creation now surfaces as a dismissible error toast instead of failing silently, and the watchlist table distinguishes "loading" from "genuinely empty" on first load.
 - 🔐 **Real multi-user accounts** — email/password signup and login (scrypt-hashed, signed session cookie), each user gets their own private watchlist and alerts. Price ticks stay public over the WebSocket (they're just market data), but price-alert notifications are routed only to the connection belonging to the alert's owner.
 
@@ -74,7 +75,7 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
 - **Backend**: Express API, Prisma/Postgres persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), a WebSocket broadcaster that fans price ticks out to connected clients with per-IP rate limits and per-connection size/subscription limits, and real multi-user auth (scrypt password hashing, signed session cookies, per-user watchlists/alerts).
 - **Frontend**: Vite + React + TS app built against a Figma trading-dashboard reference — a login/signup gate, a sidebar shell with Dashboard/Wallet/Profile/Stock screens, portfolio cards and a watching rail, debounced ticker search wired to the real API, a watchlist table with sparklines, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, a connection-status indicator, and a light/dark theme toggle.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
-- **Testing**: 556 tests total — 243 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 313 on the frontend (hooks, API client, portfolio maths, WebSocket message validation, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
+- **Testing**: 559 tests total — 243 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 316 on the frontend (hooks, API client, portfolio maths, WebSocket message validation, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
 
 ## 🏗️ Architecture
@@ -289,7 +290,7 @@ Backend tests: `cd backend && npm test` (Vitest — schema validation, `Simulate
 
 The suite drops and recreates the schema before every run, so it refuses to start against anything that isn't localhost — that guard is the only thing standing between a stray `DATABASE_URL` and your production data. See `src/test/globalSetup.ts`.
 
-Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, `useHistory` and the `CandlestickChart` it feeds, `useErrorToasts` and the `ErrorToast` it feeds, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load and its loading state, search → add, optimistic remove + rollback, live connection status and price updates, both halves of the alert feature, and the three error-toast failure paths, end to end. 313 tests total.)
+Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, `useHistory` and the `CandlestickChart` it feeds, `useErrorToasts` and the `ErrorToast` it feeds, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load and its loading state, search → add, optimistic remove + rollback, live connection status and price updates, both halves of the alert feature, and the three error-toast failure paths, end to end. 316 tests total.)
 
 The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Massive account to run or demo this.
 
@@ -329,6 +330,34 @@ git switch -c your-branch
 git push -u origin your-branch
 gh pr create --fill && gh pr merge --squash
 ```
+
+## ♿ Accessibility
+
+Audited against **WCAG 2.2 AA**. Worth being specific about, because the claims above were previously unverified and two of them turned out to be partly wrong.
+
+**Verified sound:** the collapsed sidebar icon rail carries correct accessible names at every breakpoint (the `aria-label` never depends on the CSS that hides the visible text). Screen-reader price announcements really are throttled to one per 8s through an always-mounted live region. `prefers-reduced-motion` is comprehensive — every animation and transition is CSS-driven, so the blanket override in `index.css` genuinely catches all of them. The SVG sparkline and candlestick chart expose data-derived labels rather than raw markup. Table semantics and touch-target sizes (SC 2.5.8) hold up throughout.
+
+**Fixed as a result:**
+
+| Issue | Was |
+|---|---|
+| Focus lost to `<body>` when the auth form changed mode | keyboard users lost their place silently |
+| `aria-hidden` wrapping real marketing copy, not just the hero chart | screen readers never got it |
+| "Email not verified" badge using a fill colour as text | 1.91:1 |
+| Accent text on `--color-accent-soft` (active nav) | 4.33:1 |
+| Bearish text on a hovered row | 4.16:1 |
+| Bearish text on the page background | 4.51:1 — a pass by 0.01 |
+| Form inputs replacing the 2px focus ring with a 1px border tint | least-visible focus targets in the app |
+
+Ratios were computed from the token hex values and re-derived independently rather than taken from the audit on trust — which was worth doing, since one reported failure (accent text on white, claimed 4.06:1) actually measures **5.03:1** and passes. The dark theme was measured too and already cleared AA everywhere, so only light-theme values moved.
+
+**Still open, honestly:**
+
+- The watchlist table has no `overflow-x` escape hatch, so it may clip at 320px or 400% zoom (SC 1.4.10). `WalletView` already does this correctly — same pattern needs applying. Needs a browser measurement to confirm it actually breaks.
+- Resting form inputs sit at 1.07:1 against their card (SC 1.4.11 non-text contrast) — the fill is nearly the same as the surface, so the field boundary is hard to locate before focusing it.
+- The auth notice banners mount conditionally rather than swapping text in an always-present live region. Support for that pattern varies by screen reader; needs a real NVDA/VoiceOver pass to decide if it matters.
+- The sidebar uses `<aside>` around primary navigation. The inner `<nav aria-label="Main">` is right; the outer landmark is a soft mismatch.
+- React correctness and type-safety have still never been independently audited.
 
 ## 🚢 Deployment
 

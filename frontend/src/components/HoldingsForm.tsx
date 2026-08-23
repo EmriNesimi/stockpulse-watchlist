@@ -83,6 +83,7 @@ export default function HoldingsForm({ item, onSave, onClear, onCancel }: Holdin
           onChange={(e) => setShares(e.target.value)}
           placeholder="10"
           aria-invalid={invalid}
+          aria-describedby={invalid ? "holdings-error" : undefined}
           className={`tabular-nums ${styles.input} ${invalid ? styles.inputInvalid : ""}`}
         />
       </div>
@@ -102,6 +103,7 @@ export default function HoldingsForm({ item, onSave, onClear, onCancel }: Holdin
           onChange={(e) => setCostBasis(e.target.value)}
           placeholder="150.00"
           aria-invalid={invalid}
+          aria-describedby={invalid ? "holdings-error" : undefined}
           className={`tabular-nums ${styles.input} ${invalid ? styles.inputInvalid : ""}`}
         />
       </div>
@@ -126,7 +128,7 @@ export default function HoldingsForm({ item, onSave, onClear, onCancel }: Holdin
       </div>
 
       {error && (
-        <p role="alert" className={styles.error}>
+        <p id="holdings-error" role="alert" className={styles.error}>
           {error}
         </p>
       )}
