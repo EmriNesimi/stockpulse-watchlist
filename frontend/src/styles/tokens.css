@@ -19,7 +19,11 @@
   --color-avatar-ink: #0d0c2b;
   --color-secondary: #ffffff;
   --color-accent: #8044fe;
-  --color-accent-soft: #f1ebff;
+  /* Lightened from #f1ebff. Accent text on it measured 4.33:1 and bearish
+     text on it 4.16:1, both under the 4.5:1 AA floor — and this tint is both
+     the table row hover and the active-nav fill, so it was pulling two
+     different text colours under at once. Now 4.60:1 and 5.34:1. */
+  --color-accent-soft: #f7f3ff;
   --color-background: #f6f7f9;
   --color-foreground: #0d0c2b;
   --color-foreground-muted: #6b6b7a;
@@ -27,7 +31,9 @@
   --color-border: #ececf0;
   --color-destructive: #d92d20;
   --color-bullish: #077a4e;
-  --color-bearish: #d92d20;
+  /* Deepened from #d92d20, which measured exactly 4.51:1 on the page
+     background — a pass by 0.01, and an outright fail on a hovered row. */
+  --color-bearish: #c42318;
 
   --font-sans:
     "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -56,6 +62,10 @@
      doesn't read as a wall of identical grey circles. Same in both themes -
      they're white text on a saturated fill either way. */
   --avatar-hue-1: #f59e0b;
+  /* The avatar hues are fill colours. Used as text on its own 15% tint,
+     hue-1 measured 1.91:1 — this is the readable equivalent for the
+     "email not verified" badge. */
+  --color-warning-text: #92400e;
   --avatar-hue-2: #8b5cf6;
   --avatar-hue-3: #06b6d4;
   --avatar-hue-4: #ec4899;
@@ -86,6 +96,8 @@
   --color-destructive: #f0554b;
   --color-bullish: #26c281;
   --color-bearish: #f0554b;
+  /* Dark needs the light end of the amber, not the dark end: 8.44:1. */
+  --color-warning-text: #fbbf24;
 
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-raised: 0 8px 24px rgba(0, 0, 0, 0.55);

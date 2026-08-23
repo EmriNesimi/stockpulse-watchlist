@@ -71,7 +71,7 @@
 }
 
 .unverified {
-  color: var(--avatar-hue-1);
+  color: var(--color-warning-text);
   background: color-mix(in srgb, var(--avatar-hue-1) 15%, transparent);
 }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChartLineUp } from "@phosphor-icons/react";
 import { login, requestPasswordReset, resetPassword, signup, type AuthUser } from "../lib/api";
 import type { Theme } from "../hooks/useTheme";
@@ -70,6 +70,19 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
   const [notice, setNotice] = useState<string | null>(null);
   const [passwordMismatch, setPasswordMismatch] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const initialMode = useRef(mode);
+
+  // Switching mode swaps the whole form out from under the user, and the
+  // control that triggered it is often inside the block being unmounted —
+  // "Forgot your password?" only renders in login mode, so clicking it left
+  // focus on a removed node and the browser fell back to <body>. Moving focus
+  // to the new heading keeps the keyboard position sane and gives screen
+  // readers something to announce, which nothing else here did.
+  useEffect(() => {
+    if (mode === initialMode.current) return; // don't steal focus on first paint
+    headingRef.current?.focus();
+  }, [mode]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -161,7 +174,9 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
           )}
 
           <div className={styles.heading}>
-            <h1 className={styles.title}>{TITLES[mode]}</h1>
+            <h1 ref={headingRef} tabIndex={-1} className={styles.title}>
+              {TITLES[mode]}
+            </h1>
             <p className={styles.subtitle}>{SUBTITLES[mode]}</p>
           </div>
 
@@ -257,8 +272,10 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
         </div>
       </div>
 
-      <div className={styles.showcase} aria-hidden="true">
-        <svg className={styles.showcaseChart} viewBox="0 0 600 900" preserveAspectRatio="xMidYMid slice">
+      {/* Only the chart is decorative — the copy underneath is real content
+          and was being hidden from screen readers by sharing this wrapper. */}
+      <div className={styles.showcase}>
+        <svg className={styles.showcaseChart} viewBox="0 0 600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <defs>
             <radialGradient id="heroGlow" cx="30%" cy="20%" r="70%">
               <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.28" />

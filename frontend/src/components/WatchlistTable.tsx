@@ -57,7 +57,7 @@ export default function WatchlistTable({
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
-        <span className={styles.cardTitle}>Watchlist</span>
+        <h2 className={styles.cardTitle}>Watchlist</h2>
         <span className={styles.cardCount}>
           {items.length} {items.length === 1 ? "ticker" : "tickers"}
         </span>
