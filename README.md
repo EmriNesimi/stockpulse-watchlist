@@ -31,6 +31,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - [Setup](#-setup)
 - [Contributing](#-contributing-to-this-repo)
 - [Accessibility](#-accessibility)
+- [Backups](#-backups)
 - [Deployment](#-deployment)
 - [API reference](#-api-reference)
 - [Environment variables](#️-environment-variables-backendenv)
@@ -68,6 +69,8 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 | API | https://stockpulse-api-n3yu.onrender.com |
 
 Both come out of `render.yaml` (see [Deployment](#-deployment)). The free instance sleeps when idle, so the first request after a quiet spell takes ~50s to wake — that's the platform, not the app.
+
+> **The free database is deleted on 20 September 2026**, not suspended. See [Backups](#-backups) — that script is the whole contingency.
 
 Feature-complete for the initial build. Built incrementally, commit by commit — full history on the repo shows each piece landing and getting manually tested before the next one started.
 
@@ -358,6 +361,36 @@ Ratios were computed from the token hex values and re-derived independently rath
 - The auth notice banners mount conditionally rather than swapping text in an always-present live region. Support for that pattern varies by screen reader; needs a real NVDA/VoiceOver pass to decide if it matters.
 - The sidebar uses `<aside>` around primary navigation. The inner `<nav aria-label="Main">` is right; the outer landmark is a soft mismatch.
 - React correctness and type-safety have still never been independently audited.
+
+## 💾 Backups
+
+The Render free database is **deleted on its expiry date**, not suspended. Losing it loses every account, watchlist and holding, and nothing in this repo prevents that — the only protection is having a copy somewhere else.
+
+```bash
+# the EXTERNAL connection string from the Render dashboard; the internal
+# hostname only resolves from inside Render's network
+DATABASE_URL='postgresql://...' ./scripts/backup-db.sh
+```
+
+Writes a timestamped `backups/stockpulse-<date>.sql.gz`. Read-only — it never writes to the database.
+
+Two things worth knowing about how it works:
+
+- **`pg_dump` runs inside the `postgres:18` image**, not from a local install. Partly because there's no `pg_dump` on the dev machine, but mainly because `pg_dump` refuses to dump a server newer than itself. Pinning the image to the server's major is what stops this quietly breaking the next time Postgres is upgraded — the failure mode otherwise is a backup script that looks fine and produces nothing.
+- **It verifies the dump before claiming success.** `pg_dump` exits 0 on a truncated or empty result just as happily as a good one, so the script checks all four tables are actually present and reports how many data blocks it captured.
+
+To restore, into a **new, empty** database:
+
+```bash
+gzip -dc backups/stockpulse-<date>.sql.gz \
+  | docker run --rm -i -e DATABASE_URL postgres:18 psql "$DATABASE_URL"
+```
+
+The dump includes `_prisma_migrations`, so a restored database already knows which migrations have run and `prisma migrate deploy` won't try to replay them. It does **not** drop anything first — restoring over a database that still has rows will collide on primary keys. That's deliberate: a restore script that silently wipes the target is worse than one that refuses.
+
+Verified end to end, not just written: dumped a seeded database, restored it into a fresh one, and confirmed the rows came back.
+
+`backups/` and `*.sql.gz` are gitignored. A dump contains real emails and password hashes.
 
 ## 🚢 Deployment
 
