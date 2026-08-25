@@ -34,3 +34,8 @@ npm-debug.log*
 .vscode/
 .idea/
 .serena/
+
+# Database dumps — these contain real user emails and password hashes.
+# Never commit one.
+backups/
+*.sql.gz
