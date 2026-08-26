@@ -70,7 +70,7 @@ describe("AuthGate", () => {
   // whether or not the address already exists, so there's no session to
   // adopt. It drops you on the login form with a neutral message instead.
   it("signs up, then returns to the login form with the server's message", async () => {
-    vi.mocked(signup).mockResolvedValue({ message: "Check your email to confirm your address, then log in." });
+    vi.mocked(signup).mockResolvedValue({ message: "You can log in now. If a confirmation email arrives, it verifies your address — nothing depends on it." });
     const onAuthenticated = vi.fn();
     const user = userEvent.setup();
     render(<AuthGate onAuthenticated={onAuthenticated} theme="dark" onToggleTheme={vi.fn()} />);
@@ -83,7 +83,7 @@ describe("AuthGate", () => {
 
     expect(signup).toHaveBeenCalledWith("new@example.com", "brand-new-password");
     await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent("Check your email to confirm your address")
+      expect(screen.getByRole("status")).toHaveTextContent("You can log in now")
     );
     expect(screen.getByRole("form", { name: "Log in" })).toBeInTheDocument();
     // Never authenticated off the back of a signup.
