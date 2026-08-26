@@ -155,3 +155,12 @@
   padding: 0 var(--space-5) var(--space-4);
   background: var(--color-muted);
 }
+
+/* Same reasoning as WalletView's holdings table: .card sets overflow:hidden to
+   clip its rounded corners, which also clips the table itself once six columns
+   plus a sparkline outgrow the card. Wrapping the table gives it somewhere to
+   go at 320px and at 400% zoom (SC 1.4.10) instead of the content simply
+   disappearing. Always scrollable, so the focus stop behaves consistently. */
+.scroll {
+  overflow-x: auto;
+}
