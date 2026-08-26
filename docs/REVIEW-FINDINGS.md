@@ -48,6 +48,12 @@ All four held up under adversarial re-examination. Specifically confirmed sound:
 
 ### Open items
 
+> **All three below were fixed on 2026-08-22–23 and are kept for the reasoning,
+> not as outstanding work.** 1 and 2 are closed in `render.yaml` and
+> `ws/broadcaster.ts`; the SPA-fallback note further down is closed by the
+> rewrite rule in `render.yaml`. Current open items live in the README's
+> Accessibility section, which supersedes this file.
+
 **1. Low — clickjacking header missing (defence in depth)**
 A CSP delivered via `<meta http-equiv>` silently ignores `frame-ancestors` per
 spec. Our policy doesn't set it, so nothing was lost — but the frontend

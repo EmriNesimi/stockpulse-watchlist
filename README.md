@@ -351,15 +351,15 @@ Audited against **WCAG 2.2 AA**. Worth being specific about, because the claims 
 | Bearish text on a hovered row | 4.16:1 |
 | Bearish text on the page background | 4.51:1 — a pass by 0.01 |
 | Form inputs replacing the 2px focus ring with a 1px border tint | least-visible focus targets in the app |
+| Resting input boundary against its card | 1.07:1 — now a dedicated token at 3.24:1 |
+| Watchlist table clipped by the card's `overflow: hidden` | no escape hatch at 320px or 400% zoom |
+| `<aside>` announcing primary nav as complementary | now a plain wrapper; the inner `<nav>` does the work |
 
 Ratios were computed from the token hex values and re-derived independently rather than taken from the audit on trust — which was worth doing, since one reported failure (accent text on white, claimed 4.06:1) actually measures **5.03:1** and passes. The dark theme was measured too and already cleared AA everywhere, so only light-theme values moved.
 
 **Still open, honestly:**
 
-- The watchlist table has no `overflow-x` escape hatch, so it may clip at 320px or 400% zoom (SC 1.4.10). `WalletView` already does this correctly — same pattern needs applying. Needs a browser measurement to confirm it actually breaks.
-- Resting form inputs sit at 1.07:1 against their card (SC 1.4.11 non-text contrast) — the fill is nearly the same as the surface, so the field boundary is hard to locate before focusing it.
 - The auth notice banners mount conditionally rather than swapping text in an always-present live region. Support for that pattern varies by screen reader; needs a real NVDA/VoiceOver pass to decide if it matters.
-- The sidebar uses `<aside>` around primary navigation. The inner `<nav aria-label="Main">` is right; the outer landmark is a soft mismatch.
 - React correctness and type-safety have still never been independently audited.
 
 ## 💾 Backups

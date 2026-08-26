@@ -29,6 +29,10 @@
   --color-foreground-muted: #6b6b7a;
   --color-muted: #f6f7f9;
   --color-border: #ececf0;
+  /* --color-border is decorative (1.1:1) — fine for dividers, far below the
+     3:1 SC 1.4.11 needs for a control boundary. Inputs were relying on their
+     fill alone, which sits at 1.07:1 against the card. 3.24:1. */
+  --color-input-border: #8e8e99;
   --color-destructive: #d92d20;
   --color-bullish: #077a4e;
   /* Deepened from #d92d20, which measured exactly 4.51:1 on the page
@@ -93,6 +97,7 @@
   --color-foreground-muted: #9494a6;
   --color-muted: #1b1b28;
   --color-border: #262636;
+  --color-input-border: #63637a; /* 3.13:1 on the dark card */
   --color-destructive: #f0554b;
   --color-bullish: #26c281;
   --color-bearish: #f0554b;

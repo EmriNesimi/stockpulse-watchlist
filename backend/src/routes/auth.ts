@@ -110,7 +110,12 @@ router.post(
     }
 
     res.status(202).json({
-      message: "Check your email to confirm your address, then log in.",
+      // Deliberately promises nothing. The default Resend sender only reaches
+      // the account owner, so for most addresses no mail ever arrives — and
+      // verification gates nothing anyway, so telling people to wait for it
+      // sent them looking for something that was never coming. Still worded
+      // identically for a new and an existing address.
+      message: "You can log in now. If a confirmation email arrives, it verifies your address — nothing depends on it.",
     });
   })
 );

@@ -62,7 +62,8 @@ export default function WatchlistTable({
           {items.length} {items.length === 1 ? "ticker" : "tickers"}
         </span>
       </div>
-      <table className={styles.table}>
+      <div className={styles.scroll} tabIndex={0} role="region" aria-label="Watchlist">
+        <table className={styles.table}>
         <thead>
           <tr className={styles.headerRow}>
             <th scope="col" className={styles.th}>Symbol</th>
@@ -111,7 +112,8 @@ export default function WatchlistTable({
             );
           })}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }
