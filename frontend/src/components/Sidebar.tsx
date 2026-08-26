@@ -41,7 +41,7 @@ export default function Sidebar({ current, onNavigate, onSignOut }: SidebarProps
   }
 
   return (
-    <aside className={styles.sidebar}>
+    <div className={styles.sidebar}>
       <div className={styles.brandRow}>
         <span className={styles.brandMark}>
           <ChartLineUp size={18} weight="bold" aria-hidden />
@@ -64,6 +64,6 @@ export default function Sidebar({ current, onNavigate, onSignOut }: SidebarProps
         <SignOut size={20} className={styles.icon} aria-hidden />
         <span className={styles.label}>Sign out</span>
       </button>
-    </aside>
+    </div>
   );
 }
