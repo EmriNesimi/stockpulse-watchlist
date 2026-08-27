@@ -261,7 +261,7 @@ Requires Node ≥20.19.0 (or ≥22.12.0) — that's what Vite 8/Rolldown need. A
 >
 > - **`jsdom` at 27** — 28+ pulls an `undici` that calls `webidl.util.markAsUncloneable`, a Node 22 API. On the pinned Node 20 the test suite fails to collect at all.
 > - **`@types/node` at 20** — types should track the Node major actually being run. Types ahead of the runtime let TypeScript accept calls that don't exist at execution time, which quietly removes the guard rail.
-> - **`cookie` at 0.7** — v2 renames the `parse` export to `parseCookie`. The resolution half of this hold is gone: the backend moved to `node16`, so the `exports`-map-only types now resolve fine. What's left is the rename itself, and there's no outstanding advisory, so it's a tidy-up rather than a fix.
+> - **`cookie` at 0.7** — tried v2 and backed it out. The rename (`parse` → `parseCookie`) is trivial and the `node16` migration did fix the types resolution, but underneath both sits the real blocker: **v2 is ESM-only**, and this package emits CommonJS, so `require()` can't load it at all (`TS1479`). Taking it means converting the whole backend to ESM, which is a far bigger change than a dependency bump and buys nothing here — there's no advisory against 0.7. Note the stale `@types/cookie` also has to go when this eventually happens; it shadows v2's own bundled types.
 > - **`deepmerge-ts` forced to 8** via an `overrides` entry — Prisma 7's CLI pins 7.1.5, which carries a high-severity stack-exhaustion advisory (GHSA-ggr8-5vv4-36mx). The CLI works fine on 8, and `npm audit` is a CI gate.
 
 The backend needs a Postgres to talk to. The quickest local one is a container:
