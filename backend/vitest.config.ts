@@ -13,6 +13,11 @@ export default defineConfig({
       DATABASE_URL: process.env.TEST_DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/stockpulse_test",
     },
     globalSetup: ["./src/test/globalSetup.ts"],
+    // Same reason as the frontend's: the route tests talk to a real Postgres
+    // over supertest, so a busy machine can push one past the default 5s and
+    // fail a suite that is not actually broken — seen once already, passing
+    // on the rerun. A red run should mean something went wrong.
+    testTimeout: 15_000,
     // Route test files that hit the db all share the same underlying SQLite
     // file and the same single "default-user" watchlist row. Running test
     // files in parallel (vitest's default) lets one file's afterEach
