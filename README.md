@@ -415,7 +415,7 @@ Four things about deploying this bit, none of which reproduce locally:
 
 | Method | Path | Body / Query | Response |
 |---|---|---|---|
-| `GET` | `/health` | — | `{ "status": "ok" }` |
+| `GET` | `/health` | — | `200` `{ "status": "ok", "database": "ok" }` · `503` `{ "status": "unavailable" }` if Postgres doesn't answer. Render routes traffic on this, so it runs a real query rather than answering unconditionally — and returns no error detail, since it's public and connection errors quote hostnames and usernames |
 | `POST` | `/api/auth/signup` | `{ email, password }` | `202` `{ message }` — identical whether or not the address is already registered, and never sets a session (log in as a separate step) · `400` on invalid input |
 | `POST` | `/api/auth/login` | `{ email, password }` | `200` `{ user }` + sets session cookie · `401` on bad credentials (same error either way, doesn't reveal which was wrong) |
 | `POST` | `/api/auth/logout` | — | `204`, clears the session cookie |
