@@ -4,6 +4,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import { env } from "./env";
+import { prisma } from "./db";
 import { attachUserId, requireAuth } from "./auth/middleware";
 import authRouter from "./routes/auth";
 import watchlistRouter from "./routes/watchlist";
@@ -66,8 +67,21 @@ export function createApp() {
   });
   app.use("/api/auth", authLimiter);
 
-  app.get("/health", (_req, res) => {
-    res.json({ status: "ok" });
+  // Render decides whether an instance is live from this, and routes traffic
+  // accordingly. Answering ok without checking anything meant an instance that
+  // couldn't reach Postgres still reported healthy and kept taking requests
+  // that were all going to 500 — the deploy would look successful while every
+  // page was broken.
+  app.get("/health", async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch {
+      // Deliberately no detail: this endpoint is public, and connection errors
+      // carry hostnames and usernames.
+      return res.status(503).json({ status: "unavailable", database: "unreachable" });
+    }
+
+    res.json({ status: "ok", database: "ok" });
   });
 
   app.use("/api/auth", authRouter);
