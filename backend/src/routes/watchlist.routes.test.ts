@@ -4,7 +4,7 @@ import { createApp } from "../app";
 import { prisma } from "../db";
 
 // Exercises the real route handlers end to end (Express + zod + Prisma)
-// against a throwaway SQLite db (see vitest.config.ts / test/globalSetup.ts)
+// against a throwaway Postgres db (see vitest.config.ts / test/globalSetup.ts)
 // — not mocks. This is what actually catches wiring bugs the unit tests on
 // the schemas alone can't see.
 const app = createApp();

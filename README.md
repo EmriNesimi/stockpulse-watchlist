@@ -78,7 +78,7 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
 - **Backend**: Express API, Prisma/Postgres persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), a WebSocket broadcaster that fans price ticks out to connected clients with per-IP rate limits and per-connection size/subscription limits, and real multi-user auth (scrypt password hashing, signed session cookies, per-user watchlists/alerts).
 - **Frontend**: Vite + React + TS app built against a Figma trading-dashboard reference — a login/signup gate, a sidebar shell with Dashboard/Wallet/Profile/Stock screens, portfolio cards and a watching rail, debounced ticker search wired to the real API, a watchlist table with sparklines, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, a connection-status indicator, and a light/dark theme toggle.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
-- **Testing**: 559 tests total — 243 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 316 on the frontend (hooks, API client, portfolio maths, WebSocket message validation, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
+- **Testing**: 562 tests total — 246 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 316 on the frontend (hooks, API client, portfolio maths, WebSocket message validation, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
 
 ## 🏗️ Architecture
@@ -289,7 +289,7 @@ Then open `http://localhost:5173` — search a ticker, add it, and it should sta
 
 Linting: `npm run lint` in either package (ESLint 9 flat config; the frontend adds `react-hooks` and `jsx-a11y`, both wired into CI).
 
-Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts/history routes via `supertest` against a real throwaway Postgres database, price-alert triggering logic, the simulated OHLC candle generator, the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits including the per-IP budget surviving a reconnect, shared-subscription cleanup, and alert delivery — and `env.ts`'s production fail-fast behavior via fresh module re-imports. 243 tests total, no real network calls anywhere in the suite).
+Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts/history routes via `supertest` against a real throwaway Postgres database, price-alert triggering logic, the simulated OHLC candle generator, the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits including the per-IP budget surviving a reconnect, shared-subscription cleanup, and alert delivery — and `env.ts`'s production fail-fast behavior via fresh module re-imports. 246 tests total, no real network calls anywhere in the suite).
 
 The suite drops and recreates the schema before every run, so it refuses to start against anything that isn't localhost — that guard is the only thing standing between a stray `DATABASE_URL` and your production data. See `src/test/globalSetup.ts`.
 
@@ -415,7 +415,7 @@ Four things about deploying this bit, none of which reproduce locally:
 
 | Method | Path | Body / Query | Response |
 |---|---|---|---|
-| `GET` | `/health` | — | `{ "status": "ok" }` |
+| `GET` | `/health` | — | `200` `{ "status": "ok", "database": "ok" }` · `503` `{ "status": "unavailable" }` if Postgres doesn't answer. Render routes traffic on this, so it runs a real query rather than answering unconditionally — and returns no error detail, since it's public and connection errors quote hostnames and usernames |
 | `POST` | `/api/auth/signup` | `{ email, password }` | `202` `{ message }` — identical whether or not the address is already registered, and never sets a session (log in as a separate step) · `400` on invalid input |
 | `POST` | `/api/auth/login` | `{ email, password }` | `200` `{ user }` + sets session cookie · `401` on bad credentials (same error either way, doesn't reveal which was wrong) |
 | `POST` | `/api/auth/logout` | — | `204`, clears the session cookie |
