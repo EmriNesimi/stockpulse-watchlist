@@ -92,7 +92,12 @@ so this works locally — but a static host must be configured to rewrite
 
 ## Not yet reviewed
 
-React correctness, TypeScript type safety, and WCAG 2.2 AA accessibility across
-the redesigned screens remain unaudited. The accessibility gap is the most
-material: contrast ratios in both themes and the icon-rail breakpoint's
-accessible names were never independently checked.
+React correctness and TypeScript type safety remain unaudited — nobody has
+looked at either, and they're now the last unexamined part of the codebase.
+
+**Accessibility is no longer on this list.** It was audited against WCAG 2.2 AA
+on 2026-08-23. Both worries named here turned out to be worth having: the
+light theme had not been contrast-checked to the same standard as the dark
+theme and three composed-UI combinations failed outright, though the icon-rail
+accessible names were in fact correct at every breakpoint. Findings and what's
+still open live in the README's Accessibility section.
