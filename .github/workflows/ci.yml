@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [main]
 
+# Pushing twice to a branch used to leave the first run grinding through the
+# whole matrix for a commit nobody is waiting on. Cancel superseded runs
+# instead — except on main, where each commit's result is the record of
+# whether that commit was good and shouldn't be thrown away.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   secret-scan:
     name: Secret pattern scan
