@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EmriNesimi/stockpulse-watchlist.git",
+    "directory": "backend"
+  },
   "description": "StockPulse backend \u2014 Express REST API, WebSocket price broadcaster, Prisma/Postgres persistence, Massive integration",
   "main": "dist/server.js",
   "engines": {
