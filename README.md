@@ -31,6 +31,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - [Setup](#-setup)
 - [Contributing](#-contributing-to-this-repo)
 - [Accessibility](#-accessibility)
+- [Known issues](#-known-issues)
 - [Backups](#-backups)
 - [Deployment](#-deployment)
 - [API reference](#-api-reference)
@@ -361,6 +362,17 @@ Ratios were computed from the token hex values and re-derived independently rath
 
 - The auth notice banners mount conditionally rather than swapping text in an always-present live region. Support for that pattern varies by screen reader; needs a real NVDA/VoiceOver pass to decide if it matters.
 - React correctness and type-safety have still never been independently audited.
+
+## 🐛 Known issues
+
+**The backend suite is intermittently red.** Three separate runs failed this week, each on a different test, each passing alone and passing again on a rerun — so a failure here is worth rerunning once before believing it.
+
+What's been ruled out, with measurements rather than guesses:
+
+- **Not connection exhaustion.** Sampled `pg_stat_activity` throughout a full run: it peaks at **2** connections against a limit of 100.
+- **Not just the timeout.** The default 5s was too tight for tests that drive real timers, and both suites now allow 15s — but one run still failed after that change, so the timeout was a contributing factor at most.
+
+Still undiagnosed. Nine test files share one Postgres database and run serially (`fileParallelism: false`), so a cross-file ordering effect is the obvious next place to look — but it hasn't been reproduced deliberately yet, and guessing at a fix for something that won't reproduce is how you end up with two problems.
 
 ## 💾 Backups
 
