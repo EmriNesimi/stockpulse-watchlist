@@ -517,6 +517,10 @@ Things that would make sense to add next, roughly in order of value:
 
 - [ ] **`typescript` 6 → 7.** Held, not skipped: typescript-eslint's current release (8.67) declares `typescript ">=4.8.4 <6.1.0"` and hard-throws `does not support TS 7.0` at config load, so taking 7 today means shipping with no linting — and lint is a CI gate. Revisit when typescript-eslint ships TS 7 support.
 
+## 📄 Licence
+
+MIT — see [LICENSE](LICENSE).
+
 ## 🧰 Tech stack
 
 - **Frontend**: React 19, TypeScript 6, Vite 8 (Rolldown), CSS Modules
