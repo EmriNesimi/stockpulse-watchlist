@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "../app";
 import { prisma } from "../db";
@@ -14,6 +14,12 @@ afterEach(async () => {
   await prisma.watchlistItem.deleteMany();
   await prisma.watchlist.deleteMany();
   await prisma.user.deleteMany();
+});
+
+// Every other db-touching test file closes its pool; these three didn't, which
+// left the run relying on worker teardown to do it.
+afterAll(async () => {
+  await prisma.$disconnect();
 });
 
 async function signUp(email = EMAIL) {

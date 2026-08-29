@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { createApp } from "./app";
 import { prisma } from "./db";
@@ -13,6 +13,12 @@ describe("GET /health", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: "ok", database: "ok" });
+
+// Every other db-touching test file closes its pool; these three didn't, which
+// left the run relying on worker teardown to do it.
+afterAll(async () => {
+  await prisma.$disconnect();
+});
   });
 
   // The point of the endpoint: Render routes traffic based on it, so an
