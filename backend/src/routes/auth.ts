@@ -137,7 +137,7 @@ router.post(
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) return invalidCredentials();
 
-    res.cookie(SESSION_COOKIE_NAME, createSessionCookieValue(user.id), SESSION_COOKIE_OPTIONS);
+    res.cookie(SESSION_COOKIE_NAME, createSessionCookieValue(user.id, user.sessionEpoch), SESSION_COOKIE_OPTIONS);
     res.json({ user: toPublicUser(user) });
   })
 );
@@ -195,12 +195,42 @@ router.post(
       where: { id: user.id },
       // Cleared in the same write that sets the password, so the token is
       // spent whether or not the user ever logs in with it.
-      data: { passwordHash, resetToken: null, resetTokenExpires: null },
+      //
+      // Bumping the epoch here is the point of a reset. Someone resetting
+      // their password has usually lost control of it, and until now every
+      // session opened with the old password stayed live — the reset locked
+      // the front door and left whoever was already inside sitting there.
+      data: {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpires: null,
+        sessionEpoch: { increment: 1 },
+      },
     });
 
     // Deliberately does not sign the user in. Someone who can read the inbox
     // proves they own the address, but making them type the new password once
     // more is a cheap confirmation that they know it.
+    res.status(204).send();
+  })
+);
+
+// Now possible at all because sessions carry an epoch. Authenticated, so it
+// only ever affects the caller's own account, and it clears the caller's
+// cookie too — otherwise "sign out everywhere" would leave you holding a dead
+// cookie and looking signed in until the next request failed.
+router.post(
+  "/logout-everywhere",
+  asyncHandler(async (req, res) => {
+    if (!req.userId) return res.status(401).json({ error: "Not signed in" });
+
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: { sessionEpoch: { increment: 1 } },
+    });
+
+    const { maxAge: _maxAge, ...clearOptions } = SESSION_COOKIE_OPTIONS;
+    res.clearCookie(SESSION_COOKIE_NAME, clearOptions);
     res.status(204).send();
   })
 );
