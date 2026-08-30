@@ -49,7 +49,7 @@ async function setup() {
 }
 
 async function client(port: number, userId?: string) {
-  const cookie = userId ? `${SESSION_COOKIE_NAME}=${createSessionCookieValue(userId)}` : undefined;
+  const cookie = userId ? `${SESSION_COOKIE_NAME}=${createSessionCookieValue(userId, 0)}` : undefined;
   const ws = await connectClient(port, cookie);
   clients.push(ws);
   return { ws, collector: new MessageCollector(ws) };

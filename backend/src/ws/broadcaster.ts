@@ -61,7 +61,7 @@ interface ClientState {
 function resolveUserId(cookieHeader: string | undefined): string | undefined {
   if (!cookieHeader) return undefined;
   const cookies = parseCookies(cookieHeader);
-  return verifySessionCookieValue(cookies[SESSION_COOKIE_NAME]) ?? undefined;
+  return verifySessionCookieValue(cookies[SESSION_COOKIE_NAME])?.userId;
 }
 
 // The same-origin policy doesn't cover WebSockets and CORS never runs on an

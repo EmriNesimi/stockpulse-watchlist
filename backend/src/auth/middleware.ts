@@ -16,7 +16,7 @@ declare global {
 // routes (signup, login, /me) need to handle "not signed in" differently
 // than a flat 401.
 export function attachUserId(req: Request, _res: Response, next: NextFunction) {
-  req.userId = verifySessionCookieValue(req.cookies?.[SESSION_COOKIE_NAME]) ?? undefined;
+  req.userId = verifySessionCookieValue(req.cookies?.[SESSION_COOKIE_NAME])?.userId;
   next();
 }
 

@@ -137,7 +137,7 @@ router.post(
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) return invalidCredentials();
 
-    res.cookie(SESSION_COOKIE_NAME, createSessionCookieValue(user.id), SESSION_COOKIE_OPTIONS);
+    res.cookie(SESSION_COOKIE_NAME, createSessionCookieValue(user.id, user.sessionEpoch), SESSION_COOKIE_OPTIONS);
     res.json({ user: toPublicUser(user) });
   })
 );
