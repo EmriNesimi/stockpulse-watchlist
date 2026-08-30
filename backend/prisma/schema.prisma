@@ -24,6 +24,11 @@ model User {
   // moment it's spent.
   resetToken               String?   @unique
   resetTokenExpires        DateTime?
+  // Bumped to invalidate every session this user has open anywhere. The
+  // signed cookie carries the epoch it was issued at, so raising this makes
+  // every older cookie stop verifying — which is the only way to sign someone
+  // out of a device you don't control.
+  sessionEpoch             Int       @default(0)
 }
 
 // userId isn't a Prisma relation to User.id on purpose - it's kept as a
