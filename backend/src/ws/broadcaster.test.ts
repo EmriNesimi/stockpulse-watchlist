@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Server as HttpServer } from "node:http";
 import type { WebSocket } from "ws";
 import {
@@ -22,6 +22,19 @@ const OTHER_USER_ID = "some-other-user";
 let server: HttpServer | undefined;
 const clients: WebSocket[] = [];
 
+// These ids used to work without a matching row, because the socket only
+// checked the cookie's signature and never looked the user up. It checks the
+// session epoch against the database now, so they have to be real users.
+beforeEach(async () => {
+  for (const id of [DEFAULT_USER_ID, OTHER_USER_ID]) {
+    await prisma.user.upsert({
+      where: { id },
+      update: {},
+      create: { id, email: `${id}@example.com`, passwordHash: "not-a-real-hash" },
+    });
+  }
+});
+
 afterEach(async () => {
   for (const client of clients) client.close();
   clients.length = 0;
@@ -30,6 +43,7 @@ afterEach(async () => {
   await prisma.priceAlert.deleteMany();
   await prisma.watchlistItem.deleteMany();
   await prisma.watchlist.deleteMany();
+  await prisma.user.deleteMany();
 });
 
 afterAll(async () => {

@@ -1,4 +1,4 @@
-import type { Server as HttpServer } from "http";
+import type { IncomingMessage, Server as HttpServer } from "http";
 import { parse as parseCookies } from "cookie";
 import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
@@ -6,6 +6,7 @@ import type { PriceFeed, PriceTick, Unsubscribe } from "../priceFeed";
 import { checkAndTriggerAlerts, type AlertTrigger } from "../alerts/checkAndTriggerAlerts";
 import { SESSION_COOKIE_NAME, verifySessionCookieValue } from "../auth/session";
 import { env } from "../env";
+import { prisma } from "../db";
 import { MAX_SYMBOLS_PER_CLIENT } from "../wsLimits";
 import { symbolSchema } from "../routes/watchlist.schemas";
 
@@ -58,10 +59,22 @@ interface ClientState {
   userId: string | undefined;
 }
 
-function resolveUserId(cookieHeader: string | undefined): string | undefined {
+// Async because the epoch has to be checked against the database, same as the
+// HTTP middleware. Without it a revoked session kept receiving that user's
+// private alerts here — the upgrade sits outside the Express chain, so it
+// doesn't inherit the check automatically.
+async function resolveUserId(cookieHeader: string | undefined): Promise<string | undefined> {
   if (!cookieHeader) return undefined;
-  const cookies = parseCookies(cookieHeader);
-  return verifySessionCookieValue(cookies[SESSION_COOKIE_NAME])?.userId;
+
+  const session = verifySessionCookieValue(parseCookies(cookieHeader)[SESSION_COOKIE_NAME]);
+  if (!session) return undefined;
+
+  const user = await prisma.user
+    .findUnique({ where: { id: session.userId }, select: { sessionEpoch: true } })
+    .catch(() => null);
+
+  if (!user || user.sessionEpoch !== session.epoch) return undefined;
+  return session.userId;
 }
 
 // The same-origin policy doesn't cover WebSockets and CORS never runs on an
@@ -92,7 +105,14 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
         return done(false, 429, "Too many connections");
       }
 
-      done(true);
+      // Resolved here rather than in the connection handler so the answer is
+      // already known by the time the socket is live. Doing it afterwards
+      // left a window where a tick could fire before we knew who the client
+      // was, and they'd silently miss their own alert.
+      void resolveUserId(req.headers.cookie).then((userId) => {
+        resolvedUsers.set(req, userId);
+        done(true);
+      });
     },
   });
 
@@ -105,6 +125,11 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
   // ClientState, which is rebuilt on every connection — so a client that hit
   // the cap could simply reconnect and get a fresh 60, making the limit
   // decorative. Surviving the reconnect is the entire point of this map.
+  // Bridges verifyClient to the connection handler: keyed by the upgrade
+  // request, which is the same object in both. WeakMap so an upgrade that is
+  // rejected after resolving doesn't leak.
+  const resolvedUsers = new WeakMap<IncomingMessage, string | undefined>();
+
   const messageBudgets = new Map<string, { count: number; windowStart: number }>();
   const connectionsPerIp = new Map<string, number>();
 
@@ -201,11 +226,17 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
     connectionsPerIp.set(ip, (connectionsPerIp.get(ip) ?? 0) + 1);
     pruneIdleBudgets(Date.now());
 
+    // Starts undefined and is filled in once the lookup returns. Alerts are
+    // only ever delivered to a matching userId, so the gap before it resolves
+    // means a client might miss an alert fired in those milliseconds — never
+    // that someone receives one they shouldn't. Failing closed is the right
+    // way round for private messages.
     const state: ClientState = {
       symbols: new Set(),
       ip,
-      userId: resolveUserId(req.headers.cookie),
+      userId: resolvedUsers.get(req),
     };
+    resolvedUsers.delete(req);
     clientStates.set(ws, state);
 
     ws.on("message", (raw) => {
