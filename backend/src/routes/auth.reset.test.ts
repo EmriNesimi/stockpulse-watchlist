@@ -121,3 +121,31 @@ describe("POST /api/auth/reset-password", () => {
     expect(res.headers["set-cookie"]).toBeUndefined();
   });
 });
+
+describe("resetting a password signs out other devices", () => {
+  // The gap this whole change exists to close: a reset used to leave every
+  // session opened with the old password still working.
+  it("invalidates a session opened before the reset", async () => {
+    await signUp();
+
+    const agent = request.agent(app);
+    await agent.post("/api/auth/login").send({ email: EMAIL, password: OLD_PASSWORD });
+    expect((await agent.get("/api/auth/me")).status).toBe(200);
+
+    const token = await requestReset();
+    await request(app).post("/api/auth/reset-password").send({ token, password: NEW_PASSWORD });
+
+    expect((await agent.get("/api/auth/me")).status).toBe(401);
+  });
+
+  it("still lets the user log in again afterwards", async () => {
+    await signUp();
+    const token = await requestReset();
+    await request(app).post("/api/auth/reset-password").send({ token, password: NEW_PASSWORD });
+
+    const fresh = request.agent(app);
+    await fresh.post("/api/auth/login").send({ email: EMAIL, password: NEW_PASSWORD });
+
+    expect((await fresh.get("/api/auth/me")).status).toBe(200);
+  });
+});

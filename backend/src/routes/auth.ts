@@ -195,7 +195,17 @@ router.post(
       where: { id: user.id },
       // Cleared in the same write that sets the password, so the token is
       // spent whether or not the user ever logs in with it.
-      data: { passwordHash, resetToken: null, resetTokenExpires: null },
+      //
+      // Bumping the epoch here is the point of a reset. Someone resetting
+      // their password has usually lost control of it, and until now every
+      // session opened with the old password stayed live — the reset locked
+      // the front door and left whoever was already inside sitting there.
+      data: {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpires: null,
+        sessionEpoch: { increment: 1 },
+      },
     });
 
     // Deliberately does not sign the user in. Someone who can read the inbox
