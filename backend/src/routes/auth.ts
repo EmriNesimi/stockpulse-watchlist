@@ -215,6 +215,26 @@ router.post(
   })
 );
 
+// Now possible at all because sessions carry an epoch. Authenticated, so it
+// only ever affects the caller's own account, and it clears the caller's
+// cookie too — otherwise "sign out everywhere" would leave you holding a dead
+// cookie and looking signed in until the next request failed.
+router.post(
+  "/logout-everywhere",
+  asyncHandler(async (req, res) => {
+    if (!req.userId) return res.status(401).json({ error: "Not signed in" });
+
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: { sessionEpoch: { increment: 1 } },
+    });
+
+    const { maxAge: _maxAge, ...clearOptions } = SESSION_COOKIE_OPTIONS;
+    res.clearCookie(SESSION_COOKIE_NAME, clearOptions);
+    res.status(204).send();
+  })
+);
+
 router.post("/logout", (_req, res) => {
   // clearCookie needs the same attributes the cookie was set with (path,
   // sameSite, secure) to actually match and clear it, but passing maxAge is
