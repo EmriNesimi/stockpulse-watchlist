@@ -79,7 +79,7 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
 - **Backend**: Express API, Prisma/Postgres persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), a WebSocket broadcaster that fans price ticks out to connected clients with per-IP rate limits and per-connection size/subscription limits, and real multi-user auth (scrypt password hashing, signed session cookies, per-user watchlists/alerts).
 - **Frontend**: Vite + React + TS app built against a Figma trading-dashboard reference — a login/signup gate, a sidebar shell with Dashboard/Wallet/Profile/Stock screens, portfolio cards and a watching rail, debounced ticker search wired to the real API, a watchlist table with sparklines, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, a connection-status indicator, and a light/dark theme toggle.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
-- **Testing**: 575 tests total — 259 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 316 on the frontend (hooks, API client, portfolio maths, WebSocket message validation, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
+- **Testing**: 581 tests total — 259 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 322 on the frontend (hooks, API client, portfolio maths, WebSocket message validation, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
 
 ## 🏗️ Architecture
@@ -294,7 +294,7 @@ Backend tests: `cd backend && npm test` (Vitest — schema validation, `Simulate
 
 The suite drops and recreates the schema before every run, so it refuses to start against anything that isn't localhost — that guard is the only thing standing between a stray `DATABASE_URL` and your production data. See `src/test/globalSetup.ts`.
 
-Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, `useHistory` and the `CandlestickChart` it feeds, `useErrorToasts` and the `ErrorToast` it feeds, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load and its loading state, search → add, optimistic remove + rollback, live connection status and price updates, both halves of the alert feature, and the three error-toast failure paths, end to end. 316 tests total.)
+Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, `useHistory` and the `CandlestickChart` it feeds, `useErrorToasts` and the `ErrorToast` it feeds, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load and its loading state, search → add, optimistic remove + rollback, live connection status and price updates, both halves of the alert feature, and the three error-toast failure paths, end to end. 322 tests total.)
 
 The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Massive account to run or demo this.
 
@@ -361,7 +361,6 @@ Ratios were computed from the token hex values and re-derived independently rath
 **Still open, honestly:**
 
 - The auth notice banners mount conditionally rather than swapping text in an always-present live region. Support for that pattern varies by screen reader; needs a real NVDA/VoiceOver pass to decide if it matters.
-- React correctness and type-safety have still never been independently audited.
 
 ## 🐛 Known issues
 
@@ -527,6 +526,9 @@ Things that would make sense to add next, roughly in order of value:
 
   What that means in practice: the verification email works, and you can watch it work by signing up with the Resend account owner's address. Any other address gets a 403 that's logged server-side and never reaches an inbox. Nothing gates on being verified — signup, login and the whole app work regardless — so this costs a trust badge, not a feature.
 - [x] ~~Session revocation~~ — done: the cookie carries a signed epoch, checked against the user's row on every authenticated request and on the WebSocket upgrade. A password reset bumps it, and there's a `logout-everywhere` endpoint. The honest cost is one indexed lookup per request; there's no stateless way to revoke something, so that was the price of the feature rather than an implementation detail.
+
+- [x] ~~Sign out everywhere~~ — done: a confirmed control on the Profile screen ends every session for the account, this device included. The endpoint shipped a day before the UI did, which meant the feature existed and nobody could reach it.
+- [x] ~~React and TypeScript audit~~ — done: the last unreviewed part of the codebase. Turned up one real bug — the client answered the server's "slow down" with another subscribe, in a one-for-one loop — plus two timers outliving their components and a `memo()` that was being defeated from an unrelated screen. See [docs/REVIEW-FINDINGS.md](docs/REVIEW-FINDINGS.md).
 
 **Still open:**
 
