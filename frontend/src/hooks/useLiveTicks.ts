@@ -6,6 +6,11 @@ import type { PriceState } from "../types";
 export type ConnectionStatus = "connecting" | "open" | "reconnecting" | "closed";
 
 const RECONNECT_BASE_MS = 1000;
+// The server answers an over-budget message with an error, and counts that
+// message against the budget too — so resyncing the instant an error arrives
+// sends the very message that keeps us over, and gets another error back.
+// Spacing the recovery out breaks that loop while still reconciling.
+const ERROR_RESYNC_COOLDOWN_MS = 5000;
 const RECONNECT_MAX_MS = 15_000;
 const HISTORY_LENGTH = 30;
 
@@ -25,6 +30,7 @@ export function useLiveTicks(symbols: string[]) {
   const reconnectAttempt = useRef(0);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const subscribedSymbols = useRef<Set<string>>(new Set());
+  const resyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const desiredSymbols = useRef<string[]>(symbols);
 
   // Diffs desiredSymbols against what the socket currently has active and
@@ -87,8 +93,18 @@ export function useLiveTicks(symbols: string[]) {
           // resend the full desired set from scratch, rather than leaving
           // symbols permanently marked "subscribed" when the server never
           // actually accepted them.
+          // Forget what we think is subscribed — the server may have
+          // rejected the whole batch, and there's no per-symbol ack to tell
+          // us which. But reconcile on a timer rather than immediately: an
+          // error can be the server asking us to send *less*, and answering
+          // it with another message makes that worse.
           subscribedSymbols.current = new Set();
-          syncSubscriptions();
+          if (resyncTimer.current === null) {
+            resyncTimer.current = setTimeout(() => {
+              resyncTimer.current = null;
+              syncSubscriptions();
+            }, ERROR_RESYNC_COOLDOWN_MS);
+          }
           return;
         }
 
@@ -131,6 +147,7 @@ export function useLiveTicks(symbols: string[]) {
     return () => {
       cancelled = true;
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      if (resyncTimer.current) clearTimeout(resyncTimer.current);
       wsRef.current?.close();
       setStatus("closed");
     };

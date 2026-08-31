@@ -31,6 +31,7 @@ import styles from "./App.module.css";
 interface DashboardProps {
   user: AuthUser;
   onSignOut: () => void;
+  onSignedOutEverywhere: () => void;
   theme: Theme;
   onToggleTheme: () => void;
 }
@@ -44,7 +45,7 @@ interface DashboardProps {
 // watchlist and the live-tick subscription, and swaps the content column
 // between views. Keeping the subscription up here means navigating doesn't
 // tear down and re-open the WebSocket.
-export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: DashboardProps) {
+export default function Dashboard({ user, onSignOut, onSignedOutEverywhere, theme, onToggleTheme }: DashboardProps) {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
   const [view, setView] = useState<View>({ name: "dashboard" });
@@ -96,22 +97,26 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
     }
   }
 
-  // Depends on `items` because the optimistic rollback needs the list as it
-  // was before the removal. That means a new identity whenever the watchlist
-  // changes - which is fine: the memoised rows only need stability across
-  // price ticks, and a tick never changes `items`.
-  const handleRemove = useCallback(
-    async (symbol: string) => {
-      const previous = items;
-      setItems((prev) => prev.filter((i) => i.symbol !== symbol)); // optimistic
-      try {
-        await removeFromWatchlist(symbol);
-      } catch {
-        setItems(previous); // roll back if the backend rejected it
-      }
-    },
-    [items]
-  );
+  // The optimistic rollback needs the list as it was before the removal, but
+  // reading it from `items` made this callback change identity on every
+  // watchlist change — including a holdings edit on another screen, which
+  // then failed memo() on every row and re-ran each one's sparkline and
+  // min/max maths. Reading through a ref keeps the callback stable for the
+  // life of the component while still seeing the current list.
+  const itemsRef = useRef(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  const handleRemove = useCallback(async (symbol: string) => {
+    const previous = itemsRef.current;
+    setItems((prev) => prev.filter((i) => i.symbol !== symbol)); // optimistic
+    try {
+      await removeFromWatchlist(symbol);
+    } catch {
+      setItems(previous); // roll back if the backend rejected it
+    }
+  }, []);
 
   const handleCreateAlert = useCallback(async (symbol: string, threshold: number, direction: "above" | "below") => {
     try {
@@ -222,6 +227,7 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
               items={items}
               onSaveHoldings={handleSaveHoldings}
               onClearHoldings={handleClearHoldings}
+              onSignedOutEverywhere={onSignedOutEverywhere}
             />
           )}
         </main>

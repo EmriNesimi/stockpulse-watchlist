@@ -3,7 +3,7 @@ import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import TickerAvatar from "../components/TickerAvatar";
 import HoldingsForm from "../components/HoldingsForm";
 import { formatCurrency, formatShares } from "../lib/format";
-import type { AuthUser, WatchlistItem } from "../lib/api";
+import { logoutEverywhere, type AuthUser, type WatchlistItem } from "../lib/api";
 import styles from "./ProfileView.module.css";
 
 interface ProfileViewProps {
@@ -11,10 +11,35 @@ interface ProfileViewProps {
   items: WatchlistItem[];
   onSaveHoldings: (symbol: string, shares: number, costBasis: number) => Promise<void>;
   onClearHoldings: (symbol: string) => Promise<void>;
+  /** Called once every session has been ended, so the app can drop local state. */
+  onSignedOutEverywhere: () => void;
 }
 
-export default function ProfileView({ user, items, onSaveHoldings, onClearHoldings }: ProfileViewProps) {
+export default function ProfileView({
+  user,
+  items,
+  onSaveHoldings,
+  onClearHoldings,
+  onSignedOutEverywhere,
+}: ProfileViewProps) {
   const [editing, setEditing] = useState<string | null>(null);
+  const [confirmingSignOutAll, setConfirmingSignOutAll] = useState(false);
+  const [signingOutAll, setSigningOutAll] = useState(false);
+  const [signOutAllError, setSignOutAllError] = useState<string | null>(null);
+
+  async function handleSignOutEverywhere() {
+    setSignOutAllError(null);
+    setSigningOutAll(true);
+    try {
+      await logoutEverywhere();
+      onSignedOutEverywhere();
+    } catch (err) {
+      // Left on screen rather than swallowed: someone doing this has usually
+      // lost a device, and silently failing is the worst possible outcome.
+      setSignOutAllError(err instanceof Error ? err.message : "Couldn't sign out everywhere");
+      setSigningOutAll(false);
+    }
+  }
   // Same as the alert form: the holdings form unmounts with focus inside it,
   // so hand focus back to the Edit/Add button that opened it.
   const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -47,6 +72,51 @@ export default function ProfileView({ user, items, onSaveHoldings, onClearHoldin
               </span>
             )}
           </span>
+        </div>
+
+        <div className={styles.sessions}>
+          <div>
+            <h2 className={styles.sessionsTitle}>Signed in elsewhere?</h2>
+            <p className={styles.sessionsHint}>
+              Ends every session on every device, including this one. Use it if you've lost a device or
+              think someone else has your password.
+            </p>
+          </div>
+
+          {confirmingSignOutAll ? (
+            <div className={styles.confirmRow}>
+              <button
+                type="button"
+                className={styles.dangerButton}
+                onClick={handleSignOutEverywhere}
+                disabled={signingOutAll}
+              >
+                {signingOutAll ? "Signing out…" : "Yes, sign out everywhere"}
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setConfirmingSignOutAll(false)}
+                disabled={signingOutAll}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => setConfirmingSignOutAll(true)}
+            >
+              Sign out everywhere
+            </button>
+          )}
+
+          {signOutAllError && (
+            <p role="alert" className={styles.sessionsError}>
+              {signOutAllError}
+            </p>
+          )}
         </div>
       </section>
 

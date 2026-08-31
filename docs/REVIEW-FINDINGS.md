@@ -90,10 +90,37 @@ so this works locally — but a static host must be configured to rewrite
 
 ---
 
-## Not yet reviewed
+## Reviewed 2026-08-31 — React correctness and TypeScript
 
-React correctness and TypeScript type safety remain unaudited — nobody has
-looked at either, and they're now the last unexamined part of the codebase.
+The last unexamined part of the codebase, now audited. Verdict: sound, with one
+real bug.
+
+**Found and fixed:**
+
+- **Resubscribe storm (high).** `useLiveTicks` resynced immediately on *any*
+  server error. Correct for a rejected subscription; wrong for a rate-limit
+  error, because the server counts over-budget messages against the budget and
+  only clears the window 60s after it opened — so the resend was itself another
+  message over the limit, answered with another error. Measured at 25 errors
+  producing 25 resubscribes, one for one. Recovery is on a 5s timer now.
+- Two timers armed against components that unmount first (`useErrorToasts`,
+  `VerificationBanner`).
+- `handleRemove` depended on `items`, defeating `memo()` on every watchlist row
+  whenever holdings were edited on another screen.
+
+**Checked and sound:** no hook-order violations; correct `cancelled`-flag
+cleanup in the async hooks; stable list keys everywhere (never array index);
+the `key={user.id}` remount strategy for account switching; `wsMessages.ts`
+validating at the trust boundary rather than casting.
+
+**Left alone deliberately:** REST responses aren't runtime-validated the way
+WebSocket messages are. Same unchecked-cast risk in principle, much lower in
+practice — same trusted backend, stable shapes — but worth naming as an
+asymmetry rather than pretending it's a decision.
+
+Also still open: the reconnect backoff's first delay is 2s, not the 1s its
+`RECONNECT_BASE_MS` name implies (the exponent is applied after incrementing).
+Cosmetic, already encoded in a test, left as-is.
 
 **Accessibility is no longer on this list.** It was audited against WCAG 2.2 AA
 on 2026-08-23. Both worries named here turned out to be worth having: the

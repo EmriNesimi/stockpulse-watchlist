@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ProfileView from "./ProfileView";
-import type { AuthUser, WatchlistItem } from "../lib/api";
+import { logoutEverywhere, type AuthUser, type WatchlistItem } from "../lib/api";
+
+vi.mock("../lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/api")>()),
+  logoutEverywhere: vi.fn(),
+}));
 
 function user(overrides: Partial<AuthUser> = {}): AuthUser {
   return { id: "u1", email: "trader@example.com", emailVerified: true, ...overrides };
@@ -23,15 +28,17 @@ function item(overrides: Partial<WatchlistItem> = {}): WatchlistItem {
 function setup(items: WatchlistItem[] = [], authUser = user()) {
   const onSaveHoldings = vi.fn().mockResolvedValue(undefined);
   const onClearHoldings = vi.fn().mockResolvedValue(undefined);
+  const onSignedOutEverywhere = vi.fn();
   render(
     <ProfileView
       user={authUser}
       items={items}
       onSaveHoldings={onSaveHoldings}
       onClearHoldings={onClearHoldings}
+      onSignedOutEverywhere={onSignedOutEverywhere}
     />
   );
-  return { onSaveHoldings, onClearHoldings, user: userEvent.setup() };
+  return { onSaveHoldings, onClearHoldings, onSignedOutEverywhere, user: userEvent.setup() };
 }
 
 describe("ProfileView", () => {
@@ -128,5 +135,52 @@ describe("ProfileView", () => {
 
     expect(screen.getByRole("form", { name: "Holdings for TSLA" })).toBeInTheDocument();
     expect(screen.queryByRole("form", { name: "Holdings for AAPL" })).not.toBeInTheDocument();
+  });
+});
+
+describe("ProfileView — sign out everywhere", () => {
+  // It's irreversible for every other device, so it asks first rather than
+  // firing on a single click next to routine profile controls.
+  it("asks for confirmation before ending anything", async () => {
+    const { user } = setup();
+
+    await user.click(screen.getByRole("button", { name: "Sign out everywhere" }));
+
+    expect(logoutEverywhere).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /yes, sign out everywhere/i })).toBeInTheDocument();
+  });
+
+  it("backs out cleanly on cancel", async () => {
+    const { user } = setup();
+
+    await user.click(screen.getByRole("button", { name: "Sign out everywhere" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(logoutEverywhere).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Sign out everywhere" })).toBeInTheDocument();
+  });
+
+  it("ends the sessions and tells the app once confirmed", async () => {
+    vi.mocked(logoutEverywhere).mockResolvedValue(undefined);
+    const { user, onSignedOutEverywhere } = setup();
+
+    await user.click(screen.getByRole("button", { name: "Sign out everywhere" }));
+    await user.click(screen.getByRole("button", { name: /yes, sign out everywhere/i }));
+
+    await waitFor(() => expect(logoutEverywhere).toHaveBeenCalledTimes(1));
+    expect(onSignedOutEverywhere).toHaveBeenCalledTimes(1);
+  });
+
+  // Anyone reaching for this has usually lost a device. Failing silently is
+  // the worst outcome available.
+  it("surfaces a failure instead of pretending it worked", async () => {
+    vi.mocked(logoutEverywhere).mockRejectedValue(new Error("Network request failed"));
+    const { user, onSignedOutEverywhere } = setup();
+
+    await user.click(screen.getByRole("button", { name: "Sign out everywhere" }));
+    await user.click(screen.getByRole("button", { name: /yes, sign out everywhere/i }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/network request failed/i));
+    expect(onSignedOutEverywhere).not.toHaveBeenCalled();
   });
 });

@@ -66,12 +66,19 @@ export default function App() {
     setAuthStatus("authenticated");
   }
 
+  // Split from handleSignOut because signing out everywhere has already ended
+  // the session server-side — calling logout again afterwards would be a
+  // pointless request against a cookie that's already dead.
+  function handleSessionEnded() {
+    setUser(null);
+    setAuthStatus("unauthenticated");
+  }
+
   async function handleSignOut() {
     await logout().catch(() => {
       /* cookie may already be gone server-side; clearing local state either way */
     });
-    setUser(null);
-    setAuthStatus("unauthenticated");
+    handleSessionEnded();
   }
 
   if (authStatus === "checking") {
@@ -101,6 +108,7 @@ export default function App() {
   // user signs in, instead of that state quietly carrying over from
   // whoever was signed in before.
   return (
-    <Dashboard key={user.id} user={user} onSignOut={handleSignOut} theme={theme} onToggleTheme={toggleTheme} />
+    <Dashboard
+        onSignedOutEverywhere={handleSessionEnded} key={user.id} user={user} onSignOut={handleSignOut} theme={theme} onToggleTheme={toggleTheme} />
   );
 }
