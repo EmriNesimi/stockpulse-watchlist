@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface ErrorToastEvent {
   id: string;
@@ -22,6 +22,18 @@ export function useErrorToasts() {
       clearTimeout(timer);
       timers.current.delete(id);
     }
+  }, []);
+
+  // Dashboard is remounted on every sign-out (key={user.id} in App), so an
+  // unmount with toasts still pending is a real path, not a theoretical one.
+  // React no-ops the resulting setState, but leaving timers armed against a
+  // torn-down hook is a leak whether or not it's visible.
+  useEffect(() => {
+    const pending = timers.current;
+    return () => {
+      for (const timer of pending.values()) clearTimeout(timer);
+      pending.clear();
+    };
   }, []);
 
   const pushError = useCallback(
