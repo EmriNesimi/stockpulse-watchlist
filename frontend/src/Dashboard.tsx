@@ -31,6 +31,7 @@ import styles from "./App.module.css";
 interface DashboardProps {
   user: AuthUser;
   onSignOut: () => void;
+  onSignedOutEverywhere: () => void;
   theme: Theme;
   onToggleTheme: () => void;
 }
@@ -44,7 +45,7 @@ interface DashboardProps {
 // watchlist and the live-tick subscription, and swaps the content column
 // between views. Keeping the subscription up here means navigating doesn't
 // tear down and re-open the WebSocket.
-export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: DashboardProps) {
+export default function Dashboard({ user, onSignOut, onSignedOutEverywhere, theme, onToggleTheme }: DashboardProps) {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [isLoadingWatchlist, setIsLoadingWatchlist] = useState(true);
   const [view, setView] = useState<View>({ name: "dashboard" });
@@ -222,6 +223,7 @@ export default function Dashboard({ user, onSignOut, theme, onToggleTheme }: Das
               items={items}
               onSaveHoldings={handleSaveHoldings}
               onClearHoldings={handleClearHoldings}
+              onSignedOutEverywhere={onSignedOutEverywhere}
             />
           )}
         </main>
