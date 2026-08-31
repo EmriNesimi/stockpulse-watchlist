@@ -127,6 +127,12 @@ export function logout(): Promise<void> {
   return request("/api/auth/logout", { method: "POST" });
 }
 
+// Ends every session for the account, this one included — the backend bumps
+// the user's session epoch, which invalidates every cookie issued before now.
+export function logoutEverywhere(): Promise<void> {
+  return request("/api/auth/logout-everywhere", { method: "POST" });
+}
+
 export function getCurrentUser(): Promise<{ user: AuthUser }> {
   return request("/api/auth/me");
 }
