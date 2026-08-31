@@ -416,3 +416,51 @@ describe("useLiveTicks — server error messages", () => {
     expect(result.current.prices.AAPL?.price).toBe(231.5);
   });
 });
+
+describe("useLiveTicks — error resync storm", () => {
+  // Real timers are in effect by this point in the file; the cooldown is a
+  // timer, so this block needs fake ones back.
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  // The server's per-IP budget counts messages that are *already* over the
+  // limit, and the window only clears 60s after it opened. So a resend sent
+  // in response to "slow down" is itself another message over budget, and
+  // gets answered with another "slow down". Resyncing immediately on every
+  // error turns that into a tight loop for the rest of the minute.
+  it("does not answer every rate-limit error with another resubscribe", () => {
+    renderHook(() => useLiveTicks(["AAPL", "MSFT"]));
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+
+    const before = socket.sent.length;
+
+    // Stand in for the real server: every message we send comes back as an
+    // error, which is exactly what an exhausted budget does.
+    act(() => {
+      for (let i = 0; i < 25; i++) {
+        socket.triggerMessage({ type: "error", message: "Too many messages, slow down" });
+      }
+    });
+
+    const sentInResponse = socket.sent.length - before;
+    expect(sentInResponse).toBeLessThanOrEqual(1);
+  });
+
+  // Backing off must not mean giving up: once the cooldown passes the client
+  // still has to reconcile, or its subscriptions stay wrong forever.
+  it("still resyncs once the cooldown has passed", () => {
+    renderHook(() => useLiveTicks(["AAPL"]));
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+
+    act(() => socket.triggerMessage({ type: "error", message: "Too many messages, slow down" }));
+    const afterFirst = socket.sent.length;
+
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+
+    expect(socket.sent.length).toBeGreaterThan(afterFirst);
+  });
+});
