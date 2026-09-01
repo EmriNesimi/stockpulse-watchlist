@@ -55,7 +55,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - 🌓 **Light and dark themes** — light by default (matching the reference), switchable from the header, persisted to `localStorage`. Both palettes are contrast-checked against composed UI, not just base tokens — the light theme originally wasn't, and three real failures came out of checking it properly.
 - 🟢 **Transparent data source** — a LIVE/SIM badge on every price and a connection-status indicator in the header, so it's never a mystery whether you're looking at real trades or the simulated fallback.
 - 🔔 **Price alerts** — set a one-shot "notify me when AAPL crosses $200" alert per symbol (the bell icon on each row); fires once as soon as a tick crosses the threshold, delivered over the same WebSocket connection as an `{"type":"alert"}` message and shown as a dismissible toast.
-- 🔌 **Works with zero setup** — no API key, no account, no config required to run it and see it working end to end.
+- 🔌 **Runs without an API key** — no Massive account and no config needed; it boots on the simulated price feed and a static ticker-search list. It does need a Postgres to talk to, since accounts live there — see [Setup](#-setup) for the one-line container.
 - ♿ **Accessible by default** — throttled screen-reader announcements, keyboard support, visible focus states, and full `prefers-reduced-motion` compliance. Audited against WCAG 2.2 AA rather than assumed; see [Accessibility](#-accessibility) for what that audit found and what's still open.
 - ⚠️ **Visible failure states** — a failed watchlist load, ticker add, or alert creation now surfaces as a dismissible error toast instead of failing silently, and the watchlist table distinguishes "loading" from "genuinely empty" on first load.
 - 🔐 **Real multi-user accounts** — email/password signup and login (scrypt-hashed, signed session cookie), each user gets their own private watchlist and alerts. Price ticks stay public over the WebSocket (they're just market data), but price-alert notifications are routed only to the connection belonging to the alert's owner.
@@ -264,6 +264,7 @@ Requires Node ≥20.19.0 (or ≥22.12.0) — that's what Vite 8/Rolldown need. A
 > - **`@types/node` at 20** — types should track the Node major actually being run. Types ahead of the runtime let TypeScript accept calls that don't exist at execution time, which quietly removes the guard rail.
 > - **`cookie` at 0.7** — tried v2 and backed it out. The rename (`parse` → `parseCookie`) is trivial and the `node16` migration did fix the types resolution, but underneath both sits the real blocker: **v2 is ESM-only**, and this package emits CommonJS, so `require()` can't load it at all (`TS1479`). Taking it means converting the whole backend to ESM, which is a far bigger change than a dependency bump and buys nothing here — there's no advisory against 0.7. Note the stale `@types/cookie` also has to go when this eventually happens; it shadows v2's own bundled types.
 > - **`deepmerge-ts` forced to 8** via an `overrides` entry — Prisma 7's CLI pins 7.1.5, which carries a high-severity stack-exhaustion advisory (GHSA-ggr8-5vv4-36mx). The CLI works fine on 8, and `npm audit` is a CI gate.
+> - **`mysql2` forced to 3.24** via the same mechanism — the Prisma CLI pulls it in transitively, and versions below 3.22 carry a high-severity credential-leak advisory (GHSA-3f6p-5ww8-9rcr). This project talks to Postgres and never loads `mysql2` at all, so the exposure is nil either way, but `npm audit` doesn't know that. `npm audit fix --force` "fixes" it by downgrading Prisma to 6, which is worse than the problem.
 
 The backend needs a Postgres to talk to. The quickest local one is a container:
 
@@ -296,7 +297,7 @@ The suite drops and recreates the schema before every run, so it refuses to star
 
 Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, `useHistory` and the `CandlestickChart` it feeds, `useErrorToasts` and the `ErrorToast` it feeds, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load and its loading state, search → add, optimistic remove + rollback, live connection status and price updates, both halves of the alert feature, and the three error-toast failure paths, end to end. 322 tests total.)
 
-The backend works with **zero environment variables set** — it boots on the simulated price feed and a static ticker-search fallback list automatically. You don't need a Massive account to run or demo this.
+The backend needs no **environment variables** — it boots on the simulated price feed and a static ticker-search fallback list automatically, and you don't need a Massive account to run or demo this. It does need the Postgres above: without one, signup returns a 500 and the auth gate makes the app unreachable. That was free when this used SQLite and stopped being free at the migration.
 
 ### 🔑 Getting a Massive API key (optional)
 
@@ -371,7 +372,11 @@ What's been ruled out, with measurements rather than guesses:
 - **Not connection exhaustion.** Sampled `pg_stat_activity` throughout a full run: it peaks at **2** connections against a limit of 100.
 - **Not just the timeout.** The default 5s was too tight for tests that drive real timers, and both suites now allow 15s — but one run still failed after that change, so the timeout was a contributing factor at most.
 
-Still undiagnosed. Nine test files share one Postgres database and run serially (`fileParallelism: false`), so a cross-file ordering effect is the obvious next place to look — but it hasn't been reproduced deliberately yet, and guessing at a fix for something that won't reproduce is how you end up with two problems.
+- **Not a cross-file ordering effect, on the evidence available.** The suite was run **25 times consecutively on an idle machine: 25 passes, 0 failures.** If the cause were ordering between the nine files that share the database, it should have appeared.
+
+What's left is the thing all three observed failures had in common: each happened while the machine was busy with something else — a Docker start, the frontend suite, browser automation — and each failed test was slow rather than wrong, then passed alone and passed on a rerun. That points at contention rather than a race, which is also why raising the timeout helped without fully fixing it.
+
+Not called closed, because "couldn't reproduce it" isn't "it's gone". If it recurs on an otherwise idle machine, that would contradict this and the search should start over.
 
 ## 💾 Backups
 

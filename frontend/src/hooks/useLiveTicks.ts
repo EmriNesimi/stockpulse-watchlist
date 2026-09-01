@@ -5,7 +5,12 @@ import type { PriceState } from "../types";
 
 export type ConnectionStatus = "connecting" | "open" | "reconnecting" | "closed";
 
-const RECONNECT_BASE_MS = 1000;
+// The multiplier, not the first delay. reconnectAttempt is incremented before
+// this is used, so the sequence actually starts at 2s (1000 * 2^1) and doubles
+// from there — 2s, 4s, 8s… That's a fine curve; the old name just described a
+// first delay that never happens, which is worth being accurate about since
+// the backoff interacts with the server's per-IP connection cap.
+const RECONNECT_STEP_MS = 1000;
 // The server answers an over-budget message with an error, and counts that
 // message against the budget too — so resyncing the instant an error arrives
 // sends the very message that keeps us over, and gets another error back.
@@ -135,7 +140,7 @@ export function useLiveTicks(symbols: string[]) {
         if (cancelled) return;
         setStatus("reconnecting");
         reconnectAttempt.current += 1;
-        const delay = Math.min(RECONNECT_BASE_MS * 2 ** reconnectAttempt.current, RECONNECT_MAX_MS);
+        const delay = Math.min(RECONNECT_STEP_MS * 2 ** reconnectAttempt.current, RECONNECT_MAX_MS);
         reconnectTimer.current = setTimeout(connect, delay);
       };
 

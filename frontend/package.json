@@ -8,7 +8,7 @@
     "url": "git+https://github.com/EmriNesimi/stockpulse-watchlist.git",
     "directory": "frontend"
   },
-  "description": "StockPulse frontend — React + TypeScript + Vite dark trading-terminal UI",
+  "description": "StockPulse frontend \u2014 React + TypeScript + Vite trading-terminal UI, light and dark themes",
   "type": "module",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
