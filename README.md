@@ -371,7 +371,11 @@ What's been ruled out, with measurements rather than guesses:
 - **Not connection exhaustion.** Sampled `pg_stat_activity` throughout a full run: it peaks at **2** connections against a limit of 100.
 - **Not just the timeout.** The default 5s was too tight for tests that drive real timers, and both suites now allow 15s — but one run still failed after that change, so the timeout was a contributing factor at most.
 
-Still undiagnosed. Nine test files share one Postgres database and run serially (`fileParallelism: false`), so a cross-file ordering effect is the obvious next place to look — but it hasn't been reproduced deliberately yet, and guessing at a fix for something that won't reproduce is how you end up with two problems.
+- **Not a cross-file ordering effect, on the evidence available.** The suite was run **25 times consecutively on an idle machine: 25 passes, 0 failures.** If the cause were ordering between the nine files that share the database, it should have appeared.
+
+What's left is the thing all three observed failures had in common: each happened while the machine was busy with something else — a Docker start, the frontend suite, browser automation — and each failed test was slow rather than wrong, then passed alone and passed on a rerun. That points at contention rather than a race, which is also why raising the timeout helped without fully fixing it.
+
+Not called closed, because "couldn't reproduce it" isn't "it's gone". If it recurs on an otherwise idle machine, that would contradict this and the search should start over.
 
 ## 💾 Backups
 
