@@ -376,7 +376,11 @@ What's been ruled out, with measurements rather than guesses:
 
 What's left is the thing all three observed failures had in common: each happened while the machine was busy with something else — a Docker start, the frontend suite, browser automation — and each failed test was slow rather than wrong, then passed alone and passed on a rerun. That points at contention rather than a race, which is also why raising the timeout helped without fully fixing it.
 
-Not called closed, because "couldn't reproduce it" isn't "it's gone". If it recurs on an otherwise idle machine, that would contradict this and the search should start over.
+**Then it reproduced, and the cause was visible.** Three frontend tests failed mid-session with reported durations around **365 seconds** against a 15s timeout. Load average at that moment was **20.4**, with a single vitest process running — the machine was busy with macOS's `XprotectService` malware scan plus assorted background work, not with anything this project was doing. Once load dropped below 6, the same suite passed 322/322 unchanged.
+
+So: not a race, not ordering, not connection exhaustion. The suite is CPU-starved on a loaded machine, and `userEvent`-driven tests advancing real timers per keystroke are the first to tip over.
+
+Practical upshot: **rerun before believing a local failure**, and check `uptime` if it repeats. This is a developer-machine problem rather than a code one — CI runs on a dedicated runner and has not shown it.
 
 ## 💾 Backups
 
