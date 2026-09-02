@@ -113,10 +113,12 @@ cleanup in the async hooks; stable list keys everywhere (never array index);
 the `key={user.id}` remount strategy for account switching; `wsMessages.ts`
 validating at the trust boundary rather than casting.
 
-**Left alone deliberately:** REST responses aren't runtime-validated the way
-WebSocket messages are. Same unchecked-cast risk in principle, much lower in
-practice — same trusted backend, stable shapes — but worth naming as an
-asymmetry rather than pretending it's a decision.
+**Since closed:** REST responses weren't runtime-validated the way WebSocket
+messages are. They are now, for the shapes whose numbers reach arithmetic —
+watchlist items, candles and alerts. Turning it on immediately failed three
+API tests whose fixtures were partial enough to have passed against a client
+that accepted anything, which is a better argument for the change than the
+reasoning was.
 
 Also still open: the reconnect backoff's first delay is 2s, not the 1s its
 `RECONNECT_BASE_MS` name implies (the exponent is applied after incrementing).
