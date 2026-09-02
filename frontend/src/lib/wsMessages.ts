@@ -7,7 +7,8 @@
 // threw inside a render and took the screen down.
 //
 // Hand-rolled rather than pulling zod into the frontend bundle for three small
-// shapes - the project keeps its dependency list deliberately short.
+
+import { isFiniteNumber, isNonEmptyString, isRecord } from "./guards";
 
 export interface TickMessage {
   type: "tick";
@@ -37,20 +38,7 @@ export interface ErrorMessage {
 
 export type ServerMessage = TickMessage | AlertMessage | ErrorMessage;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-// Rejects NaN and Infinity as well as non-numbers: a NaN price would render as
 // "NaN" rather than failing loudly, which is worse than dropping the frame.
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
-}
-
 function toTick(m: Record<string, unknown>): TickMessage | null {
   if (!isNonEmptyString(m.symbol)) return null;
   if (!isFiniteNumber(m.price)) return null;
