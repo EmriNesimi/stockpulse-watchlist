@@ -50,9 +50,36 @@ describe("searchTickers", () => {
   });
 });
 
+// Full shapes, matching what the backend actually returns. The previous
+// fixtures were partial — `{ id, symbol }` for a watchlist item — which meant
+// these tests would have passed even if the client accepted anything at all.
+function watchlistItem(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "1",
+    symbol: "AAPL",
+    name: "Apple Inc.",
+    addedAt: "2026-09-01T00:00:00.000Z",
+    shares: null,
+    costBasis: null,
+    ...overrides,
+  };
+}
+
+function priceAlert(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "1",
+    symbol: "AAPL",
+    threshold: 200,
+    direction: "above",
+    createdAt: "2026-09-01T00:00:00.000Z",
+    triggeredAt: null,
+    ...overrides,
+  };
+}
+
 describe("getWatchlist", () => {
   it("GETs /api/watchlist and returns the items", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ items: [{ id: "1", symbol: "AAPL" }] }));
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ items: [watchlistItem()] }));
 
     const result = await getWatchlist();
 
@@ -64,7 +91,7 @@ describe("getWatchlist", () => {
 describe("addToWatchlist", () => {
   it("POSTs the symbol and name as JSON", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
-      jsonResponse({ item: { id: "1", symbol: "AAPL", name: "Apple Inc.", addedAt: "now" } }, { status: 201 })
+      jsonResponse({ item: watchlistItem() }, { status: 201 })
     );
 
     await addToWatchlist("AAPL", "Apple Inc.");
@@ -122,7 +149,7 @@ describe("removeFromWatchlist", () => {
 describe("getAlerts", () => {
   it("GETs /api/alerts and returns the alerts", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
-      jsonResponse({ alerts: [{ id: "1", symbol: "AAPL", threshold: 200, direction: "above" }] })
+      jsonResponse({ alerts: [priceAlert()] })
     );
 
     const result = await getAlerts();

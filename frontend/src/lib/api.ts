@@ -1,3 +1,11 @@
+import {
+  parseAlertResponse,
+  parseAlertsResponse,
+  parseHistoryResponse,
+  parseWatchlistItemResponse,
+  parseWatchlistResponse,
+} from "./apiShapes";
+
 export const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
 export interface TickerResult {
@@ -40,7 +48,12 @@ export interface AuthUser {
   emailVerified: boolean;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * `parse` is optional on purpose. The shapes worth validating are the ones
+ * whose numbers reach arithmetic; requiring a parser for every endpoint would
+ * mean writing one for `{ message: string }` too, which buys nothing.
+ */
+async function request<T>(path: string, init?: RequestInit, parse?: (raw: unknown) => T): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     // The session cookie is set by the backend as a cross-origin cookie
@@ -53,7 +66,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(body.error ?? `Request failed with status ${res.status}`);
   }
   if (res.status === 204) return undefined as T;
-  return res.json();
+
+  const body: unknown = await res.json();
+  return parse ? parse(body) : (body as T);
 }
 
 export function searchTickers(query: string): Promise<{ results: TickerResult[]; source: string }> {
@@ -61,14 +76,15 @@ export function searchTickers(query: string): Promise<{ results: TickerResult[];
 }
 
 export function getWatchlist(): Promise<{ items: WatchlistItem[] }> {
-  return request("/api/watchlist");
+  return request("/api/watchlist", undefined, parseWatchlistResponse);
 }
 
 export function addToWatchlist(symbol: string, name?: string): Promise<{ item: WatchlistItem }> {
-  return request("/api/watchlist", {
-    method: "POST",
-    body: JSON.stringify({ symbol, name }),
-  });
+  return request(
+    "/api/watchlist",
+    { method: "POST", body: JSON.stringify({ symbol, name }) },
+    parseWatchlistItemResponse
+  );
 }
 
 // Pass nulls to clear a position back to watch-only. The backend enforces
@@ -79,10 +95,11 @@ export function updateHoldings(
   shares: number | null,
   costBasis: number | null
 ): Promise<{ item: WatchlistItem }> {
-  return request(`/api/watchlist/${encodeURIComponent(symbol)}`, {
-    method: "PATCH",
-    body: JSON.stringify({ shares, costBasis }),
-  });
+  return request(
+    `/api/watchlist/${encodeURIComponent(symbol)}`,
+    { method: "PATCH", body: JSON.stringify({ shares, costBasis }) },
+    parseWatchlistItemResponse
+  );
 }
 
 export function removeFromWatchlist(symbol: string): Promise<void> {
@@ -90,7 +107,7 @@ export function removeFromWatchlist(symbol: string): Promise<void> {
 }
 
 export function getAlerts(): Promise<{ alerts: PriceAlert[] }> {
-  return request("/api/alerts");
+  return request("/api/alerts", undefined, parseAlertsResponse);
 }
 
 export function createAlert(
@@ -98,10 +115,11 @@ export function createAlert(
   threshold: number,
   direction: "above" | "below"
 ): Promise<{ alert: PriceAlert }> {
-  return request("/api/alerts", {
-    method: "POST",
-    body: JSON.stringify({ symbol, threshold, direction }),
-  });
+  return request(
+    "/api/alerts",
+    { method: "POST", body: JSON.stringify({ symbol, threshold, direction }) },
+    parseAlertResponse
+  );
 }
 
 export function removeAlert(id: string): Promise<void> {
@@ -109,7 +127,7 @@ export function removeAlert(id: string): Promise<void> {
 }
 
 export function getHistory(symbol: string, days = 30): Promise<{ candles: Candle[]; source: string }> {
-  return request(`/api/history/${encodeURIComponent(symbol)}?days=${days}`);
+  return request(`/api/history/${encodeURIComponent(symbol)}?days=${days}`, undefined, parseHistoryResponse);
 }
 
 // Deliberately returns no user and no session: the backend answers the same
