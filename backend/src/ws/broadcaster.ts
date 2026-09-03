@@ -166,11 +166,13 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
       broadcast(clients, tick);
       // Fire-and-forget: alert evaluation shouldn't block tick delivery, and
       // a failure here (e.g. a db hiccup) shouldn't take the price feed down.
-      checkAndTriggerAlerts(tick)
-        .then((triggered) => {
-          for (const alert of triggered) broadcastAlert(clients, alert);
-        })
-        .catch((err) => console.error(`Failed to check price alerts for ${symbol}:`, err));
+      // Broadcast per alert as it's claimed rather than after the batch: a
+      // failure partway through used to reject before any of them were sent,
+      // even though the earlier ones were already durably marked triggered
+      // and could never fire again.
+      checkAndTriggerAlerts(tick, (alert) => broadcastAlert(clients, alert)).catch((err) =>
+        console.error(`Failed to check price alerts for ${symbol}:`, err)
+      );
     });
     fanout = { unsub, clients };
     fanouts.set(symbol, fanout);
