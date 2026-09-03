@@ -49,10 +49,24 @@ async function sendAccountExistsEmail(email: string) {
 /** Returns whether the send actually succeeded, so authenticated callers can say so. */
 async function sendVerificationEmail(userId: string, email: string): Promise<boolean> {
   const { token, expiresAt } = generateVerificationToken();
-  await prisma.user.update({
-    where: { id: userId },
-    data: { verificationToken: token, verificationTokenExpires: expiresAt },
-  });
+
+  // Guarded because signup calls this *after* the user row is committed. An
+  // error here used to propagate past the 202 and surface as a 500, telling
+  // someone their signup failed when the account had in fact been created —
+  // and their retry then hit the "already registered" branch and mailed the
+  // account-exists notice to their own address.
+  //
+  // Verification gates nothing, so a missing token is a degraded signup rather
+  // than a failed one. The resend button issues a fresh one.
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { verificationToken: token, verificationTokenExpires: expiresAt },
+    });
+  } catch (err) {
+    console.error(`Failed to issue a verification token for ${email}:`, err);
+    return false;
+  }
 
   const verifyUrl = `${env.frontendOrigin}/verify-email?token=${token}`;
 

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "../db";
 import { getOrCreateWatchlist, DEFAULT_USER_ID } from "../watchlistHelper";
 import { checkAndTriggerAlerts } from "./checkAndTriggerAlerts";
@@ -112,5 +112,66 @@ describe("checkAndTriggerAlerts", () => {
     const result = await checkAndTriggerAlerts(tick({ symbol: "AAPL", price: 210 }));
 
     expect(result[0].userId).toBe(DEFAULT_USER_ID);
+  });
+});
+
+describe("concurrent ticks", () => {
+  // Ticks are dispatched without awaiting the previous one, so two trades for
+  // the same symbol milliseconds apart both run this. Read and write were not
+  // atomic, so both could see the alert untriggered and both fire it — the
+  // client received the same one-shot alert twice.
+  it("fires a one-shot alert exactly once when two ticks race", async () => {
+    const watchlist = await getOrCreateWatchlist(DEFAULT_USER_ID);
+    await prisma.priceAlert.create({
+      data: { symbol: "AAPL", threshold: 200, direction: "above", watchlistId: watchlist.id },
+    });
+
+    // Promise.all alone doesn't reliably interleave these — it passed against
+    // the un-fixed code. The race needs both reads to finish before either
+    // write, so hold the first caller at a barrier until the second has read
+    // too. That's the exact ordering two near-simultaneous trades produce.
+    const realFindMany = prisma.priceAlert.findMany.bind(prisma.priceAlert);
+    let bothHaveRead: () => void;
+    const barrier = new Promise<void>((resolve) => {
+      bothHaveRead = resolve;
+    });
+    let reads = 0;
+
+    // Cast because Prisma's findMany is typed to return its own branded
+    // PrismaPromise, which a plain async function can't satisfy. The awaited
+    // value is the same either way and nothing here relies on the brand.
+    const spy = vi.spyOn(prisma.priceAlert, "findMany").mockImplementation(((
+      args: Parameters<typeof realFindMany>[0]
+    ) =>
+      (async () => {
+        const rows = await realFindMany(args);
+        if (++reads === 2) bothHaveRead!();
+        else await barrier;
+        return rows;
+      })()) as unknown as typeof prisma.priceAlert.findMany);
+
+    const tick = { symbol: "AAPL", price: 250, changePercent: 1, timestamp: Date.now(), source: "simulated" as const };
+
+    try {
+      const [a, b] = await Promise.all([checkAndTriggerAlerts(tick), checkAndTriggerAlerts(tick)]);
+      expect(a.length + b.length).toBe(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("notifies as each alert is claimed, not after the batch", async () => {
+    const watchlist = await getOrCreateWatchlist(DEFAULT_USER_ID);
+    await prisma.priceAlert.create({
+      data: { symbol: "MSFT", threshold: 100, direction: "above", watchlistId: watchlist.id },
+    });
+
+    const seen: string[] = [];
+    const returned = await checkAndTriggerAlerts(
+      { symbol: "MSFT", price: 150, changePercent: 1, timestamp: Date.now(), source: "simulated" },
+      (alert) => seen.push(alert.id)
+    );
+
+    expect(seen).toEqual(returned.map((a) => a.id));
   });
 });

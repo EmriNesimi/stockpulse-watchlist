@@ -109,10 +109,26 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
       // already known by the time the socket is live. Doing it afterwards
       // left a window where a tick could fire before we knew who the client
       // was, and they'd silently miss their own alert.
-      void resolveUserId(req.headers.cookie).then((userId) => {
-        resolvedUsers.set(req, userId);
-        done(true);
-      });
+      // The counter is deliberately incremented in the connection handler, not
+      // here. Reserving the slot at this point would close a small window
+      // where simultaneous upgrades can all pass the check before any counts —
+      // but an upgrade that's accepted and then never becomes a connection
+      // would leak the slot permanently, and a slot lost for good is worse
+      // than a cap briefly exceeded by a handful.
+      resolveUserId(req.headers.cookie)
+        .then((userId) => {
+          resolvedUsers.set(req, userId);
+          done(true);
+        })
+        .catch((err) => {
+          // Nothing in resolveUserId can reject today — the cookie parser
+          // swallows decode errors and the Prisma call has its own catch. But
+          // done() must be called exactly once or the client's upgrade hangs
+          // until its own timeout, so this is here for whoever changes one of
+          // those later.
+          console.error("Failed to resolve the session for a WS upgrade:", err);
+          done(false, 500, "Internal error");
+        });
     },
   });
 
@@ -166,11 +182,13 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
       broadcast(clients, tick);
       // Fire-and-forget: alert evaluation shouldn't block tick delivery, and
       // a failure here (e.g. a db hiccup) shouldn't take the price feed down.
-      checkAndTriggerAlerts(tick)
-        .then((triggered) => {
-          for (const alert of triggered) broadcastAlert(clients, alert);
-        })
-        .catch((err) => console.error(`Failed to check price alerts for ${symbol}:`, err));
+      // Broadcast per alert as it's claimed rather than after the batch: a
+      // failure partway through used to reject before any of them were sent,
+      // even though the earlier ones were already durably marked triggered
+      // and could never fire again.
+      checkAndTriggerAlerts(tick, (alert) => broadcastAlert(clients, alert)).catch((err) =>
+        console.error(`Failed to check price alerts for ${symbol}:`, err)
+      );
     });
     fanout = { unsub, clients };
     fanouts.set(symbol, fanout);

@@ -58,3 +58,19 @@ describe("POST /api/auth/resend-verification when the send fails", () => {
     expect(await prisma.user.findUnique({ where: { email: CREDENTIALS.email } })).not.toBeNull();
   });
 });
+
+describe("signup when the verification token can't be issued", () => {
+  // The user row is committed before this runs, so an error here used to
+  // surface as a 500 for an account that had actually been created.
+  it("still answers 202 and keeps the account", async () => {
+    const spy = vi
+      .spyOn(prisma.user, "update")
+      .mockRejectedValueOnce(new Error("connection terminated unexpectedly"));
+
+    const res = await request(app).post("/api/auth/signup").send(CREDENTIALS);
+
+    expect(res.status).toBe(202);
+    expect(await prisma.user.findUnique({ where: { email: CREDENTIALS.email } })).not.toBeNull();
+    spy.mockRestore();
+  });
+});

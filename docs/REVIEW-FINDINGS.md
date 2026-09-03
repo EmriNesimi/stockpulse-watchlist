@@ -130,3 +130,44 @@ light theme had not been contrast-checked to the same standard as the dark
 theme and three composed-UI combinations failed outright, though the icon-rail
 accessible names were in fact correct at every breakpoint. Findings and what's
 still open live in the README's Accessibility section.
+
+---
+
+## Reviewed 2026-09-03 — backend correctness
+
+The backend had been security-audited but never reviewed for correctness, which
+the frontend had. This closes that.
+
+Three concurrency bugs, all reachable by ordinary traffic rather than by an
+attacker:
+
+- **`getOrCreateWatchlist` raced itself.** find-then-create against a unique
+  `userId`, called from every watchlist and alerts route. The dashboard loads
+  both lists at once, so two requests for a brand-new user could both see
+  nothing, both insert, and hand the loser a `P2002` that surfaced as a 500 —
+  on someone's first ever visit. Now an upsert.
+- **One-shot alerts could fire twice.** The read finding untriggered alerts and
+  the write marking them weren't atomic, and ticks are dispatched without
+  awaiting the previous one. Two trades milliseconds apart could both fire the
+  same alert. The write now claims the row with `triggeredAt: null` in its
+  `where`.
+- **A mid-batch failure discarded already-committed triggers.** Alerts were
+  collected and broadcast after the whole loop, so a database error partway
+  through rejected before anything was sent — while the earlier alerts were
+  already durably marked triggered and could never fire again. Notified per
+  alert now.
+
+Plus: signup could return 500 for an account that had actually been created,
+and the WebSocket upgrade had an unhandled rejection that would hang a client.
+
+**Deliberately not changed.** The per-IP connection counter is incremented in
+the connection handler, after the cap is checked in `verifyClient` — so
+simultaneous upgrades can briefly exceed the cap. Moving the increment earlier
+closes that but leaks a slot permanently if an accepted upgrade never becomes a
+connection, and a slot lost for good is worse than a cap exceeded by a handful.
+Tried it, backed it out, left a comment at the site.
+
+**Found sound:** the WebSocket connection lifecycle (the double-release guard,
+the WeakMap bridging upgrade to connection, per-symbol fanout ref-counting),
+SIGTERM handling, the zod schemas, and the null-safe fallback patterns through
+the Massive and email clients.
