@@ -73,10 +73,3 @@
   flex: 1;
   padding: var(--space-5);
 }
-
-.pageHeading {
-  font-size: 1.375rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  margin: 0 0 var(--space-4);
-}
