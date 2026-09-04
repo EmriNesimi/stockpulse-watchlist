@@ -1,0 +1,39 @@
+name: Smoke
+
+# Deploys happen outside CI — Render builds from main on its own — so nothing
+# was checking the result. This runs after a push to main lands (giving Render
+# time to finish), and daily, because the two things most likely to break the
+# deployment break it without anyone pushing: a hostname changing and the free
+# database expiring.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 8 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Deployed app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Render starts building when the push lands, so checking immediately
+      # would test the previous version. This waits for the new one rather
+      # than sleeping a fixed guess.
+      - name: Wait for the deploy to carry this commit
+        run: |
+          for _ in $(seq 1 40); do
+            if curl -sf -m 90 https://stockpulse-api-n3yu.onrender.com/health >/dev/null; then
+              break
+            fi
+            sleep 15
+          done
+
+      - name: Smoke test
+        run: ./scripts/smoke.sh
