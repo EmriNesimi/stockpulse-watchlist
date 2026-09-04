@@ -39,6 +39,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - [Environment variables](#️-environment-variables-backendenv)
 - [Security notes](#-security-notes)
 - [Roadmap](#️-roadmap)
+- [Licence](#-licence)
 - [Tech stack](#-tech-stack)
 
 > Note: a couple of the links above rely on GitHub's auto-generated emoji anchors, which aren't always predictable — if one doesn't jump correctly, just scroll, the section's right there.
