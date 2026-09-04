@@ -31,6 +31,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - [Setup](#-setup)
 - [Contributing](#-contributing-to-this-repo)
 - [Accessibility](#-accessibility)
+- [Smoke test](#-smoke-test)
 - [Known issues](#-known-issues)
 - [Backups](#-backups)
 - [Deployment](#-deployment)
@@ -381,6 +382,20 @@ What's left is the thing all three observed failures had in common: each happene
 So: not a race, not ordering, not connection exhaustion. The suite is CPU-starved on a loaded machine, and `userEvent`-driven tests advancing real timers per keystroke are the first to tip over.
 
 Practical upshot: **rerun before believing a local failure**, and check `uptime` if it repeats. This is a developer-machine problem rather than a code one — CI runs on a dedicated runner and has not shown it.
+
+## 🔥 Smoke test
+
+Render builds from `main` on its own, outside CI — so a green pipeline says the *code* is fine and nothing at all about whether the *deployed app* is.
+
+```bash
+./scripts/smoke.sh
+```
+
+Thirteen checks against the live deployment: health including the database, CORS in both directions, the SPA fallback, the security headers, and — the one worth having — whether the shipped JavaScript bundle actually points at this API. `VITE_API_URL` is inlined at build time, so a stale value survives a restart and only a rebuild clears it; there's no way to spot that from outside except by reading the bundle.
+
+It runs automatically after every push to `main` and once a day. Daily matters because the two likeliest ways this deployment breaks involve nobody pushing anything: a service hostname changing (which has happened, and silently breaks CORS) and the free database reaching its expiry.
+
+Read-only — it creates nothing and signs in as nobody. Point it elsewhere with `API_URL` and `APP_URL`.
 
 ## 💾 Backups
 
