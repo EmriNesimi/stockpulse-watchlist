@@ -41,11 +41,19 @@ export function createApp() {
   // share one app instance across well more than 60 requests for reasons
   // that have nothing to do with rate limiting (e.g. the watchlist-cap test
   // alone makes 31 requests).
+  // message as an object so it's sent as JSON. The default is plain text with
+  // an HTML content type, which every other error in this API isn't — the
+  // client parses error bodies as JSON, so that default meant res.json()
+  // threw and the user saw "Request failed with status 429" instead of the
+  // sentence the limiter had already written for them.
+  const tooMany = { error: "Too many requests — wait a minute and try again." };
+
   const apiLimiter = rateLimit({
     windowMs: 60_000,
     limit: 60,
     standardHeaders: true,
     legacyHeaders: false,
+    message: tooMany,
     skip: () => process.env.NODE_ENV === "test",
   });
   app.use("/api", apiLimiter);
@@ -63,6 +71,7 @@ export function createApp() {
     limit: 10,
     standardHeaders: true,
     legacyHeaders: false,
+    message: tooMany,
     skip: () => process.env.NODE_ENV === "test",
   });
   app.use("/api/auth", authLimiter);
