@@ -392,9 +392,11 @@ Render builds from `main` on its own, outside CI — so a green pipeline says th
 ./scripts/smoke.sh
 ```
 
-Thirteen checks against the live deployment: health including the database, CORS in both directions, the SPA fallback, the security headers, and — the one worth having — whether the shipped JavaScript bundle actually points at this API. `VITE_API_URL` is inlined at build time, so a stale value survives a restart and only a rebuild clears it; there's no way to spot that from outside except by reading the bundle.
+Fourteen checks against the live deployment: health including the database, CORS in both directions, the SPA fallback, the security headers, a real WebSocket round trip (connect, subscribe, receive a tick), and — the one worth having — whether the shipped JavaScript bundle actually points at this API. `VITE_API_URL` is inlined at build time, so a stale value survives a restart and only a rebuild clears it; there's no way to spot that from outside except by reading the bundle.
 
 It runs automatically after every push to `main` and once a day. Daily matters because the two likeliest ways this deployment breaks involve nobody pushing anything: a service hostname changing (which has happened, and silently breaks CORS) and the free database reaching its expiry.
+
+The WebSocket check covers the app's headline feature, and the upgrade path has its own origin check, session resolution and per-IP caps that no HTTP request touches — a deploy where the socket refuses upgrades looks healthy from every other angle.
 
 Read-only — it creates nothing and signs in as nobody. Point it elsewhere with `API_URL` and `APP_URL`.
 

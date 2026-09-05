@@ -40,4 +40,29 @@ describe("POST /api/auth/login — rate limiting", () => {
     expect(statuses.filter((s) => s === 401)).toHaveLength(10); // within budget, just wrong credentials
     expect(statuses.filter((s) => s === 429)).toHaveLength(1); // the 11th trips the limiter
   });
+
+  // The status alone was all this checked, and the body was plain text with an
+  // HTML content type — so the client's res.json() threw and the user got
+  // "Request failed with status 429" rather than the sentence the limiter had
+  // already written. Every other error from this API is { error }.
+  it("answers 429 in the same JSON shape as every other error", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DATABASE_URL", process.env.DATABASE_URL);
+    vi.stubEnv("FRONTEND_ORIGIN", "http://localhost:5173");
+    vi.stubEnv("SESSION_SECRET", "test-secret");
+    vi.resetModules();
+    const { createApp } = await import("../app.js");
+    const app = createApp();
+
+    const attempts = await Promise.all(
+      Array.from({ length: 11 }, () =>
+        request(app).post("/api/auth/login").send({ email: "nobody@example.com", password: "wrong-password" })
+      )
+    );
+
+    const limited = attempts.find((res) => res.status === 429);
+    expect(limited).toBeDefined();
+    expect(limited!.headers["content-type"]).toMatch(/application\/json/);
+    expect(limited!.body.error).toMatch(/too many requests/i);
+  });
 });
