@@ -81,6 +81,41 @@ else
 fi
 
 echo
+echo "websocket"
+# Live prices are the whole point of the app, and the upgrade path has its own
+# origin check, session handling and per-IP caps — none of which the HTTP
+# checks above touch. A deploy where the socket refuses upgrades looks
+# perfectly healthy from every other angle here.
+# WebSocket is global from Node 22 and behind a flag on 20. Detect rather than
+# hardcode either, so this keeps working in both directions.
+ws_flag=""
+node -e 'process.exit(typeof WebSocket === "function" ? 0 : 1)' 2>/dev/null || ws_flag="--experimental-websocket"
+
+ws_result="$(WS_URL="${API/https:/wss:}/ws" WS_ORIGIN="$APP" node $ws_flag -e '
+const url = process.env.WS_URL;
+const WebSocket = globalThis.WebSocket;
+if (!WebSocket) { console.log("skipped: no WebSocket in this node"); process.exit(0); }
+const ws = new WebSocket(url, { headers: { Origin: process.env.WS_ORIGIN } });
+const done = (m) => { console.log(m); process.exit(0); };
+const timer = setTimeout(() => done("failed: no tick within 25s"), 25000);
+ws.addEventListener("open", () => ws.send(JSON.stringify({ action: "subscribe", symbols: ["AAPL"] })));
+ws.addEventListener("message", (e) => {
+  clearTimeout(timer);
+  try {
+    const msg = JSON.parse(e.data);
+    done(msg.type === "tick" && typeof msg.price === "number" ? "ok" : "failed: unexpected first message " + msg.type);
+  } catch { done("failed: unparseable frame"); }
+});
+ws.addEventListener("error", () => { clearTimeout(timer); done("failed: connection error"); });
+' 2>/dev/null)"
+
+case "$ws_result" in
+  ok)        printf '  ok    %-46s subscribed and received a tick\n' "upgrade, subscribe, tick"; pass=$((pass + 1)) ;;
+  skipped:*) printf '  skip  %-46s %s\n' "upgrade, subscribe, tick" "$ws_result" ;;
+  *)         printf '  FAIL  %-46s %s\n' "upgrade, subscribe, tick" "${ws_result:-no result}"; fail=$((fail + 1)) ;;
+esac
+
+echo
 echo "headers"
 headers="$(curl -s -I -m "$TIMEOUT" "$APP" | tr -d '\r')"
 for h in x-frame-options content-security-policy x-content-type-options; do
