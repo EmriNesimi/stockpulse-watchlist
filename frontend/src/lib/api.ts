@@ -53,6 +53,32 @@ export interface AuthUser {
  * whose numbers reach arithmetic; requiring a parser for every endpoint would
  * mean writing one for `{ message: string }` too, which buys nothing.
  */
+/**
+ * Thrown for any 401 so callers can tell "your session is gone" apart from
+ * "that request failed", which look identical once both are just an Error.
+ */
+export class UnauthorizedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
+let onUnauthorized: (() => void) | null = null;
+
+/**
+ * Registered once by App. Sessions can now end while the app is open — a
+ * password reset or "sign out everywhere" on another device revokes this one —
+ * and without this every call site would need its own 401 branch, or the user
+ * sits on a dashboard where nothing works and the only clue is a red toast.
+ *
+ * Note login and the initial /me check both answer 401 legitimately, so the
+ * handler decides whether a 401 means anything; this only reports it.
+ */
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler;
+}
+
 async function request<T>(path: string, init?: RequestInit, parse?: (raw: unknown) => T): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -63,7 +89,14 @@ async function request<T>(path: string, init?: RequestInit, parse?: (raw: unknow
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? `Request failed with status ${res.status}`);
+    const message = body.error ?? `Request failed with status ${res.status}`;
+
+    if (res.status === 401) {
+      onUnauthorized?.();
+      throw new UnauthorizedError(message);
+    }
+
+    throw new Error(message);
   }
   if (res.status === 204) return undefined as T;
 

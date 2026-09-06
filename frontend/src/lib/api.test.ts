@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   API_BASE,
+  UnauthorizedError,
   addToWatchlist,
   createAlert,
   getAlerts,
@@ -11,18 +12,26 @@ import {
   logout,
   removeAlert,
   removeFromWatchlist,
+  resendVerificationEmail,
   searchTickers,
+  setUnauthorizedHandler,
   signup,
   verifyEmail,
-  resendVerificationEmail,
 } from "./api";
 
+// `ok` is derived from the status rather than defaulted, because hardcoding
+// `ok: true` meant a test could pass `{ status: 401 }` and still get a
+// response the client treated as a success — faking a failure that wasn't one.
 function jsonResponse(body: unknown, init: Partial<Response> = {}): Response {
+  const status = init.status ?? 200;
   return {
-    ok: true,
-    status: 200,
+    status,
+    ok: status >= 200 && status < 300,
     json: async () => body,
     ...init,
+    // Re-applied after the spread so an explicit status still governs `ok`
+    // unless a test deliberately sets `ok` itself.
+    ...(init.ok === undefined ? { ok: status >= 200 && status < 300 } : {}),
   } as Response;
 }
 
@@ -337,5 +346,42 @@ describe("resendVerificationEmail", () => {
     const [url, init] = vi.mocked(fetch).mock.calls[0]!;
     expect(url).toBe(`${API_BASE}/api/auth/resend-verification`);
     expect(init?.method).toBe("POST");
+  });
+});
+
+describe("401 handling", () => {
+  afterEach(() => setUnauthorizedHandler(null));
+
+  it("throws UnauthorizedError rather than a plain Error", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ error: "Not signed in" }, { status: 401 }));
+
+    await expect(getWatchlist()).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  // Sessions can end while the app is open now — a password reset or a "sign
+  // out everywhere" elsewhere revokes this one. Without this the user sits on
+  // a dashboard where every action fails and a toast is the only clue.
+  it("notifies the registered handler", async () => {
+    const onUnauthorized = vi.fn();
+    setUnauthorizedHandler(onUnauthorized);
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ error: "Not signed in" }, { status: 401 }));
+
+    await expect(getWatchlist()).rejects.toThrow();
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves other failures alone", async () => {
+    const onUnauthorized = vi.fn();
+    setUnauthorizedHandler(onUnauthorized);
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ error: "Boom" }, { status: 500 }));
+
+    await expect(getWatchlist()).rejects.not.toBeInstanceOf(UnauthorizedError);
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+
+  it("still carries the server's message", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ error: "Not signed in" }, { status: 401 }));
+
+    await expect(getWatchlist()).rejects.toThrow("Not signed in");
   });
 });
