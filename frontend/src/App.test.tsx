@@ -2,18 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
-import {
-  getWatchlist,
-  addToWatchlist,
-  removeFromWatchlist,
-  createAlert,
-  searchTickers,
-  getCurrentUser,
-  login,
-  logout,
-  verifyEmail,
-  getHistory,
-} from "./lib/api";
+import { getWatchlist, addToWatchlist, removeFromWatchlist, createAlert, searchTickers, getCurrentUser, login, logout, verifyEmail, getHistory, setUnauthorizedHandler } from "./lib/api";
 import type { WatchlistItem } from "./lib/api";
 
 // App composes real child components (Search, WatchlistTable, etc.) rather
@@ -38,6 +27,10 @@ vi.mock("./lib/api", () => ({
   resendVerificationEmail: vi.fn(),
   updateHoldings: vi.fn(),
   getHistory: vi.fn(),
+  // Captured rather than stubbed: App registers a handler here and the only
+  // way to exercise "the session died mid-use" is to invoke what it
+  // registered, the way a real 401 from any call would.
+  setUnauthorizedHandler: vi.fn(),
 }));
 
 // Matches the browser WebSocket API — same shape as useLiveTicks.test.ts's
@@ -720,5 +713,31 @@ describe("App — verify-email link", () => {
     // getCurrentUser's default mock (see beforeEach) is user "u1", same id
     // the token verifies - the Dashboard should render, not the auth gate.
     await waitFor(() => expect(screen.getByText("trader@example.com")).toBeInTheDocument());
+  });
+});
+
+describe("App — session revoked while in use", () => {
+  // Reachable since sign-out-everywhere and password-reset revocation shipped:
+  // another device ends this session, and the first this one hears is a 401 on
+  // its next call. It used to stay on the dashboard with a toast.
+  it("returns to the login screen when a request comes back 401", async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({
+      user: { id: "u1", email: "trader@example.com", emailVerified: true },
+    });
+    vi.mocked(getWatchlist).mockResolvedValue({ items: [] });
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole("navigation", { name: "Main" })).toBeInTheDocument());
+
+    // Fire what App registered — exactly what a 401 from any call does.
+    const registered = vi.mocked(setUnauthorizedHandler).mock.calls
+      .map(([handler]) => handler)
+      .filter((handler): handler is () => void => typeof handler === "function")
+      .at(-1);
+    expect(registered).toBeDefined();
+
+    act(() => registered!());
+
+    await waitFor(() => expect(screen.getByRole("form", { name: "Log in" })).toBeInTheDocument());
   });
 });
