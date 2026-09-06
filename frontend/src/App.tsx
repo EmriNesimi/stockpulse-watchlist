@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AuthGate from "./components/AuthGate";
 import Dashboard from "./Dashboard";
 import { useTheme } from "./hooks/useTheme";
-import { getCurrentUser, logout, verifyEmail, type AuthUser } from "./lib/api";
+import { getCurrentUser, logout, verifyEmail, type AuthUser, setUnauthorizedHandler } from "./lib/api";
 
 type AuthStatus = "checking" | "authenticated" | "unauthenticated";
 
@@ -69,6 +69,25 @@ export default function App() {
   // Split from handleSignOut because signing out everywhere has already ended
   // the session server-side — calling logout again afterwards would be a
   // pointless request against a cookie that's already dead.
+  // Any 401 from an authenticated request means this session is gone — a
+  // password reset or a "sign out everywhere" on another device revokes it,
+  // and the first this device hears is a rejected call. Without this the user
+  // stays on a dashboard where nothing works, with a red toast as the only
+  // explanation.
+  //
+  // Guarded on authStatus because login and the initial /me check answer 401
+  // in the ordinary course of not being signed in yet.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setAuthStatus((current) => {
+        if (current !== "authenticated") return current;
+        setUser(null);
+        return "unauthenticated";
+      });
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
+
   function handleSessionEnded() {
     setUser(null);
     setAuthStatus("unauthenticated");
