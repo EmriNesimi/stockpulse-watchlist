@@ -9,21 +9,33 @@ describe("tryConsumeEmailQuota", () => {
   // The point of the whole module: /api/auth/signup is unauthenticated and
   // mails whatever address is submitted, so the per-IP limiter alone lets one
   // attacker sustain 10 emails a minute at a stranger's inbox indefinitely.
-  it("allows one send per address then refuses until the cooldown lapses", () => {
+  it("allows a small burst per address, then refuses until the window lapses", () => {
     const t0 = 1_000_000;
 
     expect(tryConsumeEmailQuota("victim@example.com", t0)).toBe(true);
-    expect(tryConsumeEmailQuota("victim@example.com", t0 + MINUTE)).toBe(false);
-    expect(tryConsumeEmailQuota("victim@example.com", t0 + 14 * MINUTE)).toBe(false);
+    expect(tryConsumeEmailQuota("victim@example.com", t0 + MINUTE)).toBe(true);
+    expect(tryConsumeEmailQuota("victim@example.com", t0 + 2 * MINUTE)).toBe(true);
+    expect(tryConsumeEmailQuota("victim@example.com", t0 + 3 * MINUTE)).toBe(false);
     expect(tryConsumeEmailQuota("victim@example.com", t0 + 16 * MINUTE)).toBe(true);
+  });
+
+  // An allowance of one made this a suppression tool: whoever asked first won
+  // the whole window, so anyone who knew a registered address could keep the
+  // owner's own reset email from ever being sent. A burst means one hostile
+  // request no longer locks the owner out.
+  it("does not let a single hostile request consume the whole window", () => {
+    const t0 = 1_000_000;
+
+    expect(tryConsumeEmailQuota("victim@example.com", t0)).toBe(true); // attacker
+    expect(tryConsumeEmailQuota("victim@example.com", t0 + MINUTE)).toBe(true); // owner still gets through
   });
 
   it("tracks addresses independently, so one target can't block another", () => {
     const t0 = 1_000_000;
 
-    expect(tryConsumeEmailQuota("a@example.com", t0)).toBe(true);
-    expect(tryConsumeEmailQuota("b@example.com", t0)).toBe(true);
-    expect(tryConsumeEmailQuota("a@example.com", t0)).toBe(false);
+    for (let i = 0; i < 3; i++) expect(tryConsumeEmailQuota("a@example.com", t0)).toBe(true);
+    expect(tryConsumeEmailQuota("a@example.com", t0)).toBe(false); // a is spent
+    expect(tryConsumeEmailQuota("b@example.com", t0)).toBe(true); // b is untouched
   });
 
   // Addresses are attacker-supplied. Without pruning, the defence itself

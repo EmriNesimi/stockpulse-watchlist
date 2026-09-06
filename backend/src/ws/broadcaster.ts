@@ -7,6 +7,7 @@ import { checkAndTriggerAlerts, type AlertTrigger } from "../alerts/checkAndTrig
 import { SESSION_COOKIE_NAME, verifySessionCookieValue } from "../auth/session";
 import { env } from "../env";
 import { prisma } from "../db";
+import { registerSocketDisconnector } from "./revocation";
 import { MAX_SYMBOLS_PER_CLIENT } from "../wsLimits";
 import { symbolSchema } from "../routes/watchlist.schemas";
 
@@ -309,6 +310,21 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
       releaseConnection();
     });
   });
+
+  // 1008 is "policy violation", which is what a revoked session is. The
+  // client's reconnect logic will try again and the upgrade will then fail
+  // its own epoch check, so this doesn't turn into a reconnect loop.
+  registerSocketDisconnector((userId) => {
+    let closed = 0;
+    for (const client of wss.clients) {
+      if (clientStates.get(client)?.userId !== userId) continue;
+      client.close(1008, "Session revoked");
+      closed += 1;
+    }
+    return closed;
+  });
+
+  wss.on("close", () => registerSocketDisconnector(null));
 
   return wss;
 }

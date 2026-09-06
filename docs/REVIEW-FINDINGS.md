@@ -171,3 +171,41 @@ Tried it, backed it out, left a comment at the site.
 the WeakMap bridging upgrade to connection, per-symbol fanout ref-counting),
 SIGTERM handling, the zod schemas, and the null-safe fallback patterns through
 the Massive and email clients.
+
+---
+
+## Re-audited 2026-09-06 — the auth surface rewritten since 2026-08-22
+
+Session revocation, password reset, the mail throttle, both shell scripts and
+the workflows were all new or rewritten since the first security review, so
+they got their own pass. Two confirmed findings, both in features added during
+that window.
+
+**Revocation didn't reach open WebSockets (high).** The socket resolves who you
+are once, at the upgrade, and caches it for the life of the connection — the
+right trade for reads, since re-checking per tick is a query per client per
+message. But it meant "sign out everywhere" 401'd every request from the
+revoked device while its already-open socket kept delivering that user's
+private price alerts, indefinitely. Exactly the case the feature exists for.
+Both revocation paths now close that user's live sockets with 1008.
+
+**The mail throttle could be used to suppress a reset (medium).** An allowance
+of one per address meant whoever asked first won the whole fifteen-minute
+window. `forgot-password` is unauthenticated and answers 202 regardless, so
+anyone who knew a registered address could call it every fourteen minutes and
+the owner's own reset email would be silently dropped. Raised to three per
+window: still a ceiling rather than a mail bomb, but one hostile request no
+longer takes the owner's only slot.
+
+**Residual, stated rather than closed:** an attacker willing to burn all three
+slots every window can still suppress a reset. Properly fixing that needs a
+challenge on the endpoint — CAPTCHA or proof-of-work — which is a larger change
+than this project warrants. Accepted knowingly.
+
+**Checked and sound:** the cookie format (HMAC verified before the payload is
+ever split, epoch inside the signed payload, cuid ids can't contain the
+separator), `logout-everywhere` touching only the caller's own row, reset-token
+entropy and single use, both shell scripts (the connection string goes to the
+container by environment, never argv, so it stays out of process listings),
+and the workflows — `smoke.yml` has no `pull_request` trigger and references no
+secrets, so a fork can neither run it nor extract anything from it.
