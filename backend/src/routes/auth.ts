@@ -8,6 +8,7 @@ import { generateVerificationToken } from "../auth/verification";
 import { accountExistsEmailHtml, passwordResetEmailHtml, sendEmail, verificationEmailHtml } from "../email/resend";
 import { tryConsumeEmailQuota } from "../email/sendThrottle";
 import { generateResetToken } from "../auth/passwordReset";
+import { disconnectUserSockets } from "../ws/revocation";
 import { getOrCreateWatchlist } from "../watchlistHelper";
 import { credentialsSchema, forgotPasswordSchema, resetPasswordSchema, verifyEmailBodySchema } from "./auth.schemas";
 import { env } from "../env";
@@ -222,6 +223,12 @@ router.post(
       },
     });
 
+    // Bumping the epoch stops every future request, but a socket that's
+    // already open resolved its user at the upgrade and never re-checks — so
+    // without this the revoked device keeps receiving that user's private
+    // alerts until the tab is closed.
+    disconnectUserSockets(user.id);
+
     // Deliberately does not sign the user in. Someone who can read the inbox
     // proves they own the address, but making them type the new password once
     // more is a cheap confirmation that they know it.
@@ -242,6 +249,8 @@ router.post(
       where: { id: req.userId },
       data: { sessionEpoch: { increment: 1 } },
     });
+
+    disconnectUserSockets(req.userId);
 
     const { maxAge: _maxAge, ...clearOptions } = SESSION_COOKIE_OPTIONS;
     res.clearCookie(SESSION_COOKIE_NAME, clearOptions);
