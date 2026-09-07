@@ -79,6 +79,16 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
   onUnauthorized = handler;
 }
 
+/**
+ * For the WebSocket, which learns the session is gone a different way: the
+ * server closes it with 1008 rather than answering a request with 401. Same
+ * conclusion, so it goes through the same handler rather than growing a
+ * second notion of "signed out" that could drift from this one.
+ */
+export function reportSessionExpired() {
+  onUnauthorized?.();
+}
+
 async function request<T>(path: string, init?: RequestInit, parse?: (raw: unknown) => T): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,

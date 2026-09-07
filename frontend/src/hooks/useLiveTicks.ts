@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { WS_URL } from "../lib/ws";
+import { reportSessionExpired } from "../lib/api";
 import { parseServerMessage, type AlertEvent } from "../lib/wsMessages";
 import type { PriceState } from "../types";
 
@@ -10,6 +11,9 @@ export type ConnectionStatus = "connecting" | "open" | "reconnecting" | "closed"
 // from there — 2s, 4s, 8s… That's a fine curve; the old name just described a
 // first delay that never happens, which is worth being accurate about since
 // the backoff interacts with the server's per-IP connection cap.
+// RFC 6455 policy violation, which is what a revoked session is.
+const SESSION_REVOKED_CLOSE_CODE = 1008;
+
 const RECONNECT_STEP_MS = 1000;
 // The server answers an over-budget message with an error, and counts that
 // message against the budget too — so resyncing the instant an error arrives
@@ -136,8 +140,16 @@ export function useLiveTicks(symbols: string[]) {
         });
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         if (cancelled) return;
+
+        // 1008 is what the server sends when this user's sessions are revoked
+        // — a password reset, or "sign out everywhere" from another device.
+        // Ignoring the code meant an idle user just saw a silent reconnect and
+        // carried on looking at a dashboard that would never receive another
+        // alert; the 401 path only fires if they happen to make a request.
+        if (event?.code === SESSION_REVOKED_CLOSE_CODE) reportSessionExpired();
+
         setStatus("reconnecting");
         reconnectAttempt.current += 1;
         const delay = Math.min(RECONNECT_STEP_MS * 2 ** reconnectAttempt.current, RECONNECT_MAX_MS);

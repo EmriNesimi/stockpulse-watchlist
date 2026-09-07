@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
+import { reportSessionExpired } from "../lib/api";
 
 // Matches the *browser* WebSocket API (onopen/onmessage/onclose property
 // handlers, readyState + static constants) since useLiveTicks uses the
@@ -17,7 +18,7 @@ class FakeWebSocket {
   sent: string[] = [];
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: string }) => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((event: { code: number }) => void) | null = null;
   onerror: (() => void) | null = null;
 
   constructor(public url: string) {
@@ -30,7 +31,7 @@ class FakeWebSocket {
 
   close() {
     this.readyState = FakeWebSocket.CLOSED;
-    this.onclose?.();
+    this.onclose?.({ code: 1000 });
   }
 
   /** Test helper: the server accepted the connection. */
@@ -44,12 +45,24 @@ class FakeWebSocket {
     this.onmessage?.({ data: JSON.stringify(payload) });
   }
 
-  /** Test helper: the connection dropped (server closed it, network blip, etc). */
-  triggerClose() {
+  /**
+   * Test helper: the connection dropped. Takes a close code because the real
+   * onclose receives a CloseEvent and the hook reads its `code` — the fake
+   * previously called it with nothing at all, which meant a test could pass
+   * against code that would throw in a browser.
+   */
+  triggerClose(code = 1006) {
     this.readyState = FakeWebSocket.CLOSED;
-    this.onclose?.();
+    this.onclose?.({ code });
   }
 }
+
+// Only the one function is stubbed — replacing the whole module drops
+// API_BASE, which lib/ws.ts reads at import time to build the socket URL.
+vi.mock("../lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/api")>()),
+  reportSessionExpired: vi.fn(),
+}));
 
 vi.stubGlobal("WebSocket", FakeWebSocket);
 
@@ -462,5 +475,48 @@ describe("useLiveTicks — error resync storm", () => {
     });
 
     expect(socket.sent.length).toBeGreaterThan(afterFirst);
+  });
+});
+
+describe("useLiveTicks — session revoked", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.mocked(reportSessionExpired).mockClear();
+  });
+
+  // The server closes with 1008 when a password reset or "sign out everywhere"
+  // revokes this user's sessions. Ignoring the code left an idle user watching
+  // a dashboard that had silently reconnected and would never get another
+  // alert — the 401 path only fires if they happen to make a request.
+  it("reports an expired session when the server closes with 1008", () => {
+    renderHook(() => useLiveTicks(["AAPL"]));
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+
+    act(() => socket.triggerClose(1008));
+
+    expect(reportSessionExpired).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats an ordinary drop as an ordinary drop", () => {
+    renderHook(() => useLiveTicks(["AAPL"]));
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+
+    act(() => socket.triggerClose(1006)); // abnormal closure, i.e. a network blip
+
+    expect(reportSessionExpired).not.toHaveBeenCalled();
+  });
+
+  it("still reconnects after a revoked close, rather than going dark", () => {
+    renderHook(() => useLiveTicks(["AAPL"]));
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+    act(() => socket.triggerClose(1008));
+
+    act(() => vi.advanceTimersByTime(5000));
+
+    expect(FakeWebSocket.instances.length).toBeGreaterThan(1);
   });
 });
