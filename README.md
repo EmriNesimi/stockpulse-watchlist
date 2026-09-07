@@ -32,6 +32,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - [Contributing](#-contributing-to-this-repo)
 - [Accessibility](#-accessibility)
 - [Known issues](#-known-issues)
+- [Logs](#-logs)
 - [Smoke test](#-smoke-test)
 - [Backups](#-backups)
 - [Deployment](#-deployment)
@@ -383,6 +384,28 @@ What's left is the thing all three observed failures had in common: each happene
 So: not a race, not ordering, not connection exhaustion. The suite is CPU-starved on a loaded machine, and `userEvent`-driven tests advancing real timers per keystroke are the first to tip over.
 
 Practical upshot: **rerun before believing a local failure**, and check `uptime` if it repeats. This is a developer-machine problem rather than a code one — CI runs on a dedicated runner and has not shown it.
+
+## 🪵 Logs
+
+The backend writes one line of JSON per event to stdout, which Render captures.
+
+```json
+{"level":"warn","time":"2026-09-07T16:39:30.209Z","message":"Massive WS refused, falling back to the simulated feed","reason":"auth_failed"}
+```
+
+The point is the fields. Everything used to go out as a sentence with the
+interesting part baked into the middle of it — `Failed to send verification
+email to someone@example.com` — so "is one address failing every send?" meant
+reading lines rather than grouping them. Now the address, the symbol, the
+fallback reason and the request path are all things you can filter on.
+
+Errors keep their stack. `JSON.stringify` turns an `Error` into `{}`, which
+loses the only part worth logging, so the serialiser unwraps them.
+
+It's four functions over `console` in `src/logger.ts` rather than a logging
+library — the platform captures stdout either way, so a dependency would be
+buying formatting alone. Silent under `NODE_ENV=test`, so the suite doesn't
+bury its own failures.
 
 ## 🔥 Smoke test
 
