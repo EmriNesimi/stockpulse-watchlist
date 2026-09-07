@@ -356,6 +356,7 @@ Audited against **WCAG 2.2 AA**. Worth being specific about, because the claims 
 | Bearish text on a hovered row | 4.16:1 |
 | Bearish text on the page background | 4.51:1 — a pass by 0.01 |
 | Form inputs replacing the 2px focus ring with a 1px border tint | least-visible focus targets in the app |
+| Auth notices appearing together with their live region | announced inconsistently; the region is now always present and the text swaps |
 | Resting input boundary against its card | 1.07:1 — now a dedicated token at 3.24:1 |
 | Watchlist table clipped by the card's `overflow: hidden` | no escape hatch at 320px or 400% zoom |
 | `<aside>` announcing primary nav as complementary | now a plain wrapper; the inner `<nav>` does the work |
@@ -364,7 +365,6 @@ Ratios were computed from the token hex values and re-derived independently rath
 
 **Still open, honestly:**
 
-- The auth notice banners mount conditionally rather than swapping text in an always-present live region. Support for that pattern varies by screen reader; needs a real NVDA/VoiceOver pass to decide if it matters.
 
 ## 🐛 Known issues
 
