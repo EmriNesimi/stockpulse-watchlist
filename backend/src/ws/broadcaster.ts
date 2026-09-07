@@ -1,4 +1,5 @@
 import type { IncomingMessage, Server as HttpServer } from "http";
+import { logger } from "../logger";
 import { parse as parseCookies } from "cookie";
 import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
@@ -127,7 +128,7 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
           // done() must be called exactly once or the client's upgrade hangs
           // until its own timeout, so this is here for whoever changes one of
           // those later.
-          console.error("Failed to resolve the session for a WS upgrade:", err);
+          logger.error("failed to resolve the session for a WS upgrade", { err });
           done(false, 500, "Internal error");
         });
     },
@@ -188,7 +189,7 @@ export function attachBroadcaster(server: HttpServer, priceFeed: PriceFeed) {
       // even though the earlier ones were already durably marked triggered
       // and could never fire again.
       checkAndTriggerAlerts(tick, (alert) => broadcastAlert(clients, alert)).catch((err) =>
-        console.error(`Failed to check price alerts for ${symbol}:`, err)
+        logger.error("failed to check price alerts", { symbol, err })
       );
     });
     fanout = { unsub, clients };
