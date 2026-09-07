@@ -147,6 +147,11 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
     setConfirmPassword("");
   }
 
+  // One region rather than two. Both were always-mounted after the change
+  // above, and two competing polite live regions is its own problem — only
+  // ever one of these is set anyway.
+  const statusNotice = notice ?? (verifyEmailNotice?.kind === "success" ? verifyEmailNotice.message : null);
+
   return (
     <div className={styles.wrapper}>
       <div className={styles.formSide}>
@@ -159,19 +164,30 @@ export default function AuthGate({ onAuthenticated, theme, onToggleTheme, verify
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           </div>
 
-          {notice && (
-            <div role="status" className={styles.verifySuccess}>
-              {notice}
-            </div>
-          )}
-          {verifyEmailNotice && (
-            <div
-              role={verifyEmailNotice.kind === "error" ? "alert" : "status"}
-              className={verifyEmailNotice.kind === "error" ? styles.error : styles.verifySuccess}
-            >
+          {/*
+            Always mounted, with the text swapped in and out. Screen-reader
+            support for a live region that appears at the same moment its
+            content does is inconsistent — some announce it, some don't see
+            the region in time. A region already in the tree when the text
+            changes is the pattern that works everywhere, and it's what
+            VerificationBanner and Dashboard already do.
+
+            The error case stays conditionally mounted on purpose: role="alert"
+            is designed for exactly that and is announced reliably on insert.
+          */}
+          {verifyEmailNotice?.kind === "error" && (
+            <div role="alert" className={styles.error}>
               {verifyEmailNotice.message}
             </div>
           )}
+
+          <div
+            role="status"
+            aria-live="polite"
+            className={statusNotice ? styles.verifySuccess : undefined}
+          >
+            {statusNotice ?? ""}
+          </div>
 
           <div className={styles.heading}>
             <h1 ref={headingRef} tabIndex={-1} className={styles.title}>

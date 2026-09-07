@@ -1,4 +1,5 @@
 import WebSocket from "ws";
+import { logger } from "../logger";
 import { env } from "../env";
 import type { PriceFeed, PriceTick, Unsubscribe } from "./PriceFeed";
 import { SimulatedFeed } from "./SimulatedFeed";
@@ -89,7 +90,7 @@ export class MassiveLiveFeed implements PriceFeed {
     this.ws = new WebSocket(MASSIVE_WS_URL);
 
     this.authTimer = setTimeout(() => {
-      console.warn("Massive WS auth timed out — falling back to simulated feed.");
+      logger.warn("Massive WS auth timed out, falling back to the simulated feed", { reason: "auth_timeout" });
       this.failOver();
     }, AUTH_TIMEOUT_MS);
 
@@ -100,7 +101,7 @@ export class MassiveLiveFeed implements PriceFeed {
     this.ws.on("message", (raw) => this.handleMessage(raw.toString()));
 
     this.ws.on("error", (err) => {
-      console.error("Massive WS error:", err.message);
+      logger.error("Massive WS error", { err });
     });
 
     this.ws.on("close", () => {
@@ -172,11 +173,11 @@ export class MassiveLiveFeed implements PriceFeed {
       this.reconnectAttempt = 0;
       for (const symbol of this.live.keys()) this.sendSubscribe(symbol);
     } else if (event.status === "auth_failed" || event.status === "max_connections") {
-      console.warn(`Massive WS ${event.status} — falling back to simulated feed.`);
+      logger.warn("Massive WS refused, falling back to the simulated feed", { reason: event.status });
       this.failOver();
     } else if (event.status === "error") {
       // Typically "not entitled" for free-tier keys on the real-time stocks cluster.
-      console.warn("Massive WS reported an error, falling back to simulated feed:", event);
+      logger.warn("Massive WS reported an error, falling back to the simulated feed", { event });
       this.failOver();
     }
   }

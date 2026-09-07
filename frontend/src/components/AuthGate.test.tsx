@@ -172,9 +172,16 @@ describe("AuthGate", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Link expired");
   });
 
-  it("shows no notice when verifyEmailNotice is omitted", () => {
+  // The region stays in the tree with no text, rather than appearing along
+  // with its content. A live region inserted at the same moment as its message
+  // is announced inconsistently across screen readers; one already present
+  // when the text changes is announced everywhere.
+  it("keeps an empty status region rather than removing it", () => {
     render(<AuthGate onAuthenticated={vi.fn()} theme="dark" onToggleTheme={vi.fn()} />);
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+    const status = screen.getByRole("status");
+    expect(status).toBeInTheDocument();
+    expect(status).toBeEmptyDOMElement();
   });
 
   it("doesn't show a confirm-password field in login mode", () => {
@@ -331,5 +338,30 @@ describe("AuthGate — accessibility", () => {
 
     // The chart itself is decorative and should still be hidden.
     expect(document.querySelector("svg[aria-hidden='true']")).toBeInTheDocument();
+  });
+});
+
+describe("AuthGate — status announcements", () => {
+  const props = { onAuthenticated: vi.fn(), theme: "dark" as const, onToggleTheme: vi.fn() };
+
+  it("reuses the same region rather than mounting a new one", () => {
+    const { rerender } = render(<AuthGate {...props} />);
+    const before = screen.getByRole("status");
+
+    rerender(
+      <AuthGate {...props} verifyEmailNotice={{ kind: "success", message: "Email verified" }} />
+    );
+
+    // Same node, new text — which is what makes the announcement reliable.
+    expect(screen.getByRole("status")).toBe(before);
+    expect(before).toHaveTextContent("Email verified");
+  });
+
+  // Errors keep using role="alert", which is designed to be announced on
+  // insert and is reliable that way.
+  it("still announces a verification failure as an alert", () => {
+    render(<AuthGate {...props} verifyEmailNotice={{ kind: "error", message: "Link expired" }} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Link expired");
   });
 });

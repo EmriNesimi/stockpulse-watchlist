@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { logger } from "../logger";
 import { Prisma, type User } from "@prisma/client";
 import { prisma } from "../db";
 import { asyncHandler } from "../asyncHandler";
@@ -43,7 +44,7 @@ async function sendAccountExistsEmail(email: string) {
   try {
     await sendEmail(email, "Someone tried to sign up with your email", accountExistsEmailHtml(env.frontendOrigin));
   } catch (err) {
-    console.error(`Failed to send account-exists email to ${email}:`, err);
+    logger.error("failed to send an account-exists email", { email, err });
   }
 }
 
@@ -65,7 +66,7 @@ async function sendVerificationEmail(userId: string, email: string): Promise<boo
       data: { verificationToken: token, verificationTokenExpires: expiresAt },
     });
   } catch (err) {
-    console.error(`Failed to issue a verification token for ${email}:`, err);
+    logger.error("failed to issue a verification token", { email, err });
     return false;
   }
 
@@ -83,7 +84,7 @@ async function sendVerificationEmail(userId: string, email: string): Promise<boo
     await sendEmail(email, "Confirm your StockPulse account", verificationEmailHtml(verifyUrl));
     return true;
   } catch (err) {
-    console.error(`Failed to send verification email to ${email}:`, err);
+    logger.error("failed to send a verification email", { email, err });
     return false;
   }
 }
@@ -181,7 +182,7 @@ router.post(
       try {
         await sendEmail(email, "Reset your StockPulse password", passwordResetEmailHtml(resetUrl));
       } catch (err) {
-        console.error(`Failed to send password reset email to ${email}:`, err);
+        logger.error("failed to send a password reset email", { email, err });
       }
     }
 

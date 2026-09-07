@@ -1,6 +1,7 @@
 import { createServer } from "http";
 import { createApp } from "./app";
 import { env } from "./env";
+import { logger } from "./logger";
 import { createPriceFeed } from "./priceFeed";
 import { attachBroadcaster } from "./ws/broadcaster";
 
@@ -10,9 +11,9 @@ const priceFeed = createPriceFeed();
 const wss = attachBroadcaster(server, priceFeed);
 
 server.listen(env.port, () => {
-  console.log(`StockPulse backend listening on port ${env.port}`);
+  logger.info("listening", { port: env.port });
   if (!env.massiveApiKey) {
-    console.log("No MASSIVE_API_KEY set — running on the simulated price feed.");
+    logger.info("no MASSIVE_API_KEY set, using the simulated price feed");
   }
 });
 
@@ -27,10 +28,10 @@ server.listen(env.port, () => {
 const SHUTDOWN_GRACE_MS = 10_000;
 
 function shutdown(signal: string) {
-  console.log(`${signal} received — closing server`);
+  logger.info("shutting down", { signal });
 
   const forced = setTimeout(() => {
-    console.warn(`Still closing after ${SHUTDOWN_GRACE_MS}ms — exiting anyway`);
+    logger.warn("shutdown grace expired, exiting anyway", { graceMs: SHUTDOWN_GRACE_MS });
     process.exit(0);
   }, SHUTDOWN_GRACE_MS);
   forced.unref();

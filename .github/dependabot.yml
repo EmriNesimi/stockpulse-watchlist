@@ -1,0 +1,48 @@
+# Security updates are enabled in the repo settings and don't need a config —
+# they land as soon as an advisory does, which is the half that matters.
+#
+# This is the other half: routine version bumps. Grouped deliberately, because
+# two packages with ~60 dependencies each would otherwise open a dozen separate
+# PRs a week and every one of them costs a CI run and a review. One grouped PR
+# per package per week is a change you can actually read.
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      # Minor and patch together: individually they're noise, together they're
+      # one "routine updates" PR that either goes green or doesn't.
+      routine:
+        update-types: [minor, patch]
+    ignore:
+      # Majors have each needed a decision here rather than a merge — zod 4
+      # deprecated two spellings, TypeScript 7 broke the linter, cookie 2 is
+      # ESM-only. Raising them as PRs would just be a queue of things to close.
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      routine:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

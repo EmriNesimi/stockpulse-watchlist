@@ -32,6 +32,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - [Contributing](#-contributing-to-this-repo)
 - [Accessibility](#-accessibility)
 - [Known issues](#-known-issues)
+- [Logs](#-logs)
 - [Smoke test](#-smoke-test)
 - [Backups](#-backups)
 - [Deployment](#-deployment)
@@ -81,7 +82,7 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
 - **Backend**: Express API, Prisma/Postgres persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), a WebSocket broadcaster that fans price ticks out to connected clients with per-IP rate limits and per-connection size/subscription limits, and real multi-user auth (scrypt password hashing, signed session cookies, per-user watchlists/alerts).
 - **Frontend**: Vite + React + TS app built against a Figma trading-dashboard reference — a login/signup gate, a sidebar shell with Dashboard/Wallet/Profile/Stock screens, portfolio cards and a watching rail, debounced ticker search wired to the real API, a watchlist table with sparklines, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, a connection-status indicator, and a light/dark theme toggle.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
-- **Testing**: 612 tests total — 269 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 343 on the frontend (hooks, API client, portfolio maths, WebSocket message validation, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
+- **Testing**: 619 tests total — 274 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 345 on the frontend (hooks, API client, portfolio maths, WebSocket message validation, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
 
 ## 🏗️ Architecture
@@ -293,11 +294,11 @@ Then open `http://localhost:5173` — search a ticker, add it, and it should sta
 
 Linting: `npm run lint` in either package (ESLint 9 flat config; the frontend adds `react-hooks` and `jsx-a11y`, both wired into CI).
 
-Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts/history routes via `supertest` against a real throwaway Postgres database, price-alert triggering logic, the simulated OHLC candle generator, the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits including the per-IP budget surviving a reconnect, shared-subscription cleanup, and alert delivery — and `env.ts`'s production fail-fast behavior via fresh module re-imports. 269 tests total, no real network calls anywhere in the suite).
+Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts/history routes via `supertest` against a real throwaway Postgres database, price-alert triggering logic, the simulated OHLC candle generator, the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits including the per-IP budget surviving a reconnect, shared-subscription cleanup, and alert delivery — and `env.ts`'s production fail-fast behavior via fresh module re-imports. 274 tests total, no real network calls anywhere in the suite).
 
 The suite drops and recreates the schema before every run, so it refuses to start against anything that isn't localhost — that guard is the only thing standing between a stray `DATABASE_URL` and your production data. See `src/test/globalSetup.ts`.
 
-Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, `useHistory` and the `CandlestickChart` it feeds, `useErrorToasts` and the `ErrorToast` it feeds, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load and its loading state, search → add, optimistic remove + rollback, live connection status and price updates, both halves of the alert feature, and the three error-toast failure paths, end to end. 343 tests total.)
+Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, `useHistory` and the `CandlestickChart` it feeds, `useErrorToasts` and the `ErrorToast` it feeds, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load and its loading state, search → add, optimistic remove + rollback, live connection status and price updates, both halves of the alert feature, and the three error-toast failure paths, end to end. 345 tests total.)
 
 The backend needs no **environment variables** — it boots on the simulated price feed and a static ticker-search fallback list automatically, and you don't need a Massive account to run or demo this. It does need the Postgres above: without one, signup returns a 500 and the auth gate makes the app unreachable. That was free when this used SQLite and stopped being free at the migration.
 
@@ -355,6 +356,7 @@ Audited against **WCAG 2.2 AA**. Worth being specific about, because the claims 
 | Bearish text on a hovered row | 4.16:1 |
 | Bearish text on the page background | 4.51:1 — a pass by 0.01 |
 | Form inputs replacing the 2px focus ring with a 1px border tint | least-visible focus targets in the app |
+| Auth notices appearing together with their live region | announced inconsistently; the region is now always present and the text swaps |
 | Resting input boundary against its card | 1.07:1 — now a dedicated token at 3.24:1 |
 | Watchlist table clipped by the card's `overflow: hidden` | no escape hatch at 320px or 400% zoom |
 | `<aside>` announcing primary nav as complementary | now a plain wrapper; the inner `<nav>` does the work |
@@ -363,7 +365,6 @@ Ratios were computed from the token hex values and re-derived independently rath
 
 **Still open, honestly:**
 
-- The auth notice banners mount conditionally rather than swapping text in an always-present live region. Support for that pattern varies by screen reader; needs a real NVDA/VoiceOver pass to decide if it matters.
 
 ## 🐛 Known issues
 
@@ -383,6 +384,28 @@ What's left is the thing all three observed failures had in common: each happene
 So: not a race, not ordering, not connection exhaustion. The suite is CPU-starved on a loaded machine, and `userEvent`-driven tests advancing real timers per keystroke are the first to tip over.
 
 Practical upshot: **rerun before believing a local failure**, and check `uptime` if it repeats. This is a developer-machine problem rather than a code one — CI runs on a dedicated runner and has not shown it.
+
+## 🪵 Logs
+
+The backend writes one line of JSON per event to stdout, which Render captures.
+
+```json
+{"level":"warn","time":"2026-09-07T16:39:30.209Z","message":"Massive WS refused, falling back to the simulated feed","reason":"auth_failed"}
+```
+
+The point is the fields. Everything used to go out as a sentence with the
+interesting part baked into the middle of it — `Failed to send verification
+email to someone@example.com` — so "is one address failing every send?" meant
+reading lines rather than grouping them. Now the address, the symbol, the
+fallback reason and the request path are all things you can filter on.
+
+Errors keep their stack. `JSON.stringify` turns an `Error` into `{}`, which
+loses the only part worth logging, so the serialiser unwraps them.
+
+It's four functions over `console` in `src/logger.ts` rather than a logging
+library — the platform captures stdout either way, so a dependency would be
+buying formatting alone. Silent under `NODE_ENV=test`, so the suite doesn't
+bury its own failures.
 
 ## 🔥 Smoke test
 
