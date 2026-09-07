@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { logger } from "../logger";
 import { env } from "../env";
 import { asyncHandler } from "../asyncHandler";
 import { FALLBACK_TICKERS } from "../massive/fallbackTickers";
@@ -60,7 +61,7 @@ router.get(
     } catch (err) {
       // Don't take the whole search feature down if Massive has a bad day —
       // fall back to the static list rather than erroring out.
-      console.error("Massive search failed, falling back to static list:", err);
+      logger.error("Massive search failed, falling back to the static list", { err });
       res.json({ results: searchFallback(parsed.data.q), source: "fallback" });
     }
   })

@@ -1,4 +1,5 @@
 import express from "express";
+import { logger } from "./logger";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -100,8 +101,8 @@ export function createApp() {
   app.use("/api/history", historyRouter);
 
   // Keep error details out of responses — log server-side, send something generic.
-  app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error(err);
+  app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    logger.error("unhandled request error", { err, method: req.method, path: req.path });
     res.status(500).json({ error: "Something went wrong" });
   });
 

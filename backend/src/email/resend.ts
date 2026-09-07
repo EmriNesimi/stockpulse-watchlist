@@ -1,4 +1,5 @@
 import { env } from "../env";
+import { logger } from "../logger";
 
 // Resend's HTTP API directly via fetch rather than their SDK - one POST
 // request, not worth a dependency for. https://resend.com/docs/api-reference/emails/send-email
@@ -10,12 +11,12 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   // which Resend's API rejects anyway - no reason to make real network
   // calls to a third-party service on every test run.
   if (process.env.NODE_ENV === "test") {
-    console.log(`[email] Skipped under test. Would have sent "${subject}" to ${to}.`);
+    logger.debug("email skipped under test", { to, subject });
     return;
   }
 
   if (!env.resendApiKey) {
-    console.log(`[email] RESEND_API_KEY not set, skipping send. Would have sent "${subject}" to ${to}.`);
+    logger.warn("no RESEND_API_KEY set, skipping the send", { to, subject });
     return;
   }
 
