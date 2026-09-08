@@ -46,6 +46,15 @@ check "health reports the database" "ok"  "$(curl -s -m "$TIMEOUT" "$API/health"
 check "protected route rejects anon" "401" "$(status "$API/api/watchlist")"
 check "ticker search works"         "200" "$(status "$API/api/search?q=AAPL")"
 
+# Where browser crashes go. If this stops accepting reports, the app keeps
+# working and the only symptom is that you stop hearing about the failures —
+# which is precisely the kind of breakage nothing else would surface.
+check "client error reports accepted" "204" "$(curl -s -o /dev/null -m "$TIMEOUT" -w '%{http_code}' \
+  -X POST "$API/api/client-errors" -H 'Content-Type: application/json' \
+  -d '{"message":"smoke test probe, not a real error","url":"/smoke"}')"
+check "client error reports validated" "400" "$(curl -s -o /dev/null -m "$TIMEOUT" -w '%{http_code}' \
+  -X POST "$API/api/client-errors" -H 'Content-Type: application/json' -d '{}')"
+
 echo
 echo "cors"
 # The most valuable check here: FRONTEND_ORIGIN and the app's real hostname
