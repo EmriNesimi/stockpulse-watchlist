@@ -1,5 +1,6 @@
 import express from "express";
 import { logger } from "./logger";
+import { requestLogger } from "./requestLogger";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -23,6 +24,12 @@ export function createApp() {
   // - blanket trust lets a client spoof its own IP via X-Forwarded-For and
   // sidestep the limiter entirely.
   app.set("trust proxy", 1);
+
+  // First, so it sees every response — including ones rejected by CORS, the
+  // rate limiters or a bad JSON body, which never reach a route at all and
+  // were the hardest failures to diagnose precisely because nothing recorded
+  // them.
+  app.use(requestLogger);
 
   app.use(helmet());
   app.use(

@@ -25,18 +25,25 @@ function isRoutineNoise(path: string, status: number): boolean {
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const startedAt = process.hrtime.bigint();
 
+  // Captured now, not in the finish handler. Express rewrites req.path to be
+  // relative to a router's mount point, so by the time the response finishes
+  // every /api/* request reads as "/" — which is exactly the field you'd be
+  // reading the log for. originalUrl is never rewritten; the query string is
+  // dropped because it carries the user's search terms and adds nothing here.
+  const path = req.originalUrl.split("?")[0] ?? req.path;
+
   // "finish" rather than wrapping res.end: it fires once the response is
   // actually flushed, so the duration includes writing the body.
   res.once("finish", () => {
     const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
-    if (isRoutineNoise(req.path, res.statusCode)) return;
+    if (isRoutineNoise(path, res.statusCode)) return;
 
     const fields = {
       method: req.method,
-      // req.route?.path would give the pattern rather than the value, but it's
-      // undefined for unmatched routes — and those are exactly the ones worth
-      // seeing. Paths here carry ticker symbols and cuids, never credentials.
-      path: req.path,
+      // The value rather than the route pattern: req.route?.path is undefined
+      // for unmatched routes, which are exactly the ones worth seeing. Paths
+      // here carry ticker symbols and cuids, never credentials.
+      path,
       status: res.statusCode,
       durationMs: Math.round(durationMs),
     };

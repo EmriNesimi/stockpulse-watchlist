@@ -60,3 +60,32 @@ describe("requestLogger", () => {
     error.mockRestore();
   });
 });
+
+describe("requestLogger — the path field", () => {
+  // Express rewrites req.path relative to a router's mount point, so reading
+  // it in the finish handler logged "/" for every mounted route — the one
+  // field you'd be reading the log for.
+  it("logs the full path even for a route inside a mounted router", async () => {
+    const info = vi.spyOn(logger, "info").mockImplementation(() => {});
+
+    const router = express.Router();
+    router.get("/watchlist", (_req, res) => void res.json({ items: [] }));
+    const app = express();
+    app.use(requestLogger);
+    app.use("/api", router);
+
+    await request(app).get("/api/watchlist");
+
+    expect(info).toHaveBeenCalledWith("request", expect.objectContaining({ path: "/api/watchlist" }));
+    info.mockRestore();
+  });
+
+  // Search terms are the user's, and they add nothing to a request log.
+  it("drops the query string", async () => {
+    const info = vi.spyOn(logger, "info").mockImplementation(() => {});
+    await request(appWith((_req, res) => void res.json({ ok: true }), "/search")).get("/search?q=AAPL");
+
+    expect(info).toHaveBeenCalledWith("request", expect.objectContaining({ path: "/search" }));
+    info.mockRestore();
+  });
+});
