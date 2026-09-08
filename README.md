@@ -402,6 +402,8 @@ fallback reason and the request path are all things you can filter on.
 Errors keep their stack. `JSON.stringify` turns an `Error` into `{}`, which
 loses the only part worth logging, so the serialiser unwraps them.
 
+Every request is logged too — method, path, status and duration — at a level that follows the status: 5xx errors, 4xx warnings, and anything over a second warns as slow even when it succeeded. A healthy `/health` is skipped, because Render polls it and the daily smoke run hits it, and together they'd be most of the log by volume.
+
 It's four functions over `console` in `src/logger.ts` rather than a logging
 library — the platform captures stdout either way, so a dependency would be
 buying formatting alone. Silent under `NODE_ENV=test`, so the suite doesn't
