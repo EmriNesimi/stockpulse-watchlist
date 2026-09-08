@@ -13,6 +13,7 @@ import watchlistRouter from "./routes/watchlist";
 import searchRouter from "./routes/search";
 import alertsRouter from "./routes/alerts";
 import historyRouter from "./routes/history";
+import clientErrorsRouter from "./routes/clientErrors";
 
 export function createApp() {
   const app = express();
@@ -106,6 +107,7 @@ export function createApp() {
   app.use("/api/search", searchRouter);
   app.use("/api/alerts", requireAuth, alertsRouter);
   app.use("/api/history", historyRouter);
+  app.use("/api/client-errors", clientErrorsRouter);
 
   // Keep error details out of responses — log server-side, send something generic.
   app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
