@@ -215,3 +215,20 @@ export function requestPasswordReset(email: string): Promise<{ message: string }
 export function resetPassword(token: string, password: string): Promise<void> {
   return request("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ token, password }) });
 }
+
+/**
+ * Reports a crash that already happened. Deliberately swallows its own
+ * failure: this is called from an error handler, and an error while reporting
+ * an error is a loop, not information.
+ */
+export function reportClientError(report: {
+  message: string;
+  stack?: string;
+  componentStack?: string;
+  url?: string;
+}): void {
+  void request("/api/client-errors", {
+    method: "POST",
+    body: JSON.stringify(report),
+  }).catch(() => {});
+}

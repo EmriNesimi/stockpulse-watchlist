@@ -23,17 +23,25 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Render starts building when the push lands, so checking immediately
-      # would test the previous version. This waits for the new one rather
-      # than sleeping a fixed guess.
-      - name: Wait for the deploy to carry this commit
+      # Retried rather than waited-then-run. The previous version waited for
+      # /health to answer, which the *old* instance does perfectly well while
+      # the new one is still building — so a push could be smoke-tested against
+      # the build it was replacing and pass for the wrong reason.
+      #
+      # There's no reliable way from outside to ask which commit is live, so
+      # this retries until the deployed app agrees with the checked-out
+      # scripts, and only fails once it's had long enough that a stuck deploy
+      # is the likelier explanation.
+      - name: Smoke test
         run: |
-          for _ in $(seq 1 40); do
-            if curl -sf -m 90 https://stockpulse-api-n3yu.onrender.com/health >/dev/null; then
-              break
+          for attempt in $(seq 1 12); do
+            if ./scripts/smoke.sh; then
+              echo "passed on attempt $attempt"
+              exit 0
             fi
-            sleep 15
+            echo "::notice::attempt $attempt did not pass — the deploy may still be rolling out"
+            sleep 30
           done
 
-      - name: Smoke test
-        run: ./scripts/smoke.sh
+          echo "::error::the deployed app still doesn't match this commit after ~6 minutes"
+          ./scripts/smoke.sh
