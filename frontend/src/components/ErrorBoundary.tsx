@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { reportClientError } from "../lib/api";
 import styles from "./ErrorBoundary.module.css";
 
 interface ErrorBoundaryProps {
@@ -23,9 +24,20 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // No error-reporting service is wired up, so the console is the only sink.
-    // Logged rather than swallowed so the stack stays recoverable in dev.
+    // Still logged, because in development the console is where you're
+    // already looking and the reporting round trip is pointless there.
     console.error("Uncaught render error:", error, info.componentStack);
+
+    // And sent, because in production this was the end of the road: the user
+    // saw a broken screen and nobody else ever knew. Truncated here as well as
+    // server-side — a component stack can run to thousands of lines, and the
+    // useful part is the top.
+    reportClientError({
+      message: error.message || "Unknown render error",
+      stack: error.stack?.slice(0, 4000),
+      componentStack: info.componentStack?.slice(0, 4000) ?? undefined,
+      url: window.location.pathname,
+    });
   }
 
   private handleReload = () => {
