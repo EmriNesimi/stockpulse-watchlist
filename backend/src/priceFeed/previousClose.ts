@@ -1,11 +1,19 @@
 import { env } from "../env";
 import { logger } from "../logger";
-import { tryConsumeMassiveQuota } from "../massive/rateLimiter";
+import {
+  MAX_CALLS_PER_WINDOW,
+  tryConsumeMassiveQuota,
+} from "../massive/rateLimiter";
 
-export async function fetchPreviousClose(symbol: string): Promise<number | null> {
+export async function fetchPreviousClose(
+  symbol: string
+): Promise<number | null> {
   if (!env.massiveApiKey) return null;
   if (!tryConsumeMassiveQuota()) {
-    logger.warn("skipping previous-close lookup, Massive quota reached", { symbol, quotaPerMin: 5 });
+    logger.warn("skipping previous-close lookup, Massive quota reached", {
+      symbol,
+      quotaPerMin: MAX_CALLS_PER_WINDOW,
+    });
     return null;
   }
   try {
