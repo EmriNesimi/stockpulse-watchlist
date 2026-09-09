@@ -6,7 +6,12 @@ import {
   parseWatchlistResponse,
 } from "./apiShapes";
 
-export const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+// ?.trim() || rather than ??, matching how the backend reads its own optional
+// vars. Render's dashboard takes these by hand and a var that exists but is
+// blank is easy to end up with; ?? accepts "" as a real value, which makes
+// every request relative and turns WS_URL into "/ws" — not a URL the
+// WebSocket constructor accepts, so it throws on sight.
+export const API_BASE = import.meta.env.VITE_API_URL?.trim() || "http://localhost:4000";
 
 export interface TickerResult {
   symbol: string;
