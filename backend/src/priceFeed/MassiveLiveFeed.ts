@@ -160,7 +160,10 @@ export class MassiveLiveFeed implements PriceFeed {
         this.handleStatus(event);
         continue;
       }
-      if (event.ev === "T" && event.sym && typeof event.p === "number") {
+      // > 0 rather than a bare typeof check: a zero price is its own baseline
+      // when no previous close is stored, and 0/0 is NaN, which JSON.stringify
+      // sends to the browser as null on a field the client guards as a number.
+      if (event.ev === "T" && event.sym && typeof event.p === "number" && event.p > 0) {
         this.handleTrade(event.sym, event.p);
       }
     }

@@ -100,6 +100,38 @@ describe("MassiveLiveFeed", () => {
     );
   });
 
+  // With no previous close stored, the trade price is its own baseline, so a
+  // zero price divides zero by zero. NaN survives the rounding and becomes
+  // null in JSON.stringify, so the browser receives changePercent: null on a
+  // field its guards expect to be a number.
+  it("drops a trade priced at zero rather than emitting NaN", () => {
+    const feed = new MassiveLiveFeed();
+    const socket = latestSocket();
+    socket.emit("open");
+    socket.emitStatus("auth_success");
+
+    const onTick = vi.fn();
+    feed.subscribe("AAPL", onTick);
+    socket.emitTrade("AAPL", 0);
+
+    expect(onTick).not.toHaveBeenCalled();
+  });
+
+  it("still delivers the next real trade after dropping one", () => {
+    const feed = new MassiveLiveFeed();
+    const socket = latestSocket();
+    socket.emit("open");
+    socket.emitStatus("auth_success");
+
+    const onTick = vi.fn();
+    feed.subscribe("AAPL", onTick);
+    socket.emitTrade("AAPL", 0);
+    socket.emitTrade("AAPL", 42.5);
+
+    expect(onTick).toHaveBeenCalledTimes(1);
+    expect(onTick).toHaveBeenCalledWith(expect.objectContaining({ price: 42.5 }));
+  });
+
   it("sends a subscribe frame for a symbol once authenticated", () => {
     const feed = new MassiveLiveFeed();
     const socket = latestSocket();
