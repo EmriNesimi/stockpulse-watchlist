@@ -108,15 +108,26 @@ export default function Dashboard({ user, onSignOut, onSignedOutEverywhere, them
     itemsRef.current = items;
   }, [items]);
 
-  const handleRemove = useCallback(async (symbol: string) => {
-    const previous = itemsRef.current;
-    setItems((prev) => prev.filter((i) => i.symbol !== symbol)); // optimistic
-    try {
-      await removeFromWatchlist(symbol);
-    } catch {
-      setItems(previous); // roll back if the backend rejected it
-    }
-  }, []);
+  const handleRemove = useCallback(
+    async (symbol: string) => {
+      const previous = itemsRef.current;
+      setItems((prev) => prev.filter((i) => i.symbol !== symbol)); // optimistic
+      try {
+        await removeFromWatchlist(symbol);
+      } catch {
+        setItems(previous); // roll back if the backend rejected it
+        // Without this the row just reappears, which reads as a click that
+        // didn't register rather than as a failure.
+        //
+        // The server's message isn't surfaced the way it is for alerts: a
+        // rejected DELETE has no field-level detail worth relaying, and the
+        // toast is detached from a row that has already popped back, so
+        // naming the symbol is what makes it legible.
+        pushError(`Couldn't remove ${symbol} — try again.`);
+      }
+    },
+    [pushError]
+  );
 
   const handleCreateAlert = useCallback(async (symbol: string, threshold: number, direction: "above" | "below") => {
     try {
