@@ -41,9 +41,17 @@ const windows = new Map<string, Window>();
 export function tryConsumeEmailQuota(email: string, now: number = Date.now()): boolean {
   pruneExpired(now);
 
-  const current = windows.get(email);
+  // Every caller today passes an address that credentialsSchema already
+  // lowercased, so this changes nothing now. It's here because the window is
+  // keyed by string: the day someone throttles an address that didn't come
+  // through that schema, "Me@example.com" would open a second window on the
+  // same mailbox and quietly double what one victim can be sent. A control
+  // shouldn't depend on its callers remembering that.
+  const key = email.toLowerCase();
+
+  const current = windows.get(key);
   if (current === undefined || now - current.startedAt >= WINDOW_MS) {
-    windows.set(email, { count: 1, startedAt: now });
+    windows.set(key, { count: 1, startedAt: now });
     return true;
   }
 
