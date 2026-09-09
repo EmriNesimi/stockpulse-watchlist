@@ -1,4 +1,5 @@
 import { env } from "../env";
+import { logger } from "../logger";
 import type { Candle } from "../priceFeed/simulatedHistory";
 
 function formatDate(d: Date): string {
@@ -27,7 +28,13 @@ export async function fetchMassiveHistory(symbol: string, days: number): Promise
 
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      logger.warn("history request rejected by Massive, falling back to simulated", {
+        symbol,
+        status: res.status,
+      });
+      return null;
+    }
 
     const body = (await res.json()) as {
       results?: Array<{ t: number; o: number; h: number; l: number; c: number; v: number }>;
@@ -42,7 +49,8 @@ export async function fetchMassiveHistory(symbol: string, days: number): Promise
       close: bar.c,
       volume: bar.v,
     }));
-  } catch {
+  } catch (err) {
+    logger.warn("history request failed, falling back to simulated", { symbol, err });
     return null;
   }
 }
