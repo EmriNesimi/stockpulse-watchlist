@@ -17,6 +17,10 @@ export function useHistory(symbol: string | null, days = 30): UseHistoryResult {
     if (!symbol) {
       setCandles([]);
       setError(null);
+      // A request already in flight is abandoned by the previous cleanup, so
+      // its .finally never clears this. Without the reset the hook reports
+      // loading forever once the symbol goes away mid-fetch.
+      setLoading(false);
       return;
     }
 
