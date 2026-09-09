@@ -7,18 +7,18 @@ const app = createApp();
 
 afterEach(() => vi.restoreAllMocks());
 
+// Every other db-touching test file closes its pool; this one didn't, which
+// left the run relying on worker teardown to do it.
+afterAll(async () => {
+  await prisma.$disconnect();
+});
+
 describe("GET /health", () => {
   it("reports ok when the database answers", async () => {
     const res = await request(app).get("/health");
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: "ok", database: "ok" });
-
-// Every other db-touching test file closes its pool; these three didn't, which
-// left the run relying on worker teardown to do it.
-afterAll(async () => {
-  await prisma.$disconnect();
-});
   });
 
   // The point of the endpoint: Render routes traffic based on it, so an
