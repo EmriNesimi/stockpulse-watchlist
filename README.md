@@ -365,6 +365,9 @@ Ratios were computed from the token hex values and re-derived independently rath
 
 **Still open, honestly:**
 
+- **Nothing has been tested with an actual screen reader.** Every finding above was read out of the code or computed from token values. That catches missing labels and bad contrast; it does not catch a live region that announces at the wrong moment, or a focus order that is technically correct and still disorienting. A VoiceOver and NVDA pass is the obvious next step and hasn't happened.
+- **The reflow fix wasn't measured.** The watchlist table was clipped by the card's `overflow: hidden`, and the escape hatch matches the pattern `WalletView` already uses — but SC 1.4.10 is a claim about 320px and 400% zoom, and neither was put in front of a browser to confirm it now holds.
+- **React correctness and type safety have never been independently reviewed.** The accessibility audit was scoped to accessibility. Hook dependencies, render behaviour and the places the type system is talked out of an opinion are unexamined by anyone but me.
 
 ## 🐛 Known issues
 
