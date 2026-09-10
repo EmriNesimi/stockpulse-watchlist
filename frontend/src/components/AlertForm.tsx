@@ -6,6 +6,12 @@ import styles from "./AlertForm.module.css";
 // this in sync means a too-large value gets caught here instead of round-
 // tripping to the server just to bounce off the same cap.
 const MAX_THRESHOLD = 10_000_000;
+// The floor, stated once. It was previously three separate claims — the
+// message said $0.01, the guard said "above zero", the input said min="0.01"
+// — and native validation hid the disagreement by rejecting out-of-range
+// values before the handler ever ran. A paste or an autofill doesn't always
+// go through that check.
+const MIN_THRESHOLD = 0.01;
 
 interface AlertFormProps {
   symbol: string;
@@ -25,8 +31,10 @@ export default function AlertForm({ symbol, defaultThreshold, onSubmit, onCancel
     // Rejecting these was always right. Rejecting them silently made Set look
     // like a broken button — the same value stays in the field, no alert is
     // created, and nothing says which of the two happened.
-    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > MAX_THRESHOLD) {
-      setError(`Enter a price between $0.01 and $${MAX_THRESHOLD.toLocaleString("en-US")}.`);
+    if (!Number.isFinite(parsed) || parsed < MIN_THRESHOLD || parsed > MAX_THRESHOLD) {
+      setError(
+        `Enter a price between $${MIN_THRESHOLD} and $${MAX_THRESHOLD.toLocaleString("en-US")}.`
+      );
       return;
     }
     setError(null);
@@ -49,7 +57,7 @@ export default function AlertForm({ symbol, defaultThreshold, onSubmit, onCancel
         type="number"
         inputMode="decimal"
         step="0.01"
-        min="0.01"
+        min={MIN_THRESHOLD}
         max={MAX_THRESHOLD}
         value={threshold}
         onChange={(e) => {

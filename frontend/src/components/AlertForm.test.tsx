@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AlertForm from "./AlertForm";
 
@@ -112,6 +112,34 @@ describe("AlertForm", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Set" }));
     expect(onSubmit).toHaveBeenCalledWith(200, "above");
+  });
+
+  // The message said $0.01, the guard said "anything above zero", and the input
+  // attribute said 0.01. Native validation hid the disagreement by rejecting
+  // out-of-range values before the handler ran.
+  it("refuses a value below the floor the message states", async () => {
+    const onSubmit = vi.fn();
+    render(<AlertForm symbol="AAPL" onSubmit={onSubmit} onCancel={vi.fn()} />);
+    const input = screen.getByLabelText("Price threshold for AAPL alert");
+
+    // Bypasses the browser's min check the way a paste or an autofill can,
+    // so the guard is what's actually under test.
+    fireEvent.change(input, { target: { value: "0.005" } });
+    fireEvent.submit(input.closest("form")!);
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(await screen.findByRole("alert")).toHaveTextContent(/0\.01/);
+  });
+
+  it("accepts a value exactly at the floor", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<AlertForm symbol="AAPL" onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+    await user.type(screen.getByLabelText("Price threshold for AAPL alert"), "0.01");
+    await user.click(screen.getByRole("button", { name: "Set" }));
+
+    expect(onSubmit).toHaveBeenCalledWith(0.01, "above");
   });
 
   it("calls onCancel when the cancel button is clicked", async () => {
