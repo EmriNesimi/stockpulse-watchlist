@@ -132,4 +132,22 @@ describe("parseHistoryResponse against the shape the server actually sends", () 
       parseHistoryResponse({ candles: [{ ...production.candles[0], time: "" }], source: "massive" })
     ).toThrow(ResponseShapeError);
   });
+
+  // The backend test asserts /^\d{4}-\d{2}-\d{2}$/. Accepting any non-empty
+  // string here left the two ends of the contract stating different rules,
+  // which is the smaller version of what broke the chart in the first place.
+  //
+  // Shape only, deliberately. "2026-13-45" passes both ends — month 13 is two
+  // digits like any other. Adding a calendar check here would make the client
+  // stricter than the server, and a client that rejects something the server
+  // is willing to send is how the chart broke to begin with. The server can't
+  // produce an impossible date anyway; it formats real Date objects.
+  it.each(["banana", "0", "2026-9-4", "2026-09-04T00:00:00Z", "  "])(
+    "rejects %o as a candle date",
+    (time) => {
+      expect(() =>
+        parseHistoryResponse({ candles: [{ ...production.candles[0], time }], source: "massive" })
+      ).toThrow(ResponseShapeError);
+    }
+  );
 });
