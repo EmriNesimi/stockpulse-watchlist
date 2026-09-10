@@ -175,3 +175,43 @@ describe("concurrent ticks", () => {
     expect(seen).toEqual(returned.map((a) => a.id));
   });
 });
+
+describe("a notification that throws", () => {
+  afterEach(async () => {
+    await prisma.priceAlert.deleteMany();
+    await prisma.watchlistItem.deleteMany();
+    await prisma.watchlist.deleteMany();
+  });
+
+  // The whole reason notification happens per alert is that a failure partway
+  // through mustn't strand alerts already marked triggered in Postgres. A
+  // throw out of the callback did exactly that: it aborted the loop, so later
+  // alerts were never claimed, and it rejected, so the caller logged one error
+  // and lost the alerts already delivered.
+  it("still claims the remaining alerts", async () => {
+    await createAlert({ symbol: "AAPL", threshold: 100, direction: "above" });
+    await createAlert({ symbol: "AAPL", threshold: 150, direction: "above" });
+
+    const seen: string[] = [];
+    const result = await checkAndTriggerAlerts(tick({ symbol: "AAPL", price: 200 }), (alert) => {
+      seen.push(alert.id);
+      throw new Error("socket went away");
+    });
+
+    expect(seen).toHaveLength(2);
+    expect(result).toHaveLength(2);
+
+    const remaining = await prisma.priceAlert.findMany({ where: { triggeredAt: null } });
+    expect(remaining).toHaveLength(0);
+  });
+
+  it("does not reject when the callback throws", async () => {
+    await createAlert({ symbol: "AAPL", threshold: 100, direction: "above" });
+
+    await expect(
+      checkAndTriggerAlerts(tick({ symbol: "AAPL", price: 200 }), () => {
+        throw new Error("socket went away");
+      })
+    ).resolves.toHaveLength(1);
+  });
+});

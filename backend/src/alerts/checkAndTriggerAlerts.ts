@@ -1,4 +1,5 @@
 import { prisma } from "../db";
+import { logger } from "../logger";
 import type { PriceTick } from "../priceFeed";
 
 export interface AlertTrigger {
@@ -70,7 +71,17 @@ export async function checkAndTriggerAlerts(
     };
 
     triggered.push(entry);
-    onTriggered?.(entry);
+
+    // Guarded because the alert is already durably claimed at this point. If
+    // delivery throws, this one is lost either way — but letting it escape
+    // would abort the loop before the *remaining* alerts are claimed and
+    // reject the promise, which is the failure the per-alert design exists to
+    // avoid. One bad delivery, not a batch.
+    try {
+      onTriggered?.(entry);
+    } catch (err) {
+      logger.error("failed to deliver a triggered alert", { alertId: entry.id, symbol: entry.symbol, err });
+    }
   }
 
   return triggered;
