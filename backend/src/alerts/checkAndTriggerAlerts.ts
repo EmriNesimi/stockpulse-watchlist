@@ -32,9 +32,18 @@ export async function checkAndTriggerAlerts(
   tick: PriceTick,
   onTriggered?: (alert: AlertTrigger) => void
 ): Promise<AlertTrigger[]> {
+  // select rather than include: this runs on every tick for every subscribed
+  // symbol — roughly one query per symbol per 1.5s — and the only thing needed
+  // off the watchlist is which user owns it. include pulled the whole row.
   const candidates = await prisma.priceAlert.findMany({
     where: { symbol: tick.symbol, triggeredAt: null },
-    include: { watchlist: true },
+    select: {
+      id: true,
+      symbol: true,
+      threshold: true,
+      direction: true,
+      watchlist: { select: { userId: true } },
+    },
   });
   if (candidates.length === 0) return [];
 
