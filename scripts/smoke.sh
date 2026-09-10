@@ -55,6 +55,20 @@ check "client error reports accepted" "204" "$(curl -s -o /dev/null -m "$TIMEOUT
 check "client error reports validated" "400" "$(curl -s -o /dev/null -m "$TIMEOUT" -w '%{http_code}' \
   -X POST "$API/api/client-errors" -H 'Content-Type: application/json' -d '{}')"
 
+# Shape, not just status. The price chart threw for every user for as long as
+# the response validators existed: the backend sends time as "YYYY-MM-DD" and
+# the frontend validator required a number, so every candle was rejected and
+# getHistory raised. A 200 here says nothing about that — the endpoint was
+# answering 200 the whole time. These assert the two field types the frontend
+# actually parses.
+history_body="$(curl -s -m "$TIMEOUT" "$API/api/history/AAPL?days=7")"
+check "history returns candles" "yes" \
+  "$(grep -q '"candles":\[{' <<<"$history_body" && echo yes || echo no)"
+check "history time is a date string" "yes" \
+  "$(grep -qE '"time":"[0-9]{4}-[0-9]{2}-[0-9]{2}"' <<<"$history_body" && echo yes || echo no)"
+check "history close is a number" "yes" \
+  "$(grep -qE '"close":-?[0-9]+(\.[0-9]+)?[,}]' <<<"$history_body" && echo yes || echo no)"
+
 echo
 echo "cors"
 # The most valuable check here: FRONTEND_ORIGIN and the app's real hostname
