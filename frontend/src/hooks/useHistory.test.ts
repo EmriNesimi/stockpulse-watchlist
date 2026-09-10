@@ -21,7 +21,7 @@ describe("useHistory", () => {
   });
 
   it("fetches candles for a symbol and reports loading state", async () => {
-    const candles = [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }];
+    const candles = [{ time: "2026-09-01", open: 1, high: 2, low: 1, close: 2, volume: 100 }];
     vi.spyOn(api, "getHistory").mockResolvedValueOnce({ candles, source: "simulated" });
 
     const { result } = renderHook(() => useHistory("AAPL"));
@@ -52,7 +52,7 @@ describe("useHistory", () => {
   });
 
   it("clears candles when symbol goes back to null", async () => {
-    const candles = [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }];
+    const candles = [{ time: "2026-09-01", open: 1, high: 2, low: 1, close: 2, volume: 100 }];
     vi.spyOn(api, "getHistory").mockResolvedValueOnce({ candles, source: "simulated" });
 
     const { result, rerender } = renderHook(({ symbol }) => useHistory(symbol), {

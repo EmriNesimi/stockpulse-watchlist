@@ -30,7 +30,8 @@ export interface WatchlistItem {
 }
 
 export interface Candle {
-  time: number;
+  /** "YYYY-MM-DD" — this is what the backend sends, not an epoch. */
+  time: string;
   open: number;
   high: number;
   low: number;
