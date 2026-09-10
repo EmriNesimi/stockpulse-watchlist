@@ -119,3 +119,18 @@ describe("DELETE /api/alerts/:id", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("GET /api/alerts ordering", () => {
+  // Pins the order the route already returns, so a future plan change can't
+  // quietly reshuffle it.
+  it("returns alerts oldest first", async () => {
+    await agent.post("/api/watchlist").send({ symbol: "AAPL" });
+    for (const threshold of [100, 200, 300]) {
+      await agent.post("/api/alerts").send({ symbol: "AAPL", threshold, direction: "above" });
+    }
+
+    const res = await agent.get("/api/alerts");
+
+    expect(res.body.alerts.map((a: { threshold: number }) => a.threshold)).toEqual([100, 200, 300]);
+  });
+});

@@ -13,7 +13,17 @@ router.get(
   "/",
   asyncHandler(async (req, res) => {
     const watchlist = await getOrCreateWatchlist(req.userId!);
-    const alerts = await prisma.priceAlert.findMany({ where: { watchlistId: watchlist.id } });
+    // Explicit for the same reason as the watchlist list: without ORDER BY the
+    // order is whatever plan Postgres happened to pick, and there's an index
+    // on watchlistId here that could start being used at any size.
+    //
+    // Ascending because that's what it already returns. Newest-first might
+    // read better, but that's a change to what users see and it isn't one
+    // this commit is for.
+    const alerts = await prisma.priceAlert.findMany({
+      where: { watchlistId: watchlist.id },
+      orderBy: { createdAt: "asc" },
+    });
     res.json({ alerts });
   })
 );
