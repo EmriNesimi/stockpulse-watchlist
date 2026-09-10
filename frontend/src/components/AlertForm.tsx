@@ -17,11 +17,19 @@ interface AlertFormProps {
 export default function AlertForm({ symbol, defaultThreshold, onSubmit, onCancel }: AlertFormProps) {
   const [threshold, setThreshold] = useState(defaultThreshold ? String(defaultThreshold) : "");
   const [direction, setDirection] = useState<"above" | "below">("above");
+  const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const parsed = Number(threshold);
-    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > MAX_THRESHOLD) return;
+    // Rejecting these was always right. Rejecting them silently made Set look
+    // like a broken button — the same value stays in the field, no alert is
+    // created, and nothing says which of the two happened.
+    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > MAX_THRESHOLD) {
+      setError(`Enter a price between $0.01 and $${MAX_THRESHOLD.toLocaleString("en-US")}.`);
+      return;
+    }
+    setError(null);
     onSubmit(parsed, direction);
   }
 
@@ -44,9 +52,16 @@ export default function AlertForm({ symbol, defaultThreshold, onSubmit, onCancel
         min="0.01"
         max={MAX_THRESHOLD}
         value={threshold}
-        onChange={(e) => setThreshold(e.target.value)}
+        onChange={(e) => {
+          setThreshold(e.target.value);
+          // Clear on edit rather than on the next submit: leaving it up while
+          // the user fixes the value contradicts what they're looking at.
+          if (error) setError(null);
+        }}
         placeholder="200.00"
         aria-label={`Price threshold for ${symbol} alert`}
+        aria-invalid={error !== null}
+        aria-describedby={error ? "alert-threshold-error" : undefined}
         className={`tabular-nums ${styles.input}`}
       />
       <button type="submit" className={styles.submitButton}>
@@ -55,6 +70,11 @@ export default function AlertForm({ symbol, defaultThreshold, onSubmit, onCancel
       <button type="button" onClick={onCancel} aria-label="Cancel setting alert" className={styles.cancelButton}>
         <X size={16} aria-hidden />
       </button>
+      {error && (
+        <div id="alert-threshold-error" role="alert" className={styles.error}>
+          {error}
+        </div>
+      )}
     </form>
   );
 }
