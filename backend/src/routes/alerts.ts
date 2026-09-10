@@ -22,7 +22,7 @@ router.get(
     // this commit is for.
     const alerts = await prisma.priceAlert.findMany({
       where: { watchlistId: watchlist.id },
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     });
     res.json({ alerts });
   })

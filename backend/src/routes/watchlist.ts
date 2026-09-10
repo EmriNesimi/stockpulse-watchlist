@@ -16,11 +16,16 @@ router.get("/", asyncHandler(async (req, res) => {
   // Explicit, because Postgres doesn't promise one. A small table gets a
   // sequential scan and comes back in insertion order today, which is why the
   // list has always looked stable — but that's a property of the plan, not the
-  // query, and it changes as the table grows. Oldest first is also the order
-  // the user built the list in.
+  // query. Oldest first is also the order the user built the list in.
+  //
+  // id breaks ties. addedAt defaults to now(), which is transaction time, so
+  // any rows written together are byte-identical on it and ORDER BY alone
+  // leaves their order unspecified. I couldn't make that misbehave — 400 tied
+  // rows still came back in id order — but "unspecified and currently stable"
+  // is the same thing that was here before, one level down.
   const items = await prisma.watchlistItem.findMany({
     where: { watchlistId: watchlist.id },
-    orderBy: { addedAt: "asc" },
+    orderBy: [{ addedAt: "asc" }, { id: "asc" }],
   });
   res.json({ items });
 }));

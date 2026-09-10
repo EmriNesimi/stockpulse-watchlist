@@ -237,3 +237,44 @@ describe("GET /api/watchlist ordering", () => {
     expect(after.body.items.map((i: { symbol: string }) => i.symbol)).toEqual(expected);
   });
 });
+
+describe("GET /api/watchlist ordering with tied timestamps", () => {
+  // addedAt defaults to now(), which in Postgres is *transaction* time — so
+  // rows written in one transaction are byte-identical on that column and
+  // ORDER BY addedAt alone leaves their relative order unspecified.
+  //
+  // Honest about what this proves: it passes with or without the id
+  // tiebreaker. I tried to observe the reordering — 400 rows tied on a single
+  // timestamp, symbols inserted in reverse — and Postgres returned id order
+  // every time. So this pins the intended contract rather than reproducing a
+  // failure, and it does establish that the tie itself is real.
+  //
+  // The route can't produce the tie on its own (one POST, one transaction),
+  // so it's created directly.
+  it("is stable across reads when addedAt is identical", async () => {
+    const watchlist = await prisma.watchlist.findFirstOrThrow();
+    await prisma.watchlistItem.createMany({
+      data: ["TSLA", "AAPL", "NVDA", "MSFT", "AMZN"].map((symbol) => ({
+        symbol,
+        watchlistId: watchlist.id,
+      })),
+    });
+
+    const rows = await prisma.watchlistItem.findMany({ where: { watchlistId: watchlist.id } });
+    const stamps = new Set(rows.map((r) => r.addedAt.toISOString()));
+    expect(stamps.size).toBe(1); // the tie is real, not hypothetical
+
+    const first = await agent.get("/api/watchlist");
+    const second = await agent.get("/api/watchlist");
+    const third = await agent.get("/api/watchlist");
+
+    const order = (res: { body: { items: { symbol: string }[] } }) =>
+      res.body.items.map((i) => i.symbol);
+
+    expect(order(second)).toEqual(order(first));
+    expect(order(third)).toEqual(order(first));
+    // Tied on addedAt, so id is what actually decides — and it's ascending.
+    const ids = first.body.items.map((i: { id: string }) => i.id);
+    expect([...ids].sort()).toEqual(ids);
+  });
+});
