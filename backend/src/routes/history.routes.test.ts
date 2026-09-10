@@ -121,3 +121,46 @@ describe("GET /api/history/:symbol — API key configured", () => {
     expect(res.body.source).toBe("simulated");
   });
 });
+
+describe("GET /api/history/:symbol — the wire contract the frontend parses", () => {
+  // The frontend validates this response field by field and refuses the whole
+  // thing if any field is the wrong type. It shipped requiring a numeric
+  // `time` while this route has always sent "YYYY-MM-DD", so every chart threw
+  // and no test on either side disagreed with the other.
+  //
+  // Asserting the runtime types here — not just the array length — is the half
+  // of that contract this repo can check without a browser.
+  function expectWireShape(candles: unknown) {
+    expect(Array.isArray(candles)).toBe(true);
+    for (const candle of candles as Record<string, unknown>[]) {
+      expect(typeof candle.time).toBe("string");
+      expect(candle.time).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      for (const field of ["open", "high", "low", "close", "volume"] as const) {
+        expect(typeof candle[field]).toBe("number");
+        expect(Number.isFinite(candle[field] as number)).toBe(true);
+      }
+    }
+  }
+
+  it("holds for simulated candles", async () => {
+    const res = await request(app).get("/api/history/AAPL?days=30");
+
+    expect(res.body.source).toBe("simulated");
+    expectWireShape(res.body.candles);
+  });
+
+  it("holds for candles mapped from Massive", async () => {
+    mockEnv.massiveApiKey = "test-key";
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [{ t: 1_767_225_600_000, o: 100, h: 105, l: 99, c: 103, v: 1_000_000 }],
+      }),
+    } as unknown as Response);
+
+    const res = await request(app).get("/api/history/AAPL?days=30");
+
+    expect(res.body.source).toBe("massive");
+    expectWireShape(res.body.candles);
+  });
+});
