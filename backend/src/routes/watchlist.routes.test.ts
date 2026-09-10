@@ -208,3 +208,32 @@ describe("PATCH /api/watchlist/:symbol", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("GET /api/watchlist ordering", () => {
+  // Postgres does not promise an order without ORDER BY. Today a small table
+  // gets a sequential scan and comes back in insertion order, which is why
+  // nobody has noticed — I tried to provoke a reshuffle with 200 updates and
+  // couldn't. But that order is a property of the chosen plan, not of the
+  // query, and the plan changes as the table grows.
+  //
+  // Insertion order is also the order the user built the list in, so it's
+  // worth stating rather than inheriting.
+  it("returns items oldest first, and keeps that order after an update", async () => {
+    // Deliberately not alphabetical: an index scan on (watchlistId, symbol)
+    // would return symbol order, and an alphabetical fixture can't tell the
+    // two apart.
+    for (const symbol of ["TSLA", "AAPL", "NVDA", "MSFT"]) {
+      await agent.post("/api/watchlist").send({ symbol });
+    }
+
+    const expected = ["TSLA", "AAPL", "NVDA", "MSFT"];
+
+    const before = await agent.get("/api/watchlist");
+    expect(before.body.items.map((i: { symbol: string }) => i.symbol)).toEqual(expected);
+
+    await agent.patch("/api/watchlist/AAPL").send({ shares: 10, costBasis: 400 });
+
+    const after = await agent.get("/api/watchlist");
+    expect(after.body.items.map((i: { symbol: string }) => i.symbol)).toEqual(expected);
+  });
+});

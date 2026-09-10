@@ -13,7 +13,15 @@ const router = Router();
 
 router.get("/", asyncHandler(async (req, res) => {
   const watchlist = await getOrCreateWatchlist(req.userId!);
-  const items = await prisma.watchlistItem.findMany({ where: { watchlistId: watchlist.id } });
+  // Explicit, because Postgres doesn't promise one. A small table gets a
+  // sequential scan and comes back in insertion order today, which is why the
+  // list has always looked stable — but that's a property of the plan, not the
+  // query, and it changes as the table grows. Oldest first is also the order
+  // the user built the list in.
+  const items = await prisma.watchlistItem.findMany({
+    where: { watchlistId: watchlist.id },
+    orderBy: { addedAt: "asc" },
+  });
   res.json({ items });
 }));
 
