@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X } from "@phosphor-icons/react";
+import { formatCurrency } from "../lib/format";
 import styles from "./AlertForm.module.css";
 
 // Mirrors MAX_THRESHOLD in backend/src/routes/alerts.schemas.ts - keeping
@@ -32,9 +33,10 @@ export default function AlertForm({ symbol, defaultThreshold, onSubmit, onCancel
     // like a broken button — the same value stays in the field, no alert is
     // created, and nothing says which of the two happened.
     if (!Number.isFinite(parsed) || parsed < MIN_THRESHOLD || parsed > MAX_THRESHOLD) {
-      setError(
-        `Enter a price between $${MIN_THRESHOLD} and $${MAX_THRESHOLD.toLocaleString("en-US")}.`
-      );
+      // Both bounds through formatCurrency: `$${MIN_THRESHOLD}` printed the
+      // bare number, so a floor of 0.1 would have read "$0.1" next to a
+      // ceiling that was being localised properly.
+      setError(`Enter a price between ${formatCurrency(MIN_THRESHOLD)} and ${formatCurrency(MAX_THRESHOLD)}.`);
       return;
     }
     setError(null);

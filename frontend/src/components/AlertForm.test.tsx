@@ -128,7 +128,11 @@ describe("AlertForm", () => {
     fireEvent.submit(input.closest("form")!);
 
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(await screen.findByRole("alert")).toHaveTextContent(/0\.01/);
+    // Both bounds formatted as currency — the floor used to interpolate as a
+    // bare number next to a localised ceiling.
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Enter a price between $0.01 and $10,000,000.00."
+    );
   });
 
   it("accepts a value exactly at the floor", async () => {
