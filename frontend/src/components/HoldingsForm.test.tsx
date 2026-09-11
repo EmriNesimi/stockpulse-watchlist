@@ -24,6 +24,43 @@ function setup(overrides: Partial<WatchlistItem> = {}) {
   return { onSave, onClear, onCancel, user: userEvent.setup() };
 }
 
+describe("HoldingsForm error states", () => {
+  // aria-invalid is a claim about the value in the field. A save that fails
+  // because the server rejected the request says nothing about whether 12 and
+  // 99.50 are valid numbers — they are. Marking them invalid announces the
+  // wrong thing to a screen reader and paints a correct value red.
+  it("does not mark the fields invalid when the save request fails", async () => {
+    const onSave = vi.fn().mockRejectedValue(new Error("Network error"));
+    render(
+      <HoldingsForm item={item()} onSave={onSave} onClear={vi.fn()} onCancel={vi.fn()} />
+    );
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText("Shares"), "12");
+    await user.type(screen.getByLabelText("Cost per share"), "99.50");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/network error/i);
+    expect(screen.getByLabelText("Shares")).toHaveAttribute("aria-invalid", "false");
+    expect(screen.getByLabelText("Cost per share")).toHaveAttribute("aria-invalid", "false");
+  });
+
+  // The other half: a value the form itself rejected really is invalid.
+  it("still marks the fields invalid when the value is the problem", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <HoldingsForm item={item()} onSave={onSave} onClear={vi.fn()} onCancel={vi.fn()} />
+    );
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByLabelText("Shares")).toHaveAttribute("aria-invalid", "true");
+    expect(onSave).not.toHaveBeenCalled();
+  });
+});
+
 describe("HoldingsForm", () => {
   it("starts empty for a ticker with no position", () => {
     setup();

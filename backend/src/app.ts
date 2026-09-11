@@ -93,9 +93,12 @@ export function createApp() {
   app.get("/health", async (_req, res) => {
     try {
       await prisma.$queryRaw`SELECT 1`;
-    } catch {
-      // Deliberately no detail: this endpoint is public, and connection errors
-      // carry hostnames and usernames.
+    } catch (err) {
+      // The response deliberately carries no detail: this endpoint is public,
+      // and connection errors name hosts and users. Our own logs are not
+      // public, and a 503 with no recorded cause is the worst version of this
+      // — Render pulls the instance and nothing says why.
+      logger.error("health check failed, database unreachable", { err });
       return res.status(503).json({ status: "unavailable", database: "unreachable" });
     }
 

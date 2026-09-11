@@ -39,13 +39,21 @@ function toWatchlistItem(raw: unknown): WatchlistItem | null {
   };
 }
 
+// The exact shape the history route puts on the wire, asserted on that side by
+// history.routes.test.ts. Stated identically here so the two ends of the
+// contract can't drift the way they did when this was checked as a number.
+const CANDLE_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 function toCandle(raw: unknown): Candle | null {
   if (!isRecord(raw)) return null;
-  const fields = ["time", "open", "high", "low", "close", "volume"] as const;
-  if (!fields.every((f) => isFiniteNumber(raw[f]))) return null;
+  // time is a "YYYY-MM-DD" string, not a number. Checking it as a number
+  // rejected every real response, which took the whole chart down.
+  if (!isNonEmptyString(raw.time) || !CANDLE_DATE.test(raw.time)) return null;
+  const numeric = ["open", "high", "low", "close", "volume"] as const;
+  if (!numeric.every((f) => isFiniteNumber(raw[f]))) return null;
 
   return {
-    time: raw.time as number,
+    time: raw.time,
     open: raw.open as number,
     high: raw.high as number,
     low: raw.low as number,

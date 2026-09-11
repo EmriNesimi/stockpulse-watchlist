@@ -318,6 +318,20 @@ describe("App — removing from the watchlist", () => {
     await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
   });
 
+  // The row reappearing on its own looks like the click didn't register, so
+  // the user clicks Remove again. Every other failed action raises a toast.
+  it("says why the item came back when removeFromWatchlist fails", async () => {
+    vi.mocked(getWatchlist).mockResolvedValue({ items: [watchlistItem({ symbol: "AAPL" })] });
+    vi.mocked(removeFromWatchlist).mockRejectedValue(new Error("server error"));
+    const user = userEvent.setup();
+    render(<App />);
+    await waitFor(() => expect(screen.getAllByText("AAPL").length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole("button", { name: "Remove AAPL from watchlist" }));
+
+    expect(await screen.findByText(/couldn't remove aapl/i)).toBeInTheDocument();
+  });
+
   it("removing one item doesn't affect the others", async () => {
     vi.mocked(getWatchlist).mockResolvedValue({
       items: [watchlistItem({ id: "1", symbol: "AAPL" }), watchlistItem({ id: "2", symbol: "MSFT" })],

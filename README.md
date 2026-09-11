@@ -82,7 +82,7 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
 - **Backend**: Express API, Prisma/Postgres persistence, Massive ticker search proxy (with a static fallback list and a free-tier-aware rate limiter), a simulated real-time price engine, real Massive WebSocket integration (with automatic graceful fallback if the key isn't entitled), a WebSocket broadcaster that fans price ticks out to connected clients with per-IP rate limits and per-connection size/subscription limits, and real multi-user auth (scrypt password hashing, signed session cookies, per-user watchlists/alerts).
 - **Frontend**: Vite + React + TS app built against a Figma trading-dashboard reference — a login/signup gate, a sidebar shell with Dashboard/Wallet/Profile/Stock screens, portfolio cards and a watching rail, debounced ticker search wired to the real API, a watchlist table with sparklines, a live WebSocket client with reconnect/backoff, per-row LIVE/SIM badges, a connection-status indicator, and a light/dark theme toggle.
 - **Accessibility**: throttled `aria-live` price announcements, a skip link, Escape-to-dismiss on search, visible focus states, `prefers-reduced-motion` support, and color-paired (never color-only) up/down indicators.
-- **Testing**: 636 tests total — 287 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 349 on the frontend (hooks, API client, portfolio maths, WebSocket message validation, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
+- **Testing**: 697 tests total — 305 on the backend (schemas → `PriceFeed` → routes → WS broadcaster → price alerts → history → env var fail-fast behavior → auth routes/rate-limiting → alert-delivery user scoping → watchlist size cap, all wired into CI) and 392 on the frontend (hooks, API client, portfolio maths, WebSocket message validation, every component and screen, and an `App.tsx` integration suite covering the real wiring between them). See [Setup](#-setup) for how to run them.
 - **Security/CI**: see [Security notes](#-security-notes) below — all audits clean, no secrets in history, CI green.
 
 ## 🏗️ Architecture
@@ -294,11 +294,11 @@ Then open `http://localhost:5173` — search a ticker, add it, and it should sta
 
 Linting: `npm run lint` in either package (ESLint 9 flat config; the frontend adds `react-hooks` and `jsx-a11y`, both wired into CI).
 
-Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts/history routes via `supertest` against a real throwaway Postgres database, price-alert triggering logic, the simulated OHLC candle generator, the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits including the per-IP budget surviving a reconnect, shared-subscription cleanup, and alert delivery — and `env.ts`'s production fail-fast behavior via fresh module re-imports. 287 tests total, no real network calls anywhere in the suite).
+Backend tests: `cd backend && npm test` (Vitest — schema validation, `SimulatedFeed`'s random walk, the Massive rate limiter, `MassiveLiveFeed`'s full auth/fallback state machine against a mocked WebSocket, the watchlist/search/alerts/history routes via `supertest` against a real throwaway Postgres database, price-alert triggering logic, the simulated OHLC candle generator, the WS broadcaster itself via real socket connections — subscribe/unsubscribe fan-out, the symbol/rate/payload-size limits including the per-IP budget surviving a reconnect, shared-subscription cleanup, and alert delivery — and `env.ts`'s production fail-fast behavior via fresh module re-imports. 305 tests total, no real network calls anywhere in the suite).
 
 The suite drops and recreates the schema before every run, so it refuses to start against anything that isn't localhost — that guard is the only thing standing between a stray `DATABASE_URL` and your production data. See `src/test/globalSetup.ts`.
 
-Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, `useHistory` and the `CandlestickChart` it feeds, `useErrorToasts` and the `ErrorToast` it feeds, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load and its loading state, search → add, optimistic remove + rollback, live connection status and price updates, both halves of the alert feature, and the three error-toast failure paths, end to end. 349 tests total.)
+Frontend tests: `cd frontend && npm test` (Vitest + Testing Library + jsdom — the debounce/throttle hooks with fake timers, the API client's request-building and error handling with a stubbed `fetch`, `useLiveTicks` against a hand-built fake matching the browser `WebSocket` API, `useHistory` and the `CandlestickChart` it feeds, `useErrorToasts` and the `ErrorToast` it feeds, every component, and an `App.tsx` integration suite that mounts the real component tree — only the REST API client and the WebSocket global are faked — covering the initial load and its loading state, search → add, optimistic remove + rollback, live connection status and price updates, both halves of the alert feature, and the three error-toast failure paths, end to end. 392 tests total.)
 
 The backend needs no **environment variables** — it boots on the simulated price feed and a static ticker-search fallback list automatically, and you don't need a Massive account to run or demo this. It does need the Postgres above: without one, signup returns a 500 and the auth gate makes the app unreachable. That was free when this used SQLite and stopped being free at the migration.
 
@@ -365,8 +365,31 @@ Ratios were computed from the token hex values and re-derived independently rath
 
 **Still open, honestly:**
 
+- **Nothing has been tested with an actual screen reader.** Every finding above was read out of the code or computed from token values. That catches missing labels and bad contrast; it does not catch a live region that announces at the wrong moment, or a focus order that is technically correct and still disorienting. A VoiceOver and NVDA pass is the obvious next step and hasn't happened.
+- **The reflow fix wasn't measured.** The watchlist table was clipped by the card's `overflow: hidden`, and the escape hatch matches the pattern `WalletView` already uses — but SC 1.4.10 is a claim about 320px and 400% zoom, and neither was put in front of a browser to confirm it now holds.
+- **React correctness and type safety have never been independently reviewed.** The accessibility audit was scoped to accessibility. Hook dependencies, render behaviour and the places the type system is talked out of an opinion are unexamined by anyone but me.
 
 ## 🐛 Known issues
+
+**The price chart was broken in production and the tests said it was fine.**
+Worth writing down, because the interesting part isn't the bug.
+
+`Candle.time` is a `"YYYY-MM-DD"` string on the backend. The frontend typed it
+as `number`, and the response validator — added to stop malformed numbers
+reaching a render — checked it with `isFiniteNumber`. Every real candle failed
+validation, so `getHistory` threw `ResponseShapeError` on every load. That is
+every chart, every user, for as long as the validators had existed.
+
+389 tests passed over it. Every candle fixture in the suite used `time: 1`,
+written to satisfy the frontend type — which was the thing that was wrong. The
+tests agreed with the type, the type disagreed with the server, and nothing in
+between ever compared the two. A fixture that mirrors your own mistaken
+assumption tests nothing at all.
+
+It's now pinned at both ends: the backend asserts the runtime types it puts on
+the wire, and the frontend's regression test parses a body copied from a live
+response. The smoke test checks the shape too, though only the server's half.
+
 
 **The backend suite is intermittently red.** Three separate runs failed this week, each on a different test, each passing alone and passing again on a rerun — so a failure here is worth rerunning once before believing it.
 
@@ -392,6 +415,13 @@ The backend writes one line of JSON per event to stdout, which Render captures.
 ```json
 {"level":"warn","time":"2026-09-07T16:39:30.209Z","message":"Massive WS refused, falling back to the simulated feed","reason":"auth_failed"}
 ```
+
+Every fallback to fabricated data now says so. Previous-close lookups and
+history requests both answer `null` on failure and let the caller substitute
+simulated numbers, which is the right behaviour and was previously invisible —
+a Massive outage swapped real candles for generated ones and left no trace.
+The health check logs its cause too, so a 503 that pulls the instance out of
+Render's rotation isn't just an absence of traffic.
 
 The point is the fields. Everything used to go out as a sentence with the
 interesting part baked into the middle of it — `Failed to send verification
@@ -481,7 +511,7 @@ Four things about deploying this bit, none of which reproduce locally:
 | `GET` | `/health` | — | `200` `{ "status": "ok", "database": "ok" }` · `503` `{ "status": "unavailable" }` if Postgres doesn't answer. Render routes traffic on this, so it runs a real query rather than answering unconditionally — and returns no error detail, since it's public and connection errors quote hostnames and usernames |
 | `POST` | `/api/auth/signup` | `{ email, password }` | `202` `{ message }` — identical whether or not the address is already registered, and never sets a session (log in as a separate step) · `400` on invalid input |
 | `POST` | `/api/auth/login` | `{ email, password }` | `200` `{ user }` + sets session cookie · `401` on bad credentials (same error either way, doesn't reveal which was wrong) |
-| `POST` | `/api/client-errors` | `{ message, stack?, componentStack?, url? }` | `204`. Where a render crash in someone's browser goes — unauthenticated on purpose, since the crashes worth hearing about are the ones that break the app before anyone can sign in. Every field is length-capped, and it sits under the 60/min limiter · `400` on invalid input |
+| `POST` | `/api/client-errors` | `{ message, stack?, componentStack?, url? }` | `204`. Where a browser crash goes — a render error caught by the boundary, or an unhandled rejection or uncaught throw, which the boundary never sees and which in an app built on fetches is most of what goes wrong. Unauthenticated on purpose, since the crashes worth hearing about are the ones that break the app before anyone can sign in. Every field is length-capped, and it sits under the 60/min limiter · `400` on invalid input |
 | `POST` | `/api/auth/logout-everywhere` | — | `204`, ends every session for the account on every device and clears the caller's cookie · `401` if not signed in |
 | `POST` | `/api/auth/logout` | — | `204`, clears the session cookie |
 | `GET` | `/api/auth/me` | — | `200` `{ user }` · `401` if not signed in |

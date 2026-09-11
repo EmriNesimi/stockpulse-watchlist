@@ -1,6 +1,9 @@
 .form {
   display: flex;
   align-items: center;
+  /* So the validation message can drop to its own line instead of being
+     squeezed into the control row. */
+  flex-wrap: wrap;
   gap: var(--space-2);
   padding: var(--space-2);
   background: var(--color-muted);
@@ -46,4 +49,11 @@
   background: transparent;
   border: none;
   color: var(--color-foreground-muted);
+}
+
+.error {
+  /* Full basis in a wrapping row = its own line, under the controls. */
+  flex-basis: 100%;
+  color: var(--color-destructive);
+  font-size: 0.875rem;
 }

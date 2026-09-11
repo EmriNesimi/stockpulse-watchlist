@@ -209,7 +209,7 @@ describe("removeAlert", () => {
 describe("getHistory", () => {
   it("GETs the history endpoint with a default 30-day range", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
-      jsonResponse({ candles: [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }], source: "simulated" })
+      jsonResponse({ candles: [{ time: "2026-09-01", open: 1, high: 2, low: 1, close: 2, volume: 100 }], source: "simulated" })
     );
 
     const result = await getHistory("AAPL");

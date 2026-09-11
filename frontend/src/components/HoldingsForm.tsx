@@ -23,7 +23,9 @@ function parsePositive(raw: string, max: number): number | null {
 export default function HoldingsForm({ item, onSave, onClear, onCancel }: HoldingsFormProps) {
   const [shares, setShares] = useState(item.shares === null ? "" : String(item.shares));
   const [costBasis, setCostBasis] = useState(item.costBasis === null ? "" : String(item.costBasis));
-  const [error, setError] = useState<string | null>(null);
+  // Kind matters: "value" is a claim about what's in the fields, "request" is
+  // a claim about the save. Only the first should mark the inputs invalid.
+  const [error, setError] = useState<{ message: string; kind: "value" | "request" } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const hasPosition = item.shares !== null && item.costBasis !== null;
@@ -38,7 +40,10 @@ export default function HoldingsForm({ item, onSave, onClear, onCancel }: Holdin
     // The backend requires both together, so don't let a half-filled form
     // leave and come back as a validation error.
     if (parsedShares === null || parsedCost === null) {
-      setError("Enter a share count and a cost basis — both need a positive number.");
+      setError({
+        message: "Enter a share count and a cost basis — both need a positive number.",
+        kind: "value",
+      });
       return;
     }
 
@@ -46,7 +51,10 @@ export default function HoldingsForm({ item, onSave, onClear, onCancel }: Holdin
     try {
       await onSave(parsedShares, parsedCost);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save those holdings — try again.");
+      setError({
+        message: err instanceof Error ? err.message : "Couldn't save those holdings — try again.",
+        kind: "request",
+      });
     } finally {
       setBusy(false);
     }
@@ -58,13 +66,17 @@ export default function HoldingsForm({ item, onSave, onClear, onCancel }: Holdin
     try {
       await onClear();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't clear those holdings — try again.");
+      setError({
+        message: err instanceof Error ? err.message : "Couldn't clear those holdings — try again.",
+        kind: "request",
+      });
     } finally {
       setBusy(false);
     }
   }
 
-  const invalid = error !== null;
+  // A failed request leaves the values alone: they were fine, the save wasn't.
+  const invalid = error?.kind === "value";
 
   return (
     <form onSubmit={handleSubmit} aria-label={`Holdings for ${item.symbol}`} className={styles.form}>
@@ -129,7 +141,7 @@ export default function HoldingsForm({ item, onSave, onClear, onCancel }: Holdin
 
       {error && (
         <p id="holdings-error" role="alert" className={styles.error}>
-          {error}
+          {error.message}
         </p>
       )}
     </form>

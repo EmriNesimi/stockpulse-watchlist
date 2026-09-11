@@ -6,7 +6,12 @@ import {
   parseWatchlistResponse,
 } from "./apiShapes";
 
-export const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+// ?.trim() || rather than ??, matching how the backend reads its own optional
+// vars. Render's dashboard takes these by hand and a var that exists but is
+// blank is easy to end up with; ?? accepts "" as a real value, which makes
+// every request relative and turns WS_URL into "/ws" — not a URL the
+// WebSocket constructor accepts, so it throws on sight.
+export const API_BASE = import.meta.env.VITE_API_URL?.trim() || "http://localhost:4000";
 
 export interface TickerResult {
   symbol: string;
@@ -25,7 +30,8 @@ export interface WatchlistItem {
 }
 
 export interface Candle {
-  time: number;
+  /** "YYYY-MM-DD" — this is what the backend sends, not an epoch. */
+  time: string;
   open: number;
   high: number;
   low: number;
@@ -216,10 +222,22 @@ export function resetPassword(token: string, password: string): Promise<void> {
   return request("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ token, password }) });
 }
 
+// Distinct messages already sent this page load. Not cleared on navigation
+// because there isn't any — this is a single-page app, so the lifetime of the
+// set is the lifetime of the tab, which is the window a crash loop lives in.
+const reportedMessages = new Set<string>();
+
+// A ceiling for the other shape of the problem: many *different* messages,
+// e.g. an error carrying a counter or a timestamp, which would defeat the
+// dedupe above one unique string at a time.
+const MAX_DISTINCT_REPORTS = 20;
+
 /**
  * Reports a crash that already happened. Deliberately swallows its own
  * failure: this is called from an error handler, and an error while reporting
  * an error is a loop, not information.
+ *
+ * Reports at most one of each distinct message per page load.
  */
 export function reportClientError(report: {
   message: string;
@@ -227,8 +245,21 @@ export function reportClientError(report: {
   componentStack?: string;
   url?: string;
 }): void {
+  // A crash that repeats is the normal case, not the exception: a throw in a
+  // tick handler fires on every tick, and a render loop reports as fast as it
+  // can re-render. The first occurrence carries the information; the rest are
+  // the same line again, and sending them buries it.
+  if (reportedMessages.has(report.message)) return;
+  if (reportedMessages.size >= MAX_DISTINCT_REPORTS) return;
+  reportedMessages.add(report.message);
+
   void request("/api/client-errors", {
     method: "POST",
     body: JSON.stringify(report),
   }).catch(() => {});
+}
+
+/** Test seam — the set is per page load otherwise, which is the intent. */
+export function resetClientErrorReports(): void {
+  reportedMessages.clear();
 }

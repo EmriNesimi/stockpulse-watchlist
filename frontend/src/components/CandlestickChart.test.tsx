@@ -4,9 +4,9 @@ import CandlestickChart from "./CandlestickChart";
 import type { Candle } from "../lib/api";
 
 const candles: Candle[] = [
-  { time: 1, open: 100, high: 105, low: 98, close: 103, volume: 1000 },
-  { time: 2, open: 103, high: 108, low: 101, close: 99, volume: 1200 },
-  { time: 3, open: 99, high: 100, low: 95, close: 96, volume: 900 },
+  { time: "2026-09-01", open: 100, high: 105, low: 98, close: 103, volume: 1000 },
+  { time: "2026-09-02", open: 103, high: 108, low: 101, close: 99, volume: 1200 },
+  { time: "2026-09-03", open: 99, high: 100, low: 95, close: 96, volume: 900 },
 ];
 
 describe("CandlestickChart", () => {
@@ -38,8 +38,8 @@ describe("CandlestickChart", () => {
 
   it("doesn't crash when every candle has the same price (zero range)", () => {
     const flat: Candle[] = [
-      { time: 1, open: 100, high: 100, low: 100, close: 100, volume: 500 },
-      { time: 2, open: 100, high: 100, low: 100, close: 100, volume: 500 },
+      { time: "2026-09-01", open: 100, high: 100, low: 100, close: 100, volume: 500 },
+      { time: "2026-09-02", open: 100, high: 100, low: 100, close: 100, volume: 500 },
     ];
     render(<CandlestickChart candles={flat} loading={false} error={null} />);
     expect(screen.getByRole("img")).toBeInTheDocument();

@@ -50,3 +50,15 @@ describe("tryConsumeEmailQuota", () => {
     expect(tryConsumeEmailQuota("flood0@example.com", t0 + 16 * MINUTE)).toBe(true);
   });
 });
+
+describe("address normalisation", () => {
+  // Not reachable through the routes — credentialsSchema lowercases first —
+  // but the window is keyed by string, so the control shouldn't rely on that.
+  it("treats a differently-cased address as the same mailbox", () => {
+    expect(tryConsumeEmailQuota("alice@example.com")).toBe(true);
+    expect(tryConsumeEmailQuota("Alice@Example.com")).toBe(true);
+    expect(tryConsumeEmailQuota("ALICE@EXAMPLE.COM")).toBe(true);
+
+    expect(tryConsumeEmailQuota("aLiCe@eXaMpLe.CoM")).toBe(false);
+  });
+});

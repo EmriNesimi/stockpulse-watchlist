@@ -15,7 +15,11 @@ const item = {
   costBasis: 300,
 };
 
-const candle = { time: 1, open: 1, high: 2, low: 0.5, close: 1.5, volume: 100 };
+// The backend sends time as "YYYY-MM-DD" — see Candle in
+// backend/src/priceFeed/simulatedHistory.ts and the mapping in
+// massive/fetchHistory.ts. A numeric fixture here is what let the frontend
+// type drift to `number` without a single test noticing.
+const candle = { time: "2026-09-04", open: 1, high: 2, low: 0.5, close: 1.5, volume: 100 };
 
 describe("parseWatchlistResponse", () => {
   it("accepts a well-formed watchlist", () => {
@@ -93,4 +97,57 @@ describe("parseAlertsResponse", () => {
       ResponseShapeError
     );
   });
+});
+
+describe("parseHistoryResponse against the shape the server actually sends", () => {
+  // Copied from a live GET /api/history/AAPL?days=7. Every candle fixture in
+  // the suite used a numeric time, so the whole thing agreed with a frontend
+  // type that disagreed with the backend — and the charts threw in production
+  // while 389 tests stayed green.
+  const production = {
+    candles: [
+      { time: "2026-09-04", open: 336, high: 338.9, low: 331.18, close: 331.65, volume: 1903345 },
+      { time: "2026-09-05", open: 331.65, high: 331.67, low: 324.85, close: 326.91, volume: 3936782 },
+    ],
+    source: "massive",
+  };
+
+  it("reads it", () => {
+    const parsed = parseHistoryResponse(production);
+
+    expect(parsed.source).toBe("massive");
+    expect(parsed.candles).toHaveLength(2);
+    expect(parsed.candles[0]?.time).toBe("2026-09-04");
+    expect(parsed.candles[0]?.close).toBe(331.65);
+  });
+
+  it("still rejects a candle whose prices aren't numbers", () => {
+    expect(() =>
+      parseHistoryResponse({ candles: [{ ...production.candles[0], close: "331.65" }], source: "massive" })
+    ).toThrow(ResponseShapeError);
+  });
+
+  it("still rejects a candle with no date", () => {
+    expect(() =>
+      parseHistoryResponse({ candles: [{ ...production.candles[0], time: "" }], source: "massive" })
+    ).toThrow(ResponseShapeError);
+  });
+
+  // The backend test asserts /^\d{4}-\d{2}-\d{2}$/. Accepting any non-empty
+  // string here left the two ends of the contract stating different rules,
+  // which is the smaller version of what broke the chart in the first place.
+  //
+  // Shape only, deliberately. "2026-13-45" passes both ends — month 13 is two
+  // digits like any other. Adding a calendar check here would make the client
+  // stricter than the server, and a client that rejects something the server
+  // is willing to send is how the chart broke to begin with. The server can't
+  // produce an impossible date anyway; it formats real Date objects.
+  it.each(["banana", "0", "2026-9-4", "2026-09-04T00:00:00Z", "  "])(
+    "rejects %o as a candle date",
+    (time) => {
+      expect(() =>
+        parseHistoryResponse({ candles: [{ ...production.candles[0], time }], source: "massive" })
+      ).toThrow(ResponseShapeError);
+    }
+  );
 });

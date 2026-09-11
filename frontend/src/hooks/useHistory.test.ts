@@ -21,7 +21,7 @@ describe("useHistory", () => {
   });
 
   it("fetches candles for a symbol and reports loading state", async () => {
-    const candles = [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }];
+    const candles = [{ time: "2026-09-01", open: 1, high: 2, low: 1, close: 2, volume: 100 }];
     vi.spyOn(api, "getHistory").mockResolvedValueOnce({ candles, source: "simulated" });
 
     const { result } = renderHook(() => useHistory("AAPL"));
@@ -52,7 +52,7 @@ describe("useHistory", () => {
   });
 
   it("clears candles when symbol goes back to null", async () => {
-    const candles = [{ time: 1, open: 1, high: 2, low: 1, close: 2, volume: 100 }];
+    const candles = [{ time: "2026-09-01", open: 1, high: 2, low: 1, close: 2, volume: 100 }];
     vi.spyOn(api, "getHistory").mockResolvedValueOnce({ candles, source: "simulated" });
 
     const { result, rerender } = renderHook(({ symbol }) => useHistory(symbol), {
@@ -63,5 +63,38 @@ describe("useHistory", () => {
 
     rerender({ symbol: null });
     expect(result.current.candles).toEqual([]);
+  });
+});
+
+describe("useHistory clearing the symbol mid-flight", () => {
+  beforeEach(() => vi.restoreAllMocks());
+  afterEach(() => vi.restoreAllMocks());
+
+  // The in-flight request is abandoned by the cancelled flag, so the .finally
+  // that would have cleared loading never runs — and the null branch returns
+  // before clearing it itself. The hook then reports loading forever.
+  //
+  // SymbolChartPanel hides this: it early-returns an empty state when there's
+  // no item, so it never renders the stale flag. The hook's contract is still
+  // wrong, and the next consumer won't have that early return.
+  it("stops reporting loading once the symbol goes away", async () => {
+    type HistoryResult = Awaited<ReturnType<typeof api.getHistory>>;
+    let resolve: ((value: HistoryResult) => void) | undefined;
+    vi.spyOn(api, "getHistory").mockReturnValue(
+      new Promise<HistoryResult>((r) => {
+        resolve = r;
+      })
+    );
+
+    const { result, rerender } = renderHook(({ symbol }) => useHistory(symbol), {
+      initialProps: { symbol: "AAPL" as string | null },
+    });
+    await waitFor(() => expect(result.current.loading).toBe(true));
+
+    rerender({ symbol: null });
+
+    expect(result.current.loading).toBe(false);
+
+    resolve?.({ candles: [], source: "simulated" });
   });
 });

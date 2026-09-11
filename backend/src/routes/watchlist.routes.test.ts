@@ -208,3 +208,73 @@ describe("PATCH /api/watchlist/:symbol", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("GET /api/watchlist ordering", () => {
+  // Postgres does not promise an order without ORDER BY. Today a small table
+  // gets a sequential scan and comes back in insertion order, which is why
+  // nobody has noticed — I tried to provoke a reshuffle with 200 updates and
+  // couldn't. But that order is a property of the chosen plan, not of the
+  // query, and the plan changes as the table grows.
+  //
+  // Insertion order is also the order the user built the list in, so it's
+  // worth stating rather than inheriting.
+  it("returns items oldest first, and keeps that order after an update", async () => {
+    // Deliberately not alphabetical: an index scan on (watchlistId, symbol)
+    // would return symbol order, and an alphabetical fixture can't tell the
+    // two apart.
+    for (const symbol of ["TSLA", "AAPL", "NVDA", "MSFT"]) {
+      await agent.post("/api/watchlist").send({ symbol });
+    }
+
+    const expected = ["TSLA", "AAPL", "NVDA", "MSFT"];
+
+    const before = await agent.get("/api/watchlist");
+    expect(before.body.items.map((i: { symbol: string }) => i.symbol)).toEqual(expected);
+
+    await agent.patch("/api/watchlist/AAPL").send({ shares: 10, costBasis: 400 });
+
+    const after = await agent.get("/api/watchlist");
+    expect(after.body.items.map((i: { symbol: string }) => i.symbol)).toEqual(expected);
+  });
+});
+
+describe("GET /api/watchlist ordering with tied timestamps", () => {
+  // addedAt defaults to now(), which in Postgres is *transaction* time — so
+  // rows written in one transaction are byte-identical on that column and
+  // ORDER BY addedAt alone leaves their relative order unspecified.
+  //
+  // Honest about what this proves: it passes with or without the id
+  // tiebreaker. I tried to observe the reordering — 400 rows tied on a single
+  // timestamp, symbols inserted in reverse — and Postgres returned id order
+  // every time. So this pins the intended contract rather than reproducing a
+  // failure, and it does establish that the tie itself is real.
+  //
+  // The route can't produce the tie on its own (one POST, one transaction),
+  // so it's created directly.
+  it("is stable across reads when addedAt is identical", async () => {
+    const watchlist = await prisma.watchlist.findFirstOrThrow();
+    await prisma.watchlistItem.createMany({
+      data: ["TSLA", "AAPL", "NVDA", "MSFT", "AMZN"].map((symbol) => ({
+        symbol,
+        watchlistId: watchlist.id,
+      })),
+    });
+
+    const rows = await prisma.watchlistItem.findMany({ where: { watchlistId: watchlist.id } });
+    const stamps = new Set(rows.map((r) => r.addedAt.toISOString()));
+    expect(stamps.size).toBe(1); // the tie is real, not hypothetical
+
+    const first = await agent.get("/api/watchlist");
+    const second = await agent.get("/api/watchlist");
+    const third = await agent.get("/api/watchlist");
+
+    const order = (res: { body: { items: { symbol: string }[] } }) =>
+      res.body.items.map((i) => i.symbol);
+
+    expect(order(second)).toEqual(order(first));
+    expect(order(third)).toEqual(order(first));
+    // Tied on addedAt, so id is what actually decides — and it's ascending.
+    const ids = first.body.items.map((i: { id: string }) => i.id);
+    expect([...ids].sort()).toEqual(ids);
+  });
+});

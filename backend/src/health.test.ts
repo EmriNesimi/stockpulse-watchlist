@@ -2,10 +2,17 @@ import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { createApp } from "./app";
 import { prisma } from "./db";
+import { logger } from "./logger";
 
 const app = createApp();
 
 afterEach(() => vi.restoreAllMocks());
+
+// Every other db-touching test file closes its pool; this one didn't, which
+// left the run relying on worker teardown to do it.
+afterAll(async () => {
+  await prisma.$disconnect();
+});
 
 describe("GET /health", () => {
   it("reports ok when the database answers", async () => {
@@ -13,12 +20,6 @@ describe("GET /health", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: "ok", database: "ok" });
-
-// Every other db-touching test file closes its pool; these three didn't, which
-// left the run relying on worker teardown to do it.
-afterAll(async () => {
-  await prisma.$disconnect();
-});
   });
 
   // The point of the endpoint: Render routes traffic based on it, so an
@@ -43,5 +44,20 @@ afterAll(async () => {
 
     const body = JSON.stringify(res.body);
     expect(body).not.toMatch(/db\.internal|10\.0\.0\.5|stockpulse_admin/);
+  });
+
+  // Withholding the detail from the response is the point; withholding it
+  // from our own logs left a 503 with no recorded cause, which is the first
+  // thing you'd want when Render says the instance went unhealthy.
+  it("records the cause on the server", async () => {
+    const error = vi.spyOn(logger, "error").mockImplementation(() => {});
+    vi.spyOn(prisma, "$queryRaw").mockRejectedValueOnce(new Error("ECONNREFUSED"));
+
+    await request(app).get("/health");
+
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining("health"),
+      expect.objectContaining({ err: expect.any(Error) })
+    );
   });
 });

@@ -3,7 +3,7 @@ const WINDOW_MS = 60_000;
 // purpose — leaves a little headroom instead of riding the limit exactly,
 // since a search-as-you-type UI plus per-symbol previous-close lookups can
 // burst easily.
-const MAX_CALLS_PER_WINDOW = 4;
+export const MAX_CALLS_PER_WINDOW = 4;
 
 const callTimestamps: number[] = [];
 
