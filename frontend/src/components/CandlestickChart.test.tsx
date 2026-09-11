@@ -78,4 +78,37 @@ describe("CandlestickChart geometry", () => {
     expect(Number(bodies(container)[0]?.getAttribute("width"))).toBeCloseTo(6, 1);
   });
 
+  // range = high - low || 1 makes the divisor synthetic when nothing moved,
+  // and (value - low) is then 0 for every point, so y lands on the bottom of
+  // the plot area. Three flat closes sat on the border like clipped content.
+  it("centres a flat series instead of pinning it to the bottom edge", () => {
+    const flat = ["2026-09-01", "2026-09-02", "2026-09-03"].map((time) =>
+      candle({ time, open: 100, high: 100, low: 100, close: 100 })
+    );
+    const { container } = render(
+      <CandlestickChart candles={flat} loading={false} error={null} />
+    );
+
+    const wick = container.querySelector("line")!;
+    const y1 = Number(wick.getAttribute("y1"));
+    // HEIGHT 200, PADDING_Y 12 -> usable 176, so the middle is 100.
+    expect(y1).toBeCloseTo(100, 0);
+  });
+
+  it("still scales a series that does move", () => {
+    const moving = [
+      candle({ time: "2026-09-01", low: 100, high: 100, open: 100, close: 100 }),
+      candle({ time: "2026-09-02", low: 200, high: 200, open: 200, close: 200 }),
+    ];
+    const { container } = render(
+      <CandlestickChart candles={moving} loading={false} error={null} />
+    );
+
+    const lines = Array.from(container.querySelectorAll("line"));
+    const first = lines[0]!;
+    const second = lines[1]!;
+    // Low at the bottom of the usable area, high at the top.
+    expect(Number(first.getAttribute("y1"))).toBeCloseTo(188, 0);
+    expect(Number(second.getAttribute("y1"))).toBeCloseTo(12, 0);
+  });
 });

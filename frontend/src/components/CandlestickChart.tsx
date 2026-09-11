@@ -35,7 +35,14 @@ export default function CandlestickChart({ candles, loading, error }: Candlestic
 
   const low = Math.min(...candles.map((c) => c.low));
   const high = Math.max(...candles.map((c) => c.high));
-  const range = high - low || 1;
+  // A series where nothing moved has no range to scale against. The || 1
+  // kept the divide safe but not the result: (value - low) is 0 for every
+  // point, so y collapsed to the bottom of the plot area and a flat day
+  // rendered as lines sitting on the border, which reads as clipping rather
+  // than as "the price didn't move".
+  const spread = high - low;
+  const flat = spread === 0;
+  const range = spread || 1;
   const usableHeight = HEIGHT - PADDING_Y * 2;
   const candleWidth = WIDTH / candles.length;
   // Capped as well as floored. Without the cap a single candle gets the whole
@@ -45,6 +52,7 @@ export default function CandlestickChart({ candles, loading, error }: Candlestic
   const bodyWidth = Math.min(Math.max(1, candleWidth * 0.6), MAX_BODY_WIDTH);
 
   function y(value: number): number {
+    if (flat) return PADDING_Y + usableHeight / 2;
     return PADDING_Y + usableHeight - ((value - low) / range) * usableHeight;
   }
 
