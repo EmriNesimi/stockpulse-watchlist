@@ -45,3 +45,37 @@ describe("CandlestickChart", () => {
     expect(screen.getByRole("img")).toBeInTheDocument();
   });
 });
+
+describe("CandlestickChart geometry", () => {
+  const candle = (over: Partial<Candle> = {}): Candle => ({
+    time: "2026-09-01", open: 100, high: 110, low: 95, close: 105, volume: 1000, ...over,
+  });
+
+  const bodies = (container: HTMLElement) =>
+    Array.from(container.querySelectorAll("rect"));
+
+  // 640 / 1 * 0.6 = 384, so one candle rendered as a slab across most of the
+  // chart. Correct arithmetic, absurd on screen — found by looking at it.
+  it("keeps a lone candle a sane width instead of filling the chart", () => {
+    const { container } = render(
+      <CandlestickChart candles={[candle()]} loading={false} error={null} />
+    );
+
+    const width = Number(bodies(container)[0]?.getAttribute("width"));
+    expect(width).toBeGreaterThan(0);
+    expect(width).toBeLessThanOrEqual(32);
+  });
+
+  it("still narrows the body when there are many candles", () => {
+    const many = Array.from({ length: 64 }, (_, i) =>
+      candle({ time: `2026-09-${String((i % 28) + 1).padStart(2, "0")}` })
+    );
+    const { container } = render(
+      <CandlestickChart candles={many} loading={false} error={null} />
+    );
+
+    // 640/64 * 0.6 = 6 — the cap must not become a floor.
+    expect(Number(bodies(container)[0]?.getAttribute("width"))).toBeCloseTo(6, 1);
+  });
+
+});

@@ -10,6 +10,7 @@ interface CandlestickChartProps {
 const WIDTH = 640;
 const HEIGHT = 200;
 const PADDING_Y = 12;
+const MAX_BODY_WIDTH = 24;
 
 export default function CandlestickChart({ candles, loading, error }: CandlestickChartProps) {
   if (loading) {
@@ -37,7 +38,11 @@ export default function CandlestickChart({ candles, loading, error }: Candlestic
   const range = high - low || 1;
   const usableHeight = HEIGHT - PADDING_Y * 2;
   const candleWidth = WIDTH / candles.length;
-  const bodyWidth = Math.max(1, candleWidth * 0.6);
+  // Capped as well as floored. Without the cap a single candle gets the whole
+  // 640px slot and renders a 384px slab with a thin wick poking out of it —
+  // arithmetically right, and it reads as a broken chart. The cap only binds
+  // below about 27 candles; above that the 0.6 ratio is still what decides.
+  const bodyWidth = Math.min(Math.max(1, candleWidth * 0.6), MAX_BODY_WIDTH);
 
   function y(value: number): number {
     return PADDING_Y + usableHeight - ((value - low) / range) * usableHeight;
