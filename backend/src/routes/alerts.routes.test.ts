@@ -134,3 +134,32 @@ describe("GET /api/alerts ordering", () => {
     expect(res.body.alerts.map((a: { threshold: number }) => a.threshold)).toEqual([100, 200, 300]);
   });
 });
+
+describe("GET /api/alerts ordering with tied timestamps", () => {
+  // The alerts route can't produce a tie on its own — one POST is one
+  // transaction — so this reaches past it, same as the watchlist tie test.
+  // Without it, dropping { id: "asc" } from the route would fail nothing:
+  // the oldest-first test above passes with or without a tiebreaker.
+  it("is stable across reads when createdAt is identical", async () => {
+    await agent.post("/api/watchlist").send({ symbol: "AAPL" });
+    const watchlist = await prisma.watchlist.findFirstOrThrow();
+    await prisma.priceAlert.createMany({
+      data: [150, 250, 350, 450, 550].map((threshold) => ({
+        symbol: "AAPL",
+        threshold,
+        direction: "above",
+        watchlistId: watchlist.id,
+      })),
+    });
+
+    const rows = await prisma.priceAlert.findMany({ where: { watchlistId: watchlist.id } });
+    expect(new Set(rows.map((r) => r.createdAt.toISOString())).size).toBe(1);
+
+    const first = await agent.get("/api/alerts");
+    const second = await agent.get("/api/alerts");
+
+    const ids = (res: { body: { alerts: { id: string }[] } }) => res.body.alerts.map((a) => a.id);
+    expect(ids(second)).toEqual(ids(first));
+    expect([...ids(first)].sort()).toEqual(ids(first));
+  });
+});
