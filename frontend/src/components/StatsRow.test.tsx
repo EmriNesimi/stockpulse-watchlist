@@ -84,3 +84,37 @@ describe("StatsRow", () => {
     expect(gainersCard).toHaveTextContent("1");
   });
 });
+
+describe("StatsRow average change formatting", () => {
+  // format.ts stopped signing a rounded-away value on 2026-09-09, but this
+  // component hand-rolls the same string, so the bug stayed live here: an
+  // average of -0.0002% renders "-0.00%", which reads as a broken cell.
+  it("does not sign an average too small to show", () => {
+    render(
+      <StatsRow
+        items={[item({ symbol: "AAPL" }), item({ symbol: "MSFT" }), item({ symbol: "NVDA" })]}
+        prices={{
+          AAPL: price({ changePercent: -0.001 }),
+          MSFT: price({ changePercent: 0.0004 }),
+          NVDA: price({ changePercent: -0.0002 }),
+        }}
+      />
+    );
+
+    expect(screen.getByText("0.00%")).toBeInTheDocument();
+    expect(screen.queryByText("-0.00%")).not.toBeInTheDocument();
+  });
+
+  it("still signs a real average in both directions", () => {
+    const { unmount } = render(
+      <StatsRow items={[item({ symbol: "AAPL" })]} prices={{ AAPL: price({ changePercent: 2.5 }) }} />
+    );
+    expect(screen.getByText("+2.50%")).toBeInTheDocument();
+    unmount();
+
+    render(
+      <StatsRow items={[item({ symbol: "AAPL" })]} prices={{ AAPL: price({ changePercent: -2.5 }) }} />
+    );
+    expect(screen.getByText("-2.50%")).toBeInTheDocument();
+  });
+});
