@@ -397,7 +397,12 @@ describe("WatchlistTable — trend column and sparkline integration", () => {
     expect(screen.getByRole("img", { name: /trending down/i })).toBeInTheDocument();
   });
 
-  it("treats exactly zero change as bullish (matches the '+' prefix behavior)", () => {
+  // Was "treats exactly zero change as bullish (matches the '+' prefix
+  // behavior)". That prefix behaviour was deliberately dropped from
+  // format.ts on 2026-09-09 — "+$0.00" and "+0.00%" read as broken cells —
+  // and this row was the last place still doing it by hand. The test isn't
+  // being bent to pass; it documented a contract the app had already left.
+  it("treats exactly zero change as flat, not as a gain", () => {
     render(
       <WatchlistTable
         items={[item({ symbol: "AAPL" })]}
@@ -407,8 +412,8 @@ describe("WatchlistTable — trend column and sparkline integration", () => {
         onSelectSymbol={noop}
       />
     );
-    expect(screen.getByText("+0.00%")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /trending up/i })).toBeInTheDocument();
+    expect(screen.getByText("0.00%")).toBeInTheDocument();
+    expect(screen.queryByText("+0.00%")).not.toBeInTheDocument();
   });
 
   it("gives each row its own independent sparkline reflecting its own history", () => {
@@ -473,5 +478,43 @@ describe("WatchlistTable — edge cases", () => {
 
     expect(screen.getByRole("button", { name: "Remove SYM0 from watchlist" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remove SYM11 from watchlist" })).toBeInTheDocument();
+  });
+});
+
+describe("WatchlistTable flat movement", () => {
+  let flatSvgCount = 0;
+  // Two bugs in one cell: the row builds its own signed percent, so it kept
+  // rendering "-0.00%" after format.ts stopped; and the arrow decided
+  // direction separately, so it pointed up beside it.
+  it("neither signs nor points an arrow at a move that rounds away", () => {
+    const { container } = render(
+      <WatchlistTable
+        items={[item({ symbol: "AAPL" })]}
+        prices={{ AAPL: { price: 100, changePercent: -0.001, source: "live", history: [] } }}
+        onRemove={vi.fn()}
+        onCreateAlert={vi.fn()}
+        onSelectSymbol={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("0.00%")).toBeInTheDocument();
+    expect(screen.queryByText("-0.00%")).not.toBeInTheDocument();
+    flatSvgCount = container.querySelectorAll("svg").length;
+  });
+
+  it("still signs and points for a real move", () => {
+    render(
+      <WatchlistTable
+        items={[item({ symbol: "AAPL" })]}
+        prices={{ AAPL: { price: 100, changePercent: -2.5, source: "live", history: [] } }}
+        onRemove={vi.fn()}
+        onCreateAlert={vi.fn()}
+        onSelectSymbol={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("-2.50%")).toBeInTheDocument();
+    // Exactly one more icon than the flat render: the direction arrow.
+    expect(document.querySelectorAll("svg").length).toBe(flatSvgCount + 1);
   });
 });

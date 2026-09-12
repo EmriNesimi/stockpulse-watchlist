@@ -109,3 +109,31 @@ describe("useThrottledAnnouncement", () => {
     expect(result.current).toContain("150.00");
   });
 });
+
+describe("useThrottledAnnouncement wording", () => {
+  // The visible UI stopped signing a rounded-away move; this read it aloud as
+  // "down 0.00%", which is both wrong and painful to listen to.
+  it("says unchanged rather than reading a rounded-away move", () => {
+    const { result } = renderHook(() =>
+      useThrottledAnnouncement(
+        [item("AAPL")],
+        { AAPL: { price: 1234.5, changePercent: -0.001, source: "live", history: [] } }
+      )
+    );
+
+    expect(result.current).toContain("unchanged");
+    expect(result.current).not.toContain("0.00%");
+  });
+
+  it("groups thousands in the spoken price", () => {
+    const { result } = renderHook(() =>
+      useThrottledAnnouncement(
+        [item("AAPL")],
+        { AAPL: { price: 1234.5, changePercent: 2, source: "live", history: [] } }
+      )
+    );
+
+    expect(result.current).toContain("$1,234.50");
+    expect(result.current).toContain("up 2.00%");
+  });
+});

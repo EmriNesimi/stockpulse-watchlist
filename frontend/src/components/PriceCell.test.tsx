@@ -78,3 +78,14 @@ describe("PriceCell", () => {
     expect(cell.className).not.toContain(styles.flashDown);
   });
 });
+
+describe("PriceCell formatting", () => {
+  // Built by hand as `$${n.toFixed(2)}`, so a four-figure price rendered
+  // "$1234.50" in the watchlist while the wallet, which uses formatCurrency,
+  // showed "$1,234.50" for the same number on the same screen.
+  it("groups thousands, like every other price in the app", () => {
+    render(<PriceCell state={{ price: 1234.5, changePercent: 0, source: "live", history: [] }} />);
+
+    expect(screen.getByText(/\$1,234\.50/)).toBeInTheDocument();
+  });
+});

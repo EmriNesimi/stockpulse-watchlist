@@ -1,3 +1,4 @@
+import { formatCurrency } from "../lib/format";
 import type { Candle } from "../lib/api";
 import styles from "./CandlestickChart.module.css";
 
@@ -11,6 +12,9 @@ const WIDTH = 640;
 const HEIGHT = 200;
 const PADDING_Y = 12;
 const MAX_BODY_WIDTH = 24;
+// Floor on the vertical range, as a fraction of the price: 0.1%. Below this a
+// move is noise, and drawing it full-height says something the data doesn't.
+const MIN_RANGE_RATIO = 0.001;
 
 export default function CandlestickChart({ candles, loading, error }: CandlestickChartProps) {
   if (loading) {
@@ -35,14 +39,20 @@ export default function CandlestickChart({ candles, loading, error }: Candlestic
 
   const low = Math.min(...candles.map((c) => c.low));
   const high = Math.max(...candles.map((c) => c.high));
-  // A series where nothing moved has no range to scale against. The || 1
-  // kept the divide safe but not the result: (value - low) is 0 for every
-  // point, so y collapsed to the bottom of the plot area and a flat day
-  // rendered as lines sitting on the border, which reads as clipping rather
-  // than as "the price didn't move".
+  // Scaling to the observed spread means any spread fills the plot, however
+  // small. A hundredth of a cent on a $300 stock was drawn across the full
+  // 176px — a stock that didn't move, rendered as violent volatility.
+  //
+  // So the range has a floor proportional to the price, and the series is
+  // centred in whatever range wins. A genuinely flat series falls out of the
+  // same arithmetic (it lands mid-plot), which is why there's no longer a
+  // separate branch for it.
   const spread = high - low;
-  const flat = spread === 0;
-  const range = spread || 1;
+  const mid = (high + low) / 2;
+  const range = Math.max(spread, Math.abs(mid) * MIN_RANGE_RATIO) || 1;
+  // Anchor the scale on the midpoint, not on `low` — otherwise widening the
+  // range would push the series to the bottom of the widened band.
+  const base = mid - range / 2;
   const usableHeight = HEIGHT - PADDING_Y * 2;
   const candleWidth = WIDTH / candles.length;
   // Capped as well as floored. Without the cap a single candle gets the whole
@@ -52,8 +62,7 @@ export default function CandlestickChart({ candles, loading, error }: Candlestic
   const bodyWidth = Math.min(Math.max(1, candleWidth * 0.6), MAX_BODY_WIDTH);
 
   function y(value: number): number {
-    if (flat) return PADDING_Y + usableHeight / 2;
-    return PADDING_Y + usableHeight - ((value - low) / range) * usableHeight;
+    return PADDING_Y + usableHeight - ((value - base) / range) * usableHeight;
   }
 
   return (
@@ -61,7 +70,7 @@ export default function CandlestickChart({ candles, loading, error }: Candlestic
       width="100%"
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       role="img"
-      aria-label={`Candlestick chart of ${candles.length} days of price history, from $${low.toFixed(2)} to $${high.toFixed(2)}`}
+      aria-label={`Candlestick chart of ${candles.length} days of price history, from ${formatCurrency(low)} to ${formatCurrency(high)}`}
     >
       {candles.map((candle, i) => {
         const bullish = candle.close >= candle.open;

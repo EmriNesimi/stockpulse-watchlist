@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { formatCurrency } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 
@@ -20,8 +21,12 @@ export function useThrottledAnnouncement(items: WatchlistItem[], prices: Record<
       .map((item) => {
         const state = prices[item.symbol];
         if (!state) return null;
-        const direction = state.changePercent >= 0 ? "up" : "down";
-        return `${item.symbol} $${state.price.toFixed(2)}, ${direction} ${Math.abs(state.changePercent).toFixed(2)}%`;
+        // "unchanged" rather than "up 0.00%": the sighted UI stopped signing a
+        // rounded-away move, and reading "up nought point nought nought
+        // percent" aloud is worse than either.
+        const magnitude = Math.abs(state.changePercent);
+        const movement = magnitude < 0.005 ? "unchanged" : `${state.changePercent >= 0 ? "up" : "down"} ${magnitude.toFixed(2)}%`;
+        return `${item.symbol} ${formatCurrency(state.price)}, ${movement}`;
       })
       .filter(Boolean)
       .join(". ");

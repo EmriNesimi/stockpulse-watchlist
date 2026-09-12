@@ -30,3 +30,17 @@ export function formatSignedPercent(value: number): string {
 export function formatShares(value: number): string {
   return value.toLocaleString("en-US", { maximumFractionDigits: 4 });
 }
+
+export type PriceDirection = "up" | "down" | "flat";
+
+/**
+ * The direction to show *beside* formatSignedPercent, sharing its threshold so
+ * the two can't contradict each other. Without this the text reads "0.00%",
+ * deliberately unsigned because the move rounded away, while the arrow next to
+ * it still points up — the arrow claiming a direction the number just declined
+ * to claim.
+ */
+export function priceDirection(changePercent: number): PriceDirection {
+  if (Math.abs(changePercent).toFixed(2) === "0.00") return "flat";
+  return changePercent > 0 ? "up" : "down";
+}

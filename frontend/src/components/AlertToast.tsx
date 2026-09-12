@@ -1,4 +1,5 @@
 import { Bell, X, TrendUp, TrendDown } from "@phosphor-icons/react";
+import { formatCurrency } from "../lib/format";
 import type { AlertEvent } from "../lib/wsMessages";
 import styles from "./AlertToast.module.css";
 
@@ -26,8 +27,8 @@ export default function AlertToast({ alerts, onDismiss }: AlertToastProps) {
               ) : (
                 <TrendDown size={14} aria-hidden className={styles.trendIcon} />
               )}{" "}
-              <span className="tabular-nums">${alert.threshold.toFixed(2)}</span> — now at{" "}
-              <span className="tabular-nums">${alert.price.toFixed(2)}</span>
+              <span className="tabular-nums">{formatCurrency(alert.threshold)}</span> — now at{" "}
+              <span className="tabular-nums">{formatCurrency(alert.price)}</span>
             </div>
             <button
               onClick={() => onDismiss(alert.id)}
