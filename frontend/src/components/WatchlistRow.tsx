@@ -3,6 +3,7 @@ import { Bell, TrendDown, TrendUp, X } from "@phosphor-icons/react";
 import PriceCell from "./PriceCell";
 import Sparkline from "./Sparkline";
 import TickerAvatar from "./TickerAvatar";
+import { formatCurrency } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./WatchlistTable.module.css";
@@ -26,7 +27,7 @@ function sessionRange(history: number[] | undefined): string {
   if (!history || history.length < 2) return "—";
   const low = Math.min(...history);
   const high = Math.max(...history);
-  return `$${low.toFixed(2)} – $${high.toFixed(2)}`;
+  return `${formatCurrency(low)} – ${formatCurrency(high)}`;
 }
 
 // Memoised deliberately. useLiveTicks replaces the whole `prices` object on
