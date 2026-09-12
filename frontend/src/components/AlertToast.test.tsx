@@ -61,3 +61,28 @@ describe("AlertToast", () => {
     expect(screen.getByRole("log", { name: "Price alert notifications" })).toBeInTheDocument();
   });
 });
+
+describe("AlertToast number formatting", () => {
+  // Thresholds go to $10,000,000 (alerts.schemas.ts). Built by hand as
+  // `$${n.toFixed(2)}`, a large one rendered "$1000000.00" — unreadable, and
+  // inconsistent with the wallet and profile screens, which use
+  // formatCurrency and group thousands.
+  it("groups thousands in the threshold and the price", () => {
+    render(
+      <AlertToast
+        alerts={[alert({ symbol: "BRK.A", threshold: 1_000_000, price: 1_234_567.5 })]}
+        onDismiss={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("$1,000,000.00")).toBeInTheDocument();
+    expect(screen.getByText("$1,234,567.50")).toBeInTheDocument();
+  });
+
+  it("still shows two decimal places on ordinary prices", () => {
+    render(<AlertToast alerts={[alert({ threshold: 200, price: 210.5 })]} onDismiss={vi.fn()} />);
+
+    expect(screen.getByText("$200.00")).toBeInTheDocument();
+    expect(screen.getByText("$210.50")).toBeInTheDocument();
+  });
+});
