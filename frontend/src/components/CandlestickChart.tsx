@@ -1,3 +1,4 @@
+import { formatCurrency } from "../lib/format";
 import type { Candle } from "../lib/api";
 import styles from "./CandlestickChart.module.css";
 
@@ -61,7 +62,7 @@ export default function CandlestickChart({ candles, loading, error }: Candlestic
       width="100%"
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
       role="img"
-      aria-label={`Candlestick chart of ${candles.length} days of price history, from $${low.toFixed(2)} to $${high.toFixed(2)}`}
+      aria-label={`Candlestick chart of ${candles.length} days of price history, from ${formatCurrency(low)} to ${formatCurrency(high)}`}
     >
       {candles.map((candle, i) => {
         const bullish = candle.close >= candle.open;
