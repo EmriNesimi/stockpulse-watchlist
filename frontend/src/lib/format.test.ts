@@ -4,6 +4,7 @@ import {
   formatShares,
   formatSignedCurrency,
   formatSignedPercent,
+  priceDirection,
 } from "./format";
 
 describe("formatSignedCurrency", () => {
@@ -45,5 +46,28 @@ describe("formatShares", () => {
   it("trims trailing zeros but keeps real fractions", () => {
     expect(formatShares(10)).toBe("10");
     expect(formatShares(1.5)).toBe("1.5");
+  });
+});
+
+describe("priceDirection", () => {
+  it("reports real movement in both directions", () => {
+    expect(priceDirection(1.5)).toBe("up");
+    expect(priceDirection(-1.5)).toBe("down");
+  });
+
+  // Shares formatSignedPercent's threshold on purpose: the arrow shouldn't
+  // claim a direction the number declined to sign.
+  it("reports flat for a move that rounds away", () => {
+    expect(priceDirection(0)).toBe("flat");
+    expect(priceDirection(-0.001)).toBe("flat");
+    expect(priceDirection(0.004)).toBe("flat");
+  });
+
+  it("agrees with formatSignedPercent at the boundary", () => {
+    for (const v of [0.004, 0.005, -0.004, -0.005, 1, -1]) {
+      const signed = formatSignedPercent(v);
+      const unsigned = !signed.startsWith("+") && !signed.startsWith("-");
+      expect(priceDirection(v) === "flat").toBe(unsigned);
+    }
   });
 });
