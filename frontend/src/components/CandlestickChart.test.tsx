@@ -112,3 +112,41 @@ describe("CandlestickChart geometry", () => {
     expect(Number(second.getAttribute("y1"))).toBeCloseTo(12, 0);
   });
 });
+
+describe("CandlestickChart minimum range", () => {
+  const at = (price: number, time: string): Candle => ({
+    time, open: price, high: price, low: price, close: price, volume: 100,
+  });
+
+  // Scaling to the observed spread means *any* spread fills the plot. A
+  // hundredth of a cent on a $300 stock was drawn across the full 176px, so a
+  // stock that didn't move looked violently volatile.
+  it("does not amplify a sub-cent spread to full height", () => {
+    const { container } = render(
+      <CandlestickChart
+        candles={[at(300.0, "2026-09-01"), at(300.0001, "2026-09-02")]}
+        loading={false}
+        error={null}
+      />
+    );
+
+    const ys = Array.from(container.querySelectorAll("line")).map((l) => Number(l.getAttribute("y1")));
+    const spreadPx = Math.max(...ys) - Math.min(...ys);
+    expect(spreadPx).toBeLessThan(5);
+    ys.forEach((y) => expect(y).toBeCloseTo(100, 0));
+  });
+
+  it("leaves a series with a real spread scaled exactly as before", () => {
+    const { container } = render(
+      <CandlestickChart
+        candles={[at(100, "2026-09-01"), at(200, "2026-09-02")]}
+        loading={false}
+        error={null}
+      />
+    );
+
+    const ys = Array.from(container.querySelectorAll("line")).map((l) => Number(l.getAttribute("y1")));
+    expect(Math.max(...ys)).toBeCloseTo(188, 0);
+    expect(Math.min(...ys)).toBeCloseTo(12, 0);
+  });
+});
