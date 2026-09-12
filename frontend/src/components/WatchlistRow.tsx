@@ -49,8 +49,6 @@ function WatchlistRow({
   registerBellRef,
 }: WatchlistRowProps) {
   const direction = state ? priceDirection(state.changePercent) : "flat";
-  // Sparkline needs a boolean; only a genuine fall should colour it bearish.
-  const bullish = direction !== "down";
   const rowClass = (alertOpen ? styles.rowNoBorder : styles.row) + (striped ? ` ${styles.rowStriped}` : "");
 
   return (
@@ -89,7 +87,7 @@ function WatchlistRow({
       </td>
       <td className={`tabular-nums ${styles.td} ${styles.rangeCell}`}>{sessionRange(state?.history)}</td>
       <td className={styles.td}>
-        <Sparkline values={state?.history ?? []} bullish={bullish} />
+        <Sparkline values={state?.history ?? []} direction={direction} />
       </td>
       <td className={styles.actionsCell}>
         <button

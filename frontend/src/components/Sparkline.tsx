@@ -1,12 +1,20 @@
+import type { PriceDirection } from "../lib/format";
+
 interface SparklineProps {
   values: number[];
-  bullish: boolean;
+  /**
+   * Taken from priceDirection, not derived here, so the line agrees with the
+   * percentage and the arrow beside it. "flat" is a real case: a boolean
+   * forced a flat series to be described as trending one way or the other,
+   * and it announced "trending up" next to a percentage reading 0.00%.
+   */
+  direction: PriceDirection;
 }
 
 const WIDTH = 96;
 const HEIGHT = 32;
 
-export default function Sparkline({ values, bullish }: SparklineProps) {
+export default function Sparkline({ values, direction }: SparklineProps) {
   if (values.length < 2) {
     return (
       <svg width={WIDTH} height={HEIGHT} role="img" aria-label="Not enough price history yet">
@@ -35,14 +43,17 @@ export default function Sparkline({ values, bullish }: SparklineProps) {
     })
     .join(" ");
 
-  const color = bullish ? "var(--color-bullish)" : "var(--color-bearish)";
+  const color =
+    direction === "down" ? "var(--color-bearish)" : "var(--color-bullish)";
 
   return (
     <svg
       width={WIDTH}
       height={HEIGHT}
       role="img"
-      aria-label={`Recent price trend, ${bullish ? "trending up" : "trending down"}`}
+      aria-label={`Recent price trend, ${
+        direction === "flat" ? "not moving" : direction === "up" ? "trending up" : "trending down"
+      }`}
     >
       <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
     </svg>
