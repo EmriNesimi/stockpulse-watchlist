@@ -43,8 +43,20 @@ export default function Sparkline({ values, direction }: SparklineProps) {
     })
     .join(" ");
 
+  // Three states in the label, three in the colour. Flat was falling in with
+  // bullish, so a screen reader heard "not moving" while the line was the
+  // same green as a gain.
+  //
+  // foreground-muted, not border: I tried a hairline grey first and it read as
+  // "no data" beside the real lines. This is the colour used for actual muted
+  // text, so it still looks like a drawn line — just one not claiming a
+  // direction.
   const color =
-    direction === "down" ? "var(--color-bearish)" : "var(--color-bullish)";
+    direction === "down"
+      ? "var(--color-bearish)"
+      : direction === "up"
+        ? "var(--color-bullish)"
+        : "var(--color-foreground-muted)";
 
   return (
     <svg

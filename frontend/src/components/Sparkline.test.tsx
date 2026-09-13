@@ -55,3 +55,23 @@ describe("Sparkline flat direction", () => {
     expect(screen.getByRole("img", { name: /trending down/i })).toBeInTheDocument();
   });
 });
+
+describe("Sparkline flat colour", () => {
+  // The label said three things and the colour said two, so a flat series was
+  // drawn in the same green as a gain.
+  it("draws a flat series in neither bullish nor bearish", () => {
+    const { container } = render(<Sparkline values={[100, 100, 100]} direction="flat" />);
+    const stroke = container.querySelector("polyline")?.getAttribute("stroke");
+
+    expect(stroke).toBe("var(--color-foreground-muted)");
+  });
+
+  it("still draws real movement in the trend colours", () => {
+    const { container, unmount } = render(<Sparkline values={[100, 110]} direction="up" />);
+    expect(container.querySelector("polyline")?.getAttribute("stroke")).toBe("var(--color-bullish)");
+    unmount();
+
+    const down = render(<Sparkline values={[110, 100]} direction="down" />);
+    expect(down.container.querySelector("polyline")?.getAttribute("stroke")).toBe("var(--color-bearish)");
+  });
+});
