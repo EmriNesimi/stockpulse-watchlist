@@ -62,3 +62,34 @@ describe("FavoritesList", () => {
     expect(onSelect).toHaveBeenCalledWith("TSLA");
   });
 });
+
+describe("FavoritesList flat movement", () => {
+  // formatSignedPercent leaves a rounded-away move unsigned, but the arrow
+  // beside it still pointed up — the icon asserting a direction the number
+  // had just declined to assert.
+  it("shows no direction arrow when the move rounds to zero", () => {
+    const { container } = render(
+      <FavoritesList
+        items={[item("AAPL")]}
+        prices={{ AAPL: { price: 100, changePercent: -0.001, source: "live", history: [] } }}
+        onSelect={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("0.00%")).toBeInTheDocument();
+    expect(container.querySelectorAll("svg")).toHaveLength(0); // no arrow at all
+  });
+
+  it("still shows an arrow for a real move", () => {
+    const { container } = render(
+      <FavoritesList
+        items={[item("AAPL")]}
+        prices={{ AAPL: { price: 100, changePercent: 2.5, source: "live", history: [] } }}
+        onSelect={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("+2.50%")).toBeInTheDocument();
+    expect(container.querySelectorAll("svg")).toHaveLength(1); // exactly one arrow
+  });
+});

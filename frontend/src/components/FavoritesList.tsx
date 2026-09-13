@@ -1,6 +1,6 @@
 import { TrendDown, TrendUp } from "@phosphor-icons/react";
 import TickerAvatar from "./TickerAvatar";
-import { formatCurrency, formatSignedPercent } from "../lib/format";
+import { formatCurrency, formatSignedPercent, priceDirection } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./FavoritesList.module.css";
@@ -38,7 +38,7 @@ export default function FavoritesList({ items, prices, onSelect }: FavoritesList
         <div className={styles.list}>
           {shown.map((item) => {
             const state = prices[item.symbol];
-            const up = (state?.changePercent ?? 0) >= 0;
+            const direction = state ? priceDirection(state.changePercent) : "flat";
 
             return (
               <button
@@ -57,10 +57,17 @@ export default function FavoritesList({ items, prices, onSelect }: FavoritesList
                   <span className={`tabular-nums ${styles.price}`}>
                     {state ? formatCurrency(state.price) : "—"}
                   </span>
-                  <span className={`tabular-nums ${styles.change} ${state ? (up ? styles.bullish : styles.bearish) : ""}`}>
+                  <span
+                    className={`tabular-nums ${styles.change} ${
+                      direction === "up" ? styles.bullish : direction === "down" ? styles.bearish : ""
+                    }`}
+                  >
                     {state ? (
                       <>
-                        {up ? <TrendUp size={13} aria-hidden /> : <TrendDown size={13} aria-hidden />}
+                        {/* No arrow when the move rounded away — the number
+                            beside it is deliberately unsigned. */}
+                        {direction === "up" && <TrendUp size={13} aria-hidden />}
+                        {direction === "down" && <TrendDown size={13} aria-hidden />}
                         {formatSignedPercent(state.changePercent)}
                       </>
                     ) : (

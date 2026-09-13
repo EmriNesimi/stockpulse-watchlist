@@ -3,6 +3,7 @@ import { Bell, TrendDown, TrendUp, X } from "@phosphor-icons/react";
 import PriceCell from "./PriceCell";
 import Sparkline from "./Sparkline";
 import TickerAvatar from "./TickerAvatar";
+import { formatCurrency, formatSignedPercent, priceDirection } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./WatchlistTable.module.css";
@@ -26,7 +27,7 @@ function sessionRange(history: number[] | undefined): string {
   if (!history || history.length < 2) return "—";
   const low = Math.min(...history);
   const high = Math.max(...history);
-  return `$${low.toFixed(2)} – $${high.toFixed(2)}`;
+  return `${formatCurrency(low)} – ${formatCurrency(high)}`;
 }
 
 // Memoised deliberately. useLiveTicks replaces the whole `prices` object on
@@ -47,7 +48,7 @@ function WatchlistRow({
   onToggleAlert,
   registerBellRef,
 }: WatchlistRowProps) {
-  const bullish = (state?.changePercent ?? 0) >= 0;
+  const direction = state ? priceDirection(state.changePercent) : "flat";
   const rowClass = (alertOpen ? styles.rowNoBorder : styles.row) + (striped ? ` ${styles.rowStriped}` : "");
 
   return (
@@ -70,14 +71,15 @@ function WatchlistRow({
       </td>
       <td
         className={`tabular-nums ${styles.changeCell} ${
-          state ? (bullish ? styles.changeBullish : styles.changeBearish) : ""
+          direction === "up" ? styles.changeBullish : direction === "down" ? styles.changeBearish : ""
         }`}
       >
         {state ? (
           <>
-            {bullish ? <TrendUp size={16} aria-hidden /> : <TrendDown size={16} aria-hidden />}
-            {bullish ? "+" : ""}
-            {state.changePercent.toFixed(2)}%
+            {/* No arrow, and no sign, when the move rounded away. */}
+            {direction === "up" && <TrendUp size={16} aria-hidden />}
+            {direction === "down" && <TrendDown size={16} aria-hidden />}
+            {formatSignedPercent(state.changePercent)}
           </>
         ) : (
           "—"
@@ -85,7 +87,7 @@ function WatchlistRow({
       </td>
       <td className={`tabular-nums ${styles.td} ${styles.rangeCell}`}>{sessionRange(state?.history)}</td>
       <td className={styles.td}>
-        <Sparkline values={state?.history ?? []} bullish={bullish} />
+        <Sparkline values={state?.history ?? []} direction={direction} />
       </td>
       <td className={styles.actionsCell}>
         <button

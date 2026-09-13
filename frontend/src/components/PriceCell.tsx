@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { formatCurrency } from "../lib/format";
 import type { PriceState } from "../types";
 import styles from "./PriceCell.module.css";
 
@@ -30,7 +31,7 @@ export default function PriceCell({ state }: PriceCellProps) {
 
   return (
     <div className={`tabular-nums ${styles.cell} ${flashClass}`}>
-      {state ? `$${state.price.toFixed(2)}` : "—"}
+      {state ? formatCurrency(state.price) : "—"}
       {state && (
         <span
           title={

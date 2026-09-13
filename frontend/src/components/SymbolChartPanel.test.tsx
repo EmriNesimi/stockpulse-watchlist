@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SymbolChartPanel from "./SymbolChartPanel";
 import { getHistory } from "../lib/api";
@@ -75,5 +75,29 @@ describe("SymbolChartPanel", () => {
     render(<SymbolChartPanel item={item()} state={undefined} />);
 
     await waitFor(() => expect(screen.getByText(/History is unavailable/)).toBeInTheDocument());
+  });
+});
+
+describe("SymbolChartPanel flat movement", () => {
+  it("shows no direction arrow when the move rounds away", () => {
+    const { container } = render(
+      <SymbolChartPanel
+        item={item("AAPL")}
+        state={{ price: 100, changePercent: -0.001, source: "live", history: [] }}
+      />
+    );
+
+    expect(screen.getByText("0.00%")).toBeInTheDocument();
+    const flat = container.querySelectorAll("svg").length;
+
+    cleanup();
+    const second = render(
+      <SymbolChartPanel
+        item={item("AAPL")}
+        state={{ price: 100, changePercent: -2.5, source: "live", history: [] }}
+      />
+    );
+    expect(screen.getByText("-2.50%")).toBeInTheDocument();
+    expect(second.container.querySelectorAll("svg").length).toBe(flat + 1);
   });
 });

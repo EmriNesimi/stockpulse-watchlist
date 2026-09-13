@@ -28,8 +28,11 @@ export function createSessionCookieValue(userId: string, epoch: number): string 
 
 /**
  * Checks only that the value is intact and ours. Whether the epoch is still
- * current is a separate question that needs the database — see
- * resolveSession in ./middleware.
+ * current is a separate question that needs the database, and it gets asked
+ * in two places: attachUserId in ./middleware for HTTP requests, and the
+ * verifyClient path in ../ws/broadcaster for socket upgrades. Both compare
+ * against the user's stored sessionEpoch; neither can be skipped by reaching
+ * the other.
  */
 export function verifySessionCookieValue(value: string | undefined): SessionPayload | null {
   if (!value) return null;

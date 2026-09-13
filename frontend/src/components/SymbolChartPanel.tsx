@@ -3,7 +3,7 @@ import { TrendDown, TrendUp } from "@phosphor-icons/react";
 import CandlestickChart from "./CandlestickChart";
 import TickerAvatar from "./TickerAvatar";
 import { useHistory } from "../hooks/useHistory";
-import { formatCurrency, formatSignedPercent } from "../lib/format";
+import { formatCurrency, formatSignedPercent, priceDirection } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./SymbolChartPanel.module.css";
@@ -39,7 +39,7 @@ export default function SymbolChartPanel({ item, state }: SymbolChartPanelProps)
     );
   }
 
-  const up = (state?.changePercent ?? 0) >= 0;
+  const direction = state ? priceDirection(state.changePercent) : "flat";
 
   return (
     <section className={styles.card} aria-labelledby="chart-panel-symbol">
@@ -53,10 +53,15 @@ export default function SymbolChartPanel({ item, state }: SymbolChartPanelProps)
         </span>
         <span className={styles.figures}>
           <span className={`tabular-nums ${styles.price}`}>{state ? formatCurrency(state.price) : "—"}</span>
-          <span className={`tabular-nums ${styles.change} ${state ? (up ? styles.bullish : styles.bearish) : ""}`}>
+          <span
+            className={`tabular-nums ${styles.change} ${
+              direction === "up" ? styles.bullish : direction === "down" ? styles.bearish : ""
+            }`}
+          >
             {state ? (
               <>
-                {up ? <TrendUp size={14} aria-hidden /> : <TrendDown size={14} aria-hidden />}
+                {direction === "up" && <TrendUp size={14} aria-hidden />}
+                {direction === "down" && <TrendDown size={14} aria-hidden />}
                 {formatSignedPercent(state.changePercent)}
               </>
             ) : (
