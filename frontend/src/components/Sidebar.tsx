@@ -51,8 +51,18 @@ export default function Sidebar({ current, onNavigate, onSignOut }: SidebarProps
 
       <nav className={styles.nav} aria-label="Main">
         {PRIMARY.map(renderItem)}
-        <span className={styles.groupLabel}>Account</span>
-        {ACCOUNT.map(renderItem)}
+        {/*
+          The "Account" heading was a bare span, so the grouping existed
+          visually and nowhere else: a screen reader met a loose word and then
+          more buttons, with nothing saying the two were related (SC 1.3.1).
+          A labelled group ties them together without changing the layout.
+        */}
+        <span id="sidebar-account-label" className={styles.groupLabel}>
+          Account
+        </span>
+        <div role="group" aria-labelledby="sidebar-account-label" className={styles.group}>
+          {ACCOUNT.map(renderItem)}
+        </div>
       </nav>
 
       <button

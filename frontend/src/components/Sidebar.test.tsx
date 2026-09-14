@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Sidebar from "./Sidebar";
 
@@ -56,5 +56,25 @@ describe("Sidebar", () => {
 
     expect(onSignOut).toHaveBeenCalledTimes(1);
     expect(onNavigate).not.toHaveBeenCalled();
+  });
+});
+
+describe("Sidebar account grouping", () => {
+  // The heading was a loose span: visually a group label, programmatically a
+  // stray word followed by unrelated buttons.
+  it("associates the Account heading with the items under it", () => {
+    render(<Sidebar current="dashboard" onNavigate={vi.fn()} onSignOut={vi.fn()} />);
+
+    const group = screen.getByRole("group", { name: "Account" });
+    expect(group).toBeInTheDocument();
+    expect(within(group).getByRole("button", { name: "Profile" })).toBeInTheDocument();
+  });
+
+  it("leaves the primary items outside that group", () => {
+    render(<Sidebar current="dashboard" onNavigate={vi.fn()} onSignOut={vi.fn()} />);
+
+    const group = screen.getByRole("group", { name: "Account" });
+    expect(within(group).queryByRole("button", { name: "Dashboard" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dashboard" })).toBeInTheDocument();
   });
 });

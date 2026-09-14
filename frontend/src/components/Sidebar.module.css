@@ -114,3 +114,9 @@
     padding: 0;
   }
 }
+
+/* The group wrapper must not introduce a second layout context — .nav is a
+   flex column and the items were its direct children. */
+.group {
+  display: contents;
+}
