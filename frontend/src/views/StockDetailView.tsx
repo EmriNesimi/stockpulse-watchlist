@@ -2,7 +2,7 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import SymbolChartPanel from "../components/SymbolChartPanel";
 import AlertForm from "../components/AlertForm";
 import { toHoldings, valueHolding } from "../lib/holdings";
-import { formatCurrency, formatShares, formatSignedCurrency, formatSignedPercent, priceDirection } from "../lib/format";
+import { formatCurrency, formatShares, formatSignedCurrency, formatSignedPercent, signedDirection } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./StockDetailView.module.css";
@@ -36,7 +36,7 @@ export default function StockDetailView({ item, prices, onBack, onCreateAlert }:
   const position = holding ? valueHolding(holding, prices) : null;
   // Same reasoning as WalletView: this is a money amount, and the threshold
   // matches what formatSignedCurrency will round away.
-  const direction = position?.gain === undefined ? "flat" : priceDirection(position.gain);
+  const direction = position?.gain === undefined ? "flat" : signedDirection(position.gain);
 
   return (
     <div className={styles.view}>

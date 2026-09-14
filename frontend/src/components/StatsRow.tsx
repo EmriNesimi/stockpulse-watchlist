@@ -1,5 +1,5 @@
 import { ChartLineUp, TrendDown, TrendUp } from "@phosphor-icons/react";
-import { formatSignedPercent, priceDirection } from "../lib/format";
+import { formatSignedPercent, signedDirection } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./StatsRow.module.css";
@@ -49,9 +49,9 @@ export default function StatsRow({ items, prices }: StatsRowProps) {
           className={`${styles.value} tabular-nums ${
             avgChange === null
               ? ""
-              : priceDirection(avgChange) === "up"
+              : signedDirection(avgChange) === "up"
                 ? styles.bullish
-                : priceDirection(avgChange) === "down"
+                : signedDirection(avgChange) === "down"
                   ? styles.bearish
                   : ""
           }`}

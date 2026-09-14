@@ -7,7 +7,7 @@ import {
   formatShares,
   formatSignedCurrency,
   formatSignedPercent,
-  priceDirection,
+  signedDirection,
 } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
@@ -28,11 +28,11 @@ export default function WalletView({ items, prices }: WalletViewProps) {
   // just sitting there.
   const valued = useMemo(() => toHoldings(items).map((h) => valueHolding(h, prices)), [items, prices]);
   const totals = useMemo(() => portfolioTotals(valued), [valued]);
-  // priceDirection on a money amount, not a percent: it thresholds on what
+  // signedDirection on a money amount, not a percent: it thresholds on what
   // rounds away at two decimals, which is exactly what formatSignedCurrency
   // does with the same number just below. A portfolio flat to the cent should
   // not be painted as a gain.
-  const direction = totals.gain === undefined ? "flat" : priceDirection(totals.gain);
+  const direction = totals.gain === undefined ? "flat" : signedDirection(totals.gain);
 
   if (valued.length === 0) {
     return (
@@ -118,7 +118,7 @@ export default function WalletView({ items, prices }: WalletViewProps) {
             </thead>
             <tbody>
               {valued.map(({ item, shares, costBasis, price, marketValue, gain, gainPercent }) => {
-                const rowDirection = gain === undefined ? "flat" : priceDirection(gain);
+                const rowDirection = gain === undefined ? "flat" : signedDirection(gain);
                 return (
                   <tr key={item.id} className={styles.row}>
                     <td className={styles.td}>
