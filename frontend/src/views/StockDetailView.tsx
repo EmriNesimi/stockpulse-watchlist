@@ -2,7 +2,7 @@ import { ArrowLeft } from "@phosphor-icons/react";
 import SymbolChartPanel from "../components/SymbolChartPanel";
 import AlertForm from "../components/AlertForm";
 import { toHoldings, valueHolding } from "../lib/holdings";
-import { formatCurrency, formatShares, formatSignedCurrency, formatSignedPercent } from "../lib/format";
+import { formatCurrency, formatShares, formatSignedCurrency, formatSignedPercent, priceDirection } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./StockDetailView.module.css";
@@ -34,7 +34,9 @@ export default function StockDetailView({ item, prices, onBack, onCreateAlert }:
   const state = prices[item.symbol];
   const [holding] = toHoldings([item]);
   const position = holding ? valueHolding(holding, prices) : null;
-  const up = (position?.gain ?? 0) >= 0;
+  // Same reasoning as WalletView: this is a money amount, and the threshold
+  // matches what formatSignedCurrency will round away.
+  const direction = position?.gain === undefined ? "flat" : priceDirection(position.gain);
 
   return (
     <div className={styles.view}>
@@ -71,7 +73,7 @@ export default function StockDetailView({ item, prices, onBack, onCreateAlert }:
               <span className={styles.figureLabel}>Profit</span>
               <span
                 className={`tabular-nums ${styles.figureValue} ${
-                  position.gain === undefined ? "" : up ? styles.bullish : styles.bearish
+                  direction === "up" ? styles.bullish : direction === "down" ? styles.bearish : ""
                 }`}
               >
                 {position.gain === undefined
