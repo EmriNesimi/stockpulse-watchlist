@@ -118,3 +118,28 @@ describe("StatsRow average change formatting", () => {
     expect(screen.getByText("-2.50%")).toBeInTheDocument();
   });
 });
+
+describe("StatsRow average change colour", () => {
+  // Yesterday's fix moved the *text* onto formatSignedPercent but left the
+  // colour class deciding for itself with `avgChange >= 0`. So the card read
+  // "0.00%" — correctly unsigned — in gain green.
+  it("colours a rounded-away average as neither gain nor loss", () => {
+    const { container } = render(
+      <StatsRow
+        items={[item({ symbol: "AAPL" })]}
+        prices={{ AAPL: price({ changePercent: -0.001 }) }}
+      />
+    );
+
+    const value = screen.getByText("0.00%");
+    expect(value.className).not.toMatch(/bullish|bearish/);
+    expect(container).toBeTruthy();
+  });
+
+  it("still colours a real average", () => {
+    render(
+      <StatsRow items={[item({ symbol: "AAPL" })]} prices={{ AAPL: price({ changePercent: 3 }) }} />
+    );
+    expect(screen.getByText("+3.00%").className).toMatch(/bullish/);
+  });
+});

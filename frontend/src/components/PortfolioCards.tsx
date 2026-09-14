@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import Sparkline from "./Sparkline";
 import TickerAvatar from "./TickerAvatar";
 import { toHoldings, valueHolding } from "../lib/holdings";
-import { formatCurrency, formatShares, formatSignedCurrency, formatSignedPercent, priceDirection } from "../lib/format";
+import { formatCurrency, formatShares, formatSignedCurrency, formatSignedPercent, signedDirection } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./PortfolioCards.module.css";
@@ -36,7 +36,7 @@ export default function PortfolioCards({ items, prices }: PortfolioCardsProps) {
         // From the position's return, not the day's tick — this card is about
         // profit and loss. undefined means no price yet, which is flat rather
         // than a gain.
-        const direction = gainPercent === undefined ? "flat" : priceDirection(gainPercent);
+        const direction = gainPercent === undefined ? "flat" : signedDirection(gainPercent);
 
         return (
           <article key={item.id} className={styles.card}>

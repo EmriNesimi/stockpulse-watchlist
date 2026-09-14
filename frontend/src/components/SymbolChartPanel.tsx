@@ -3,7 +3,7 @@ import { TrendDown, TrendUp } from "@phosphor-icons/react";
 import CandlestickChart from "./CandlestickChart";
 import TickerAvatar from "./TickerAvatar";
 import { useHistory } from "../hooks/useHistory";
-import { formatCurrency, formatSignedPercent, priceDirection } from "../lib/format";
+import { formatCurrency, formatSignedPercent, signedDirection } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./SymbolChartPanel.module.css";
@@ -39,7 +39,7 @@ export default function SymbolChartPanel({ item, state }: SymbolChartPanelProps)
     );
   }
 
-  const direction = state ? priceDirection(state.changePercent) : "flat";
+  const direction = state ? signedDirection(state.changePercent) : "flat";
 
   return (
     <section className={styles.card} aria-labelledby="chart-panel-symbol">

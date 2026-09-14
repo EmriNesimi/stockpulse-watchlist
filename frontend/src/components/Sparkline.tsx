@@ -1,14 +1,14 @@
-import type { PriceDirection } from "../lib/format";
+import type { SignedDirection } from "../lib/format";
 
 interface SparklineProps {
   values: number[];
   /**
-   * Taken from priceDirection, not derived here, so the line agrees with the
+   * Taken from signedDirection, not derived here, so the line agrees with the
    * percentage and the arrow beside it. "flat" is a real case: a boolean
    * forced a flat series to be described as trending one way or the other,
    * and it announced "trending up" next to a percentage reading 0.00%.
    */
-  direction: PriceDirection;
+  direction: SignedDirection;
 }
 
 const WIDTH = 96;

@@ -1,6 +1,6 @@
 import { TrendDown, TrendUp } from "@phosphor-icons/react";
 import TickerAvatar from "./TickerAvatar";
-import { formatCurrency, formatSignedPercent, priceDirection } from "../lib/format";
+import { formatCurrency, formatSignedPercent, signedDirection } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./FavoritesList.module.css";
@@ -38,7 +38,7 @@ export default function FavoritesList({ items, prices, onSelect }: FavoritesList
         <div className={styles.list}>
           {shown.map((item) => {
             const state = prices[item.symbol];
-            const direction = state ? priceDirection(state.changePercent) : "flat";
+            const direction = state ? signedDirection(state.changePercent) : "flat";
 
             return (
               <button

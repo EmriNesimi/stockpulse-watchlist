@@ -3,7 +3,7 @@ import { Bell, TrendDown, TrendUp, X } from "@phosphor-icons/react";
 import PriceCell from "./PriceCell";
 import Sparkline from "./Sparkline";
 import TickerAvatar from "./TickerAvatar";
-import { formatCurrency, formatSignedPercent, priceDirection } from "../lib/format";
+import { formatCurrency, formatSignedPercent, signedDirection } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./WatchlistTable.module.css";
@@ -48,7 +48,7 @@ function WatchlistRow({
   onToggleAlert,
   registerBellRef,
 }: WatchlistRowProps) {
-  const direction = state ? priceDirection(state.changePercent) : "flat";
+  const direction = state ? signedDirection(state.changePercent) : "flat";
   const rowClass = (alertOpen ? styles.rowNoBorder : styles.row) + (striped ? ` ${styles.rowStriped}` : "");
 
   return (
