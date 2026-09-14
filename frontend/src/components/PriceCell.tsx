@@ -15,17 +15,24 @@ export default function PriceCell({ state }: PriceCellProps) {
   const previousPrice = useRef<number | undefined>(state?.price);
   const [flash, setFlash] = useState<"up" | "down" | null>(null);
 
+  // Read the one field the effect actually uses, so the dependency array can
+  // say so. Depending on `state?.price` while the body referenced `state` left
+  // exhaustive-deps asking for the whole object — which would re-run the flash
+  // whenever the object's identity changed, and useLiveTicks replaces it on
+  // every tick for every symbol.
+  const price = state?.price;
+
   useEffect(() => {
-    if (state === undefined) return;
+    if (price === undefined) return;
     const prev = previousPrice.current;
-    if (prev !== undefined && state.price !== prev) {
-      setFlash(state.price > prev ? "up" : "down");
+    if (prev !== undefined && price !== prev) {
+      setFlash(price > prev ? "up" : "down");
       const timer = setTimeout(() => setFlash(null), 500);
-      previousPrice.current = state.price;
+      previousPrice.current = price;
       return () => clearTimeout(timer);
     }
-    previousPrice.current = state.price;
-  }, [state?.price]);
+    previousPrice.current = price;
+  }, [price]);
 
   const flashClass = flash === "up" ? styles.flashUp : flash === "down" ? styles.flashDown : "";
 
