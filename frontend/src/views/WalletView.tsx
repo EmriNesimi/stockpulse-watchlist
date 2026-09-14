@@ -2,7 +2,13 @@ import { useMemo } from "react";
 import { TrendDown, TrendUp } from "@phosphor-icons/react";
 import TickerAvatar from "../components/TickerAvatar";
 import { portfolioTotals, toHoldings, valueHolding } from "../lib/holdings";
-import { formatCurrency, formatShares, formatSignedCurrency, formatSignedPercent } from "../lib/format";
+import {
+  formatCurrency,
+  formatShares,
+  formatSignedCurrency,
+  formatSignedPercent,
+  priceDirection,
+} from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 import styles from "./WalletView.module.css";
@@ -22,7 +28,11 @@ export default function WalletView({ items, prices }: WalletViewProps) {
   // just sitting there.
   const valued = useMemo(() => toHoldings(items).map((h) => valueHolding(h, prices)), [items, prices]);
   const totals = useMemo(() => portfolioTotals(valued), [valued]);
-  const up = (totals.gain ?? 0) >= 0;
+  // priceDirection on a money amount, not a percent: it thresholds on what
+  // rounds away at two decimals, which is exactly what formatSignedCurrency
+  // does with the same number just below. A portfolio flat to the cent should
+  // not be painted as a gain.
+  const direction = totals.gain === undefined ? "flat" : priceDirection(totals.gain);
 
   if (valued.length === 0) {
     return (
@@ -55,8 +65,13 @@ export default function WalletView({ items, prices }: WalletViewProps) {
           {totals.gain === undefined ? (
             <span className={styles.pending}>Waiting for prices on every holding…</span>
           ) : (
-            <span className={`tabular-nums ${styles.summaryChange} ${up ? styles.bullish : styles.bearish}`}>
-              {up ? <TrendUp size={16} aria-hidden /> : <TrendDown size={16} aria-hidden />}
+            <span
+              className={`tabular-nums ${styles.summaryChange} ${
+                direction === "up" ? styles.bullish : direction === "down" ? styles.bearish : ""
+              }`}
+            >
+              {direction === "up" && <TrendUp size={16} aria-hidden />}
+              {direction === "down" && <TrendDown size={16} aria-hidden />}
               {formatSignedCurrency(totals.gain)}
               {totals.gainPercent !== undefined && ` (${formatSignedPercent(totals.gainPercent)})`}
             </span>
@@ -72,7 +87,7 @@ export default function WalletView({ items, prices }: WalletViewProps) {
             <span className={styles.figureLabel}>Total profit</span>
             <span
               className={`tabular-nums ${styles.figureValue} ${
-                totals.gain === undefined ? "" : up ? styles.bullish : styles.bearish
+                direction === "up" ? styles.bullish : direction === "down" ? styles.bearish : ""
               }`}
             >
               {totals.gain === undefined ? "—" : formatSignedCurrency(totals.gain)}
@@ -103,7 +118,7 @@ export default function WalletView({ items, prices }: WalletViewProps) {
             </thead>
             <tbody>
               {valued.map(({ item, shares, costBasis, price, marketValue, gain, gainPercent }) => {
-                const rowUp = (gain ?? 0) >= 0;
+                const rowDirection = gain === undefined ? "flat" : priceDirection(gain);
                 return (
                   <tr key={item.id} className={styles.row}>
                     <td className={styles.td}>
@@ -122,7 +137,11 @@ export default function WalletView({ items, prices }: WalletViewProps) {
                     </td>
                     <td
                       className={`tabular-nums ${styles.tdNumeric} ${
-                        gain === undefined ? "" : rowUp ? styles.bullish : styles.bearish
+                        rowDirection === "up"
+                          ? styles.bullish
+                          : rowDirection === "down"
+                            ? styles.bearish
+                            : ""
                       }`}
                     >
                       {gain === undefined

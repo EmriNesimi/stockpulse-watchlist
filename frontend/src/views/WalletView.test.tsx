@@ -111,3 +111,32 @@ describe("WalletView", () => {
     expect(within(figures).getByText("1")).toBeInTheDocument();
   });
 });
+
+describe("WalletView flat profit", () => {
+  // A position bought and held at the same price: formatSignedCurrency prints
+  // "$0.00" unsigned, and the arrow and colour beside it claimed a gain.
+  it("neither signs, points nor colours a portfolio that is exactly flat", () => {
+    const { container } = render(
+      <WalletView
+        items={[item({ symbol: "AAPL", shares: 10, costBasis: 100 })]}
+        prices={{ AAPL: { price: 100, changePercent: 0, source: "live", history: [] } }}
+      />
+    );
+
+    expect(screen.getAllByText("$0.00").length).toBeGreaterThan(0);
+    expect(screen.queryByText("+$0.00")).not.toBeInTheDocument();
+    // Sparkline-free view: an arrow would be the only svg.
+    expect(container.querySelectorAll("svg")).toHaveLength(0);
+  });
+
+  it("still marks a real gain", () => {
+    render(
+      <WalletView
+        items={[item({ symbol: "AAPL", shares: 10, costBasis: 100 })]}
+        prices={{ AAPL: { price: 120, changePercent: 20, source: "live", history: [] } }}
+      />
+    );
+
+    expect(screen.getAllByText(/\+\$200\.00/).length).toBeGreaterThan(0);
+  });
+});
