@@ -9,11 +9,10 @@ node_modules/
 backend/.env
 backend/.env.*
 
-# Database
+# Database. Nothing writes a .db file since the move to Postgres; kept as a
+# backstop alongside the same check in CI, because one committed by
+# accident would carry real emails and password hashes.
 *.db
-*.db-journal
-backend/prisma/dev.db
-backend/prisma/migrations/dev.db
 
 # Build output
 dist/
