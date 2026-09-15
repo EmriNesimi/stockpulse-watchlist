@@ -6,14 +6,14 @@ import type { PriceState } from "../types";
 
 export type ConnectionStatus = "connecting" | "open" | "reconnecting" | "closed";
 
+// RFC 6455 policy violation, which is what a revoked session is.
+const SESSION_REVOKED_CLOSE_CODE = 1008;
+
 // The multiplier, not the first delay. reconnectAttempt is incremented before
 // this is used, so the sequence actually starts at 2s (1000 * 2^1) and doubles
 // from there — 2s, 4s, 8s… That's a fine curve; the old name just described a
 // first delay that never happens, which is worth being accurate about since
 // the backoff interacts with the server's per-IP connection cap.
-// RFC 6455 policy violation, which is what a revoked session is.
-const SESSION_REVOKED_CLOSE_CODE = 1008;
-
 const RECONNECT_STEP_MS = 1000;
 // The server answers an over-budget message with an error, and counts that
 // message against the budget too — so resyncing the instant an error arrives
