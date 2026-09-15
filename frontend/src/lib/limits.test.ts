@@ -6,6 +6,9 @@ import { MAX_WATCHLIST_SYMBOLS } from "./limits";
 // literal in the file, and doesn't pull the backend's import graph into the
 // frontend's test run.
 import wsLimitsSource from "../../../backend/src/wsLimits.ts?raw";
+import alertSchemasSource from "../../../backend/src/routes/alerts.schemas.ts?raw";
+// Not exported from the component, so the frontend side is read the same way.
+import alertFormSource from "../components/AlertForm.tsx?raw";
 
 function constantIn(source: string, name: string): number {
   const match = source.match(new RegExp(`const ${name} = ([0-9_]+);`));
@@ -19,5 +22,14 @@ function constantIn(source: string, name: string): number {
 describe("MAX_WATCHLIST_SYMBOLS", () => {
   it("matches MAX_SYMBOLS_PER_CLIENT in backend/src/wsLimits.ts", () => {
     expect(MAX_WATCHLIST_SYMBOLS).toBe(constantIn(wsLimitsSource, "MAX_SYMBOLS_PER_CLIENT"));
+  });
+});
+
+// Same arrangement for the alert price ceiling: the form rejects a too-large
+// value before it round-trips to the server, which only stays true while
+// both sides agree on what too large is.
+describe("AlertForm's MAX_THRESHOLD", () => {
+  it("matches MAX_THRESHOLD in backend/src/routes/alerts.schemas.ts", () => {
+    expect(constantIn(alertFormSource, "MAX_THRESHOLD")).toBe(constantIn(alertSchemasSource, "MAX_THRESHOLD"));
   });
 });
