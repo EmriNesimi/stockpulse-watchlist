@@ -4,5 +4,6 @@
 // user could add more tickers than a single WS connection can ever
 // subscribe to, and the entire subscribe message - not just the extras -
 // gets rejected by the broadcaster, silently breaking live prices for
-// their whole watchlist.
+// their whole watchlist. The frontend keeps a copy in src/lib/limits.ts;
+// its limits.test.ts reads this file and fails if the numbers differ.
 export const MAX_SYMBOLS_PER_CLIENT = 30;
