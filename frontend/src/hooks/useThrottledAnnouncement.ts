@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { formatCurrency } from "../lib/format";
+import { formatCurrency, signedDirection } from "../lib/format";
 import type { WatchlistItem } from "../lib/api";
 import type { PriceState } from "../types";
 
@@ -23,9 +23,11 @@ export function useThrottledAnnouncement(items: WatchlistItem[], prices: Record<
         if (!state) return null;
         // "unchanged" rather than "up 0.00%": the sighted UI stopped signing a
         // rounded-away move, and reading "up nought point nought nought
-        // percent" aloud is worse than either.
-        const magnitude = Math.abs(state.changePercent);
-        const movement = magnitude < 0.005 ? "unchanged" : `${state.changePercent >= 0 ? "up" : "down"} ${magnitude.toFixed(2)}%`;
+        // percent" aloud is worse than either. signedDirection shares the
+        // visible arrow's threshold, so the spoken and drawn directions agree.
+        const direction = signedDirection(state.changePercent);
+        const movement =
+          direction === "flat" ? "unchanged" : `${direction} ${Math.abs(state.changePercent).toFixed(2)}%`;
         return `${item.symbol} ${formatCurrency(state.price)}, ${movement}`;
       })
       .filter(Boolean)
