@@ -37,9 +37,9 @@ export function useThrottledAnnouncement(items: WatchlistItem[], prices: Record<
       lastAnnouncedAt.current = now;
       setAnnouncement(summary);
     }
-    // Re-checked on every price tick, but gated by the throttle above.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prices]);
+    // Re-checked on every price tick and whenever the list changes, but
+    // gated by the throttle above either way.
+  }, [items, prices]);
 
   return announcement;
 }
