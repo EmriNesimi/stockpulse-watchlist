@@ -17,14 +17,17 @@ export default function Search({ onAdd, alreadyAdded, atCapacity = false }: Sear
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<TickerResult[]>([]);
   const [status, setStatus] = useState<Status>("idle");
-  const debouncedQuery = useDebouncedValue(query.trim(), 300);
-
-  useEffect(() => {
-    // A disabled input with a non-empty value hides its placeholder, so if
-    // the watchlist fills up while the user has something typed, clear it -
-    // otherwise the "watchlist is full" message never actually shows.
+  // A disabled input with a non-empty value hides its placeholder, so if the
+  // watchlist fills up while the user has something typed, clear it -
+  // otherwise the "watchlist is full" message never actually shows. Done
+  // during render rather than in an effect: React restarts the render with
+  // the cleared query immediately, so nothing paints the typed text first.
+  const [wasAtCapacity, setWasAtCapacity] = useState(atCapacity);
+  if (atCapacity !== wasAtCapacity) {
+    setWasAtCapacity(atCapacity);
     if (atCapacity) setQuery("");
-  }, [atCapacity]);
+  }
+  const debouncedQuery = useDebouncedValue(query.trim(), 300);
 
   useEffect(() => {
     if (!debouncedQuery) {

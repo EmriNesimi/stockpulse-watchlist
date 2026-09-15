@@ -32,11 +32,12 @@ export default tseslint.config(
       // Unused args prefixed with _ are intentional (Express handlers, destructured rest).
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
       // Downgraded, not disabled. This rule (new in react-hooks 7) flags any
-      // synchronous setState inside an effect. Some of what it catches here is
-      // genuinely improvable, but it also flags the standard "set loading true,
-      // then fetch" shape in useHistory, which is correct as written. Kept
-      // visible as a warning so new instances get looked at, rather than
-      // silenced or worked around with a contorted refactor.
+      // synchronous setState inside an effect. What it still flags here is the
+      // standard "reset, set loading, then fetch" shape in Search and
+      // useHistory, which is correct as written; the prop-driven reset it also
+      // caught in Search was genuinely improvable and now happens during
+      // render. Kept visible as a warning so new instances get looked at,
+      // rather than silenced or worked around with a contorted refactor.
       "react-hooks/set-state-in-effect": "warn",
       // A scrollable container has to be focusable or keyboard users can't pan
       // it (WCAG 2.1.1), and the correct wrapper role for one is "region".
