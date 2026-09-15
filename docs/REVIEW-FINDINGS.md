@@ -120,9 +120,10 @@ API tests whose fixtures were partial enough to have passed against a client
 that accepted anything, which is a better argument for the change than the
 reasoning was.
 
-Also still open: the reconnect backoff's first delay is 2s, not the 1s its
-`RECONNECT_BASE_MS` name implies (the exponent is applied after incrementing).
-Cosmetic, already encoded in a test, left as-is.
+Since closed: the reconnect backoff's first delay is 2s, not the 1s its old
+`RECONNECT_BASE_MS` name implied (the exponent is applied after
+incrementing). The curve was fine; the name wasn't. It is `RECONNECT_STEP_MS`
+now, with a comment saying what the sequence actually is.
 
 **Accessibility is no longer on this list.** It was audited against WCAG 2.2 AA
 on 2026-08-23. Both worries named here turned out to be worth having: the
