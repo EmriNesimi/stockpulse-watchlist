@@ -23,10 +23,11 @@ lists strengths isn't worth reading:
 - **Verification email delivery is limited to one address.** The default Resend
   sender only reaches the account owner. Verification gates nothing, so this
   costs a trust badge rather than access.
-- **REST responses aren't runtime-validated** the way WebSocket messages are.
-  Same trusted backend and stable shapes, so the risk is low — but it's an
-  asymmetry, and it's named in `docs/REVIEW-FINDINGS.md` rather than left for
-  someone to find.
+- **REST responses are runtime-validated only where their numbers reach
+  arithmetic** — watchlist items, candles and alerts. Other responses are
+  still trusted on shape. Same trusted backend either way, so the risk is
+  low, but the boundary is partial and it's named in
+  `docs/REVIEW-FINDINGS.md` rather than left for someone to find.
 
 ## What has been reviewed
 
