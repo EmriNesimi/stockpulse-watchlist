@@ -207,6 +207,8 @@ stockpulse-watchlist/
 │   │   ├── components/          # every component here has a matching .test.tsx and .module.css
 │   │   │   ├── Search.tsx               # debounced ticker search
 │   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell
+│   │   │   ├── WatchlistRow.tsx         # one memo()'d row; derives the session range from the tick history it already keeps
+│   │   │   ├── StatsRow.tsx             # top-of-dashboard figures, all derived from the watchlist and prices in memory
 │   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash
 │   │   │   ├── Sparkline.tsx            # inline SVG price history (SVG presentation attrs, not CSS Modules — nothing to scope)
 │   │   │   ├── CandlestickChart.tsx     # inline SVG OHLC chart
@@ -221,6 +223,8 @@ stockpulse-watchlist/
 │   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon
 │   │   │   ├── AlertToast.tsx           # dismissible toast for fired price alerts
 │   │   │   ├── ErrorToast.tsx           # dismissible toast for failed load/add/alert-create
+│   │   │   ├── ErrorBoundary.tsx        # catches a render crash and shows a reload prompt instead of a blank page
+│   │   │   ├── VerificationBanner.tsx   # "resend verification email" for unverified accounts; gates nothing
 │   │   │   └── AuthGate.tsx             # login/signup form, renders in place of the app until signed in
 │   │   ├── hooks/
 │   │   │   ├── useTheme.ts              # light/dark, persisted to localStorage (+ .test.ts)
