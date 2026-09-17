@@ -140,6 +140,8 @@ stockpulse-watchlist/
 │   │   ├── env.ts                 # env var loading with sane defaults
 │   │   ├── db.ts                  # Prisma client singleton
 │   │   ├── asyncHandler.ts        # wraps async route handlers so errors don't hang
+│   │   ├── logger.ts              # structured JSON logging (+ .test.ts)
+│   │   ├── requestLogger.ts       # one line per finished request (+ .test.ts)
 │   │   ├── watchlistHelper.ts     # shared getOrCreateWatchlist(), used by watchlist + alerts routes
 │   │   ├── wsLimits.ts            # MAX_SYMBOLS_PER_CLIENT (30) - shared between the WS broadcaster and the watchlist size cap
 │   │   ├── auth/
