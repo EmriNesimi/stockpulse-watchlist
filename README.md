@@ -248,7 +248,16 @@ stockpulse-watchlist/
 │   │   └── test/
 │   │       └── setup.ts                 # @testing-library/jest-dom matchers
 │   └── vite.config.ts, vitest.config.ts
-├── .github/workflows/ci.yml
+├── .github/
+│   ├── workflows/ci.yml         # secret grep, then typecheck/lint/build/test/audit per package (backend against a real Postgres)
+│   ├── workflows/smoke.yml      # hits the deployed app after a push to main and daily - see Smoke test
+│   └── dependabot.yml           # weekly grouped minor/patch bumps per package; majors deliberately excluded
+├── scripts/
+│   ├── smoke.sh                 # the read-only checks smoke.yml runs
+│   └── backup-db.sh             # pg_dump via the postgres:18 image, gzipped
+├── docs/REVIEW-FINDINGS.md      # the three audits: what they found, what was fixed, what they missed
+├── render.yaml                  # both services and the database, as a Render Blueprint
+├── SECURITY.md                  # how to report, and what's already known
 └── .gitignore
 ```
 
