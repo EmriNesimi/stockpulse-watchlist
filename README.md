@@ -147,7 +147,12 @@ stockpulse-watchlist/
 │   │   ├── auth/
 │   │   │   ├── password.ts        # scrypt hash/verify (+ .test.ts)
 │   │   │   ├── session.ts         # signed session cookie create/verify (+ .test.ts)
-│   │   │   └── middleware.ts      # attachUserId (always runs) + requireAuth (401s if not signed in)
+│   │   │   ├── middleware.ts      # attachUserId (always runs) + requireAuth (401s if not signed in)
+│   │   │   ├── verification.ts    # 24h email verification token
+│   │   │   └── passwordReset.ts   # 1h reset token - shorter on purpose, it hands over the account
+│   │   ├── email/
+│   │   │   ├── resend.ts          # Resend's HTTP API via fetch, plus the email templates (+ .test.ts)
+│   │   │   └── sendThrottle.ts    # per-recipient cooldown on outbound mail (+ .test.ts)
 │   │   ├── routes/
 │   │   │   ├── auth.ts                    # signup/login/logout/me (+ .routes.test.ts, + .ratelimit.test.ts)
 │   │   │   ├── auth.schemas.ts            # email/password schema
