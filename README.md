@@ -553,6 +553,8 @@ Four things about deploying this bit, none of which reproduce locally:
 | `GET` | `/api/auth/me` | — | `200` `{ user }` · `401` if not signed in |
 | `POST` | `/api/auth/verify-email` | `{ token }` | `200` `{ user }` · `400` if the token is unknown, already used, or expired. POST rather than GET because it consumes a single-use token |
 | `POST` | `/api/auth/resend-verification` 🔒 | — | `204` · `409` if the address is already verified |
+| `POST` | `/api/auth/forgot-password` | `{ email }` | `202` `{ message }` whatever happens — an unauthenticated caller doesn't get to learn which addresses have accounts · `400` on invalid input |
+| `POST` | `/api/auth/reset-password` | `{ token, password }` | `204`, and every other session for the account is ended · `400` if the token is unknown, already used, or expired (same answer for all three, same reason). Deliberately doesn't sign you in |
 | `GET` | `/api/search` | `?q=<string>` | `{ results: [{ symbol, name }], source: "massive" \| "fallback" }` |
 | `GET` | `/api/watchlist` 🔒 | — | `{ items: [{ id, symbol, name, addedAt, shares, costBasis }] }` — `shares`/`costBasis` are `null` for a watched-but-not-held ticker |
 | `POST` | `/api/watchlist` 🔒 | `{ symbol, name?, shares?, costBasis? }` | `201` `{ item }` · `409` if already on the list or the watchlist is at its 30-ticker cap · `400` on a bad symbol, or if only one of `shares`/`costBasis` is given |
