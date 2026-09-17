@@ -181,13 +181,13 @@ stockpulse-watchlist/
 │   │   │   ├── simulatedHistory.ts        # simulated OHLC candle generator (+ .test.ts)
 │   │   │   └── index.ts                   # createPriceFeed() factory
 │   │   ├── test/
-│   │   │   └── globalSetup.ts     # spins up/tears down prisma/test.db for the route tests
+│   │   │   └── globalSetup.ts     # resets the throwaway Postgres schema before the route tests; refuses any non-local DB
 │   │   └── ws/
 │   │       ├── broadcaster.ts     # WS server: subscribe/unsubscribe, rate + size limits, user-scoped alert delivery (+ .test.ts)
 │   │       ├── revocation.ts      # lets the auth routes cut off a user's live sockets on logout-everywhere / reset (+ .test.ts)
 │   │       └── testHelpers.ts     # FakePriceFeed, real server/client setup (connectClient takes an optional session cookie)
 │   ├── prisma/
-│   │   ├── schema.prisma          # Watchlist, WatchlistItem, PriceAlert models
+│   │   ├── schema.prisma          # User, Watchlist, WatchlistItem, PriceAlert models
 │   │   └── migrations/
 │   └── vitest.config.ts
 ├── frontend/
