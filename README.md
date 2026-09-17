@@ -604,7 +604,7 @@ Per-connection limits: 30 subscribed symbols, 60 messages/min, 2KB max message s
 | `DATABASE_URL` | in production | `postgresql://postgres:postgres@localhost:5432/stockpulse_dev` outside production | Postgres connection string |
 | `FRONTEND_ORIGIN` | in production | `http://localhost:5173` outside production | locks down CORS to this origin |
 | `SESSION_SECRET` | in production | a fixed dev-only value outside production | signs the session cookie (see [Security notes](#-security-notes)) |
-| `RESEND_API_KEY` | no | — | verification emails silently don't send without it; signup and login still work |
+| `RESEND_API_KEY` | no | — | without it no mail goes out at all — verification and password-reset alike — and each skipped send is a `warn` line in the log rather than an error; signup, login and reset still answer as if the mail went |
 | `RESEND_FROM_EMAIL` | no | `StockPulse <onboarding@resend.dev>` | Resend's shared test sender, which **only delivers to the Resend account owner's own address**. Reaching anyone else needs a verified domain, which this project deliberately doesn't buy — see [Roadmap](#️-roadmap) |
 
 `backend/.env` is gitignored, and no `.env` file of any kind — not even an example/template with blank values — is committed to this repo, to keep the risk surface at zero. The API key never reaches the frontend; all Massive calls happen server-side.
