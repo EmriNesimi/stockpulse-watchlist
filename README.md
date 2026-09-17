@@ -163,7 +163,9 @@ stockpulse-watchlist/
 │   │   │   ├── alerts.ts                  # GET/POST/DELETE price alerts, requires auth (+ .routes.test.ts)
 │   │   │   ├── alerts.schemas.ts          # symbol/threshold/direction schema (+ .test.ts)
 │   │   │   ├── history.ts                 # GET OHLC candles per symbol (+ .routes.test.ts)
-│   │   │   └── history.schemas.ts         # days-range schema (+ .test.ts)
+│   │   │   ├── history.schemas.ts         # days-range schema (+ .test.ts)
+│   │   │   ├── clientErrors.ts            # POST: where a crash in someone's browser gets reported (+ .test.ts)
+│   │   │   └── clientErrors.schemas.ts    # every field length-capped - it's public and takes what a browser sends
 │   │   ├── alerts/
 │   │   │   └── checkAndTriggerAlerts.ts   # evaluates a tick against active alerts, marks fired ones (+ .test.ts)
 │   │   ├── massive/
@@ -182,6 +184,7 @@ stockpulse-watchlist/
 │   │   │   └── globalSetup.ts     # spins up/tears down prisma/test.db for the route tests
 │   │   └── ws/
 │   │       ├── broadcaster.ts     # WS server: subscribe/unsubscribe, rate + size limits, user-scoped alert delivery (+ .test.ts)
+│   │       ├── revocation.ts      # lets the auth routes cut off a user's live sockets on logout-everywhere / reset (+ .test.ts)
 │   │       └── testHelpers.ts     # FakePriceFeed, real server/client setup (connectClient takes an optional session cookie)
 │   ├── prisma/
 │   │   ├── schema.prisma          # Watchlist, WatchlistItem, PriceAlert models
