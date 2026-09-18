@@ -273,11 +273,11 @@ Light-first dashboard built against a Figma trading-dashboard reference, with a 
 | `--color-background` | ![#f6f7f9](https://placehold.co/14x14/f6f7f9/f6f7f9.png) | `#f6f7f9` | ![#0b0b12](https://placehold.co/14x14/0b0b12/0b0b12.png) | `#0b0b12` | page canvas |
 | `--color-secondary` | ![#ffffff](https://placehold.co/14x14/ffffff/ffffff.png) | `#ffffff` | ![#14141f](https://placehold.co/14x14/14141f/14141f.png) | `#14141f` | cards, sidebar, top bar |
 | `--color-foreground` | ![#0d0c2b](https://placehold.co/14x14/0d0c2b/0d0c2b.png) | `#0d0c2b` | ![#f4f4f6](https://placehold.co/14x14/f4f4f6/f4f4f6.png) | `#f4f4f6` | body text |
-| `--color-foreground-muted` | ![#7c7c8a](https://placehold.co/14x14/7c7c8a/7c7c8a.png) | `#7c7c8a` | ![#9494a6](https://placehold.co/14x14/9494a6/9494a6.png) | `#9494a6` | labels, secondary text |
+| `--color-foreground-muted` | ![#6b6b7a](https://placehold.co/14x14/6b6b7a/6b6b7a.png) | `#6b6b7a` | ![#9494a6](https://placehold.co/14x14/9494a6/9494a6.png) | `#9494a6` | labels, secondary text |
 | `--color-accent` | ![#8044fe](https://placehold.co/14x14/8044fe/8044fe.png) | `#8044fe` | ![#9b6bff](https://placehold.co/14x14/9b6bff/9b6bff.png) | `#9b6bff` | CTAs, active nav |
-| `--color-accent-soft` | ![#f1ebff](https://placehold.co/14x14/f1ebff/f1ebff.png) | `#f1ebff` | ![#241a3d](https://placehold.co/14x14/241a3d/241a3d.png) | `#241a3d` | active/hover fills |
-| `--color-bullish` | ![#0b9a63](https://placehold.co/14x14/0b9a63/0b9a63.png) | `#0b9a63` | ![#26c281](https://placehold.co/14x14/26c281/26c281.png) | `#26c281` | price up, profit |
-| `--color-bearish` | ![#d92d20](https://placehold.co/14x14/d92d20/d92d20.png) | `#d92d20` | ![#f0554b](https://placehold.co/14x14/f0554b/f0554b.png) | `#f0554b` | price down, loss |
+| `--color-accent-soft` | ![#f7f3ff](https://placehold.co/14x14/f7f3ff/f7f3ff.png) | `#f7f3ff` | ![#241a3d](https://placehold.co/14x14/241a3d/241a3d.png) | `#241a3d` | active/hover fills |
+| `--color-bullish` | ![#077a4e](https://placehold.co/14x14/077a4e/077a4e.png) | `#077a4e` | ![#26c281](https://placehold.co/14x14/26c281/26c281.png) | `#26c281` | price up, profit |
+| `--color-bearish` | ![#c42318](https://placehold.co/14x14/c42318/c42318.png) | `#c42318` | ![#f0554b](https://placehold.co/14x14/f0554b/f0554b.png) | `#f0554b` | price down, loss |
 | `--color-border` | ![#ececf0](https://placehold.co/14x14/ececf0/ececf0.png) | `#ececf0` | ![#262636](https://placehold.co/14x14/262636/262636.png) | `#262636` | dividers |
 
 </div>
