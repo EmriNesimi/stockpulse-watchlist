@@ -128,7 +128,9 @@ reasoning was.
 Since closed: the reconnect backoff's first delay is 2s, not the 1s its old
 `RECONNECT_BASE_MS` name implied (the exponent is applied after
 incrementing). The curve was fine; the name wasn't. It is `RECONNECT_STEP_MS`
-now, with a comment saying what the sequence actually is.
+now, with a comment saying what the sequence actually is. The backend's
+`MassiveLiveFeed` had the identical constant with the identical off-by-one
+name, found on 2026-09-19 by grepping for the old name; renamed the same way.
 
 **Accessibility is no longer on this list.** It was audited against WCAG 2.2 AA
 on 2026-08-23. Both worries named here turned out to be worth having: the
