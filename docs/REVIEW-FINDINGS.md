@@ -82,9 +82,9 @@ not do. Recorded so the same finding isn't re-raised.
 
 ## Found while verifying the above (not from a reviewer)
 
-**The verification email still uses the pre-redesign green.**
-`email/resend.ts:43` hardcodes `background: #16a34a` on the CTA button — the old
-accent. Should be the violet `#8044fe`.
+**The verification email still uses the pre-redesign green.** Fixed: every
+CTA in `email/resend.ts` (verify, reset, account-exists) is the violet
+`#8044fe` now. Was `#16a34a`, the old accent.
 
 **`/verify-email` needs an SPA fallback in production.**
 There is no router; `App.tsx` reads `?token=` from `window.location.search`
