@@ -690,6 +690,7 @@ MIT — see [LICENSE](LICENSE).
 - **Validation**: Zod
 - **External API**: Massive (REST + WebSocket), formerly Polygon.io
 - **Email**: Resend, over its HTTP API directly (one `fetch`, no SDK) — verification, reset and account-exists mail
+- **Testing**: Vitest in both packages; Testing Library + jsdom on the frontend, `supertest` and real sockets against a throwaway Postgres on the backend
 - **Hosting**: Render — web service, static site, and managed Postgres, all declared in `render.yaml`
 
 ---
