@@ -251,7 +251,7 @@ stockpulse-watchlist/
 │   │   │   ├── ws.ts                    # WS URL resolution (+ .test.ts)
 │   │   │   └── limits.ts                # MAX_WATCHLIST_SYMBOLS (30) - mirrors backend/src/wsLimits.ts (+ .test.ts, which checks the mirror)
 │   │   └── test/
-│   │       └── setup.ts                 # @testing-library/jest-dom matchers
+│   │       └── setup.ts                 # jest-dom matchers, and an explicit afterEach(cleanup) - Testing Library only auto-registers it with test.globals on
 │   └── vite.config.ts, vitest.config.ts
 ├── .github/
 │   ├── workflows/ci.yml         # secret grep, then typecheck/lint/build/test/audit per package (backend against a real Postgres)
