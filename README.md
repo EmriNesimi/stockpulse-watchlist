@@ -144,7 +144,7 @@ stockpulse-watchlist/
 │   │   ├── app.ts                 # Express app: helmet, CORS, rate limiting, routes
 │   │   ├── env.ts                 # env var loading with sane defaults
 │   │   ├── db.ts                  # Prisma client singleton
-│   │   ├── asyncHandler.ts        # wraps async route handlers so errors don't hang
+│   │   ├── asyncHandler.ts        # Express 4 leftover - 5 forwards async rejections itself; kept so the two can't both react
 │   │   ├── logger.ts              # structured JSON logging (+ .test.ts)
 │   │   ├── requestLogger.ts       # one line per finished request (+ .test.ts)
 │   │   ├── watchlistHelper.ts     # shared getOrCreateWatchlist(), used by watchlist + alerts routes
