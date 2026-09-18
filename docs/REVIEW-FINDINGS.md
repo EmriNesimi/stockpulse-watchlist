@@ -36,10 +36,13 @@ All four held up under adversarial re-examination. Specifically confirmed sound:
 
 ### Independently confirmed clean
 
-- **Session cookie** (`auth/session.ts`) — `${userId}.${hmac}` split on
-  `lastIndexOf(".")`. Not forgeable: cuid userIds and hex signatures can never
-  contain `.`, and the verifier recomputes the HMAC from whatever it split, so
-  a shifted split cannot yield a valid signature for another user.
+- **Session cookie** (`auth/session.ts`) — was `${userId}.${hmac}` when
+  reviewed; since revocation landed it is `${userId}.${epoch}.${hmac}`, still
+  split on `lastIndexOf(".")` so the HMAC covers `userId.epoch` as one payload.
+  Not forgeable: cuid userIds, integer epochs and hex signatures can none of
+  them contain `.`, and the verifier recomputes the HMAC from whatever it
+  split, so a shifted split cannot yield a valid signature for another user
+  or another epoch. The 2026-09-06 re-audit below covers the epoch check.
 - **Per-user scoping** — no IDOR. Deletes use `deleteMany({ where: { watchlistId, ... } })`
   rather than `delete({ where: { id } })`, so another user's row can never match.
 - **Secrets** — none in tracked files or git history. `backend/.env` is
