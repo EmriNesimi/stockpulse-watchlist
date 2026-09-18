@@ -233,7 +233,7 @@ stockpulse-watchlist/
 │   │   │   └── AuthGate.tsx             # login/signup form, renders in place of the app until signed in
 │   │   ├── hooks/
 │   │   │   ├── useTheme.ts              # light/dark, persisted to localStorage (+ .test.ts)
-│   │   │   ├── useDebouncedValue.ts     # (+ .test.ts)
+│   │   │   ├── useDebouncedValue.ts     # generic trailing debounce; Search feeds it the query at 300ms (+ .test.ts)
 │   │   │   ├── useLiveTicks.ts          # WS client: subscribe diffing, reconnect/backoff, alert events (+ .test.ts)
 │   │   │   ├── useHistory.ts            # fetches candle data for the expanded chart row (+ .test.ts)
 │   │   │   ├── useErrorToasts.ts        # generic dismissible/auto-expiring error toast state (+ .test.ts)
