@@ -686,7 +686,7 @@ MIT — see [LICENSE](LICENSE).
 ## 🧰 Tech stack
 
 - **Frontend**: React 19, TypeScript 6, Vite 8 (Rolldown), CSS Modules
-- **Backend**: Node.js 20, Express 5, TypeScript 6, `ws`
+- **Backend**: Node.js 20 (end-of-life since 2026-04 — see [Roadmap](#️-roadmap)), Express 5, TypeScript 6, `ws`
 - **Database**: Postgres via Prisma 7 (`@prisma/adapter-pg`)
 - **Validation**: Zod
 - **External API**: Massive (REST + WebSocket), formerly Polygon.io
