@@ -587,7 +587,7 @@ Five things about deploying this bit, none of which reproduce locally:
 | `DELETE` | `/api/alerts/:id` 🔒 | — | `204` on success · `404` if it wasn't there (including someone else's alert - same response either way) |
 | `GET` | `/api/history/:symbol` | `?days=<7-365, default 30>` | `{ candles: [{ time, open, high, low, close, volume }], source: "massive" \| "simulated" }` |
 
-🔒 = requires a signed-in session (`401` otherwise). `/api/search` and `/api/history` stay open since they're not user-specific data.
+🔒 = requires a signed-in session (`401` otherwise). `/api/search` and `/api/history` stay open since they're not user-specific data; `/health` and `/api/client-errors` stay open because they have to work before anyone can sign in. Everything under `/api` sits behind the 60/min limiter, and `/api/auth/*` behind the 10/min one on top.
 
 ### WebSocket (`/ws`)
 
