@@ -147,7 +147,7 @@ stockpulse-watchlist/
 │   │   ├── asyncHandler.ts        # Express 4 leftover - 5 forwards async rejections itself; kept so the two can't both react
 │   │   ├── logger.ts              # structured JSON logging (+ .test.ts)
 │   │   ├── requestLogger.ts       # one line per finished request (+ .test.ts)
-│   │   ├── watchlistHelper.ts     # shared getOrCreateWatchlist(), used by watchlist + alerts routes
+│   │   ├── watchlistHelper.ts     # shared getOrCreateWatchlist() - an upsert, so a first visit loading two lists at once can't race itself into a 500
 │   │   ├── wsLimits.ts            # MAX_SYMBOLS_PER_CLIENT (30) - shared between the WS broadcaster and the watchlist size cap
 │   │   ├── auth/
 │   │   │   ├── password.ts        # scrypt hash/verify (+ .test.ts)
