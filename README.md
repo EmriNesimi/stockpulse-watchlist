@@ -290,7 +290,7 @@ Font: **Inter**. Icons: **Phosphor** (`@phosphor-icons/react`), no emoji in the 
 
 ## 🚀 Setup
 
-Requires Node ≥20.19.0 (or ≥22.12.0) — that's what Vite 8/Rolldown need. A `.nvmrc` is committed at the repo root *and* in each package — the root one is what `nvm use` and CI read, and the per-package copies are what Render reads, since it resolves the version file from a service's root directory rather than the repo's.
+Requires Node 20.19+ — that's what Vite 8/Rolldown need, and 20 is what everything here is pinned, typed and tested against. The frontend's `engines` also admits 22.12+; the backend's deliberately doesn't, because nothing has been run on 22 (and `jsdom`/`@types/node` below are held back on the assumption it's 20). A `.nvmrc` is committed at the repo root *and* in each package — the root one is what `nvm use` and CI read, and the per-package copies are what Render reads, since it resolves the version file from a service's root directory rather than the repo's.
 
 > **Dependencies deliberately held back**, so nobody "helpfully" bumps them and breaks the build:
 >
