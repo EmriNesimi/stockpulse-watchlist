@@ -11,7 +11,10 @@
 ![Express](https://img.shields.io/badge/Express-181717?style=flat-square&logo=express&logoColor=white)
 ![WebSocket](https://img.shields.io/badge/WebSocket-181717?style=flat-square&logo=socketdotio&logoColor=00FF9C)
 ![Prisma](https://img.shields.io/badge/Prisma-181717?style=flat-square&logo=prisma&logoColor=5A67D8)
+![Postgres](https://img.shields.io/badge/Postgres-181717?style=flat-square&logo=postgresql&logoColor=4169E1)
 ![Massive](https://img.shields.io/badge/Massive-181717?style=flat-square&logoColor=16A34A)
+[![CI](https://github.com/EmriNesimi/stockpulse-watchlist/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/EmriNesimi/stockpulse-watchlist/actions/workflows/ci.yml)
+[![Smoke](https://github.com/EmriNesimi/stockpulse-watchlist/actions/workflows/smoke.yml/badge.svg)](https://github.com/EmriNesimi/stockpulse-watchlist/actions/workflows/smoke.yml)
 
 </div>
 
