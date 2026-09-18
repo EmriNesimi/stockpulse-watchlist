@@ -5,8 +5,8 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts"],
     // Route tests hit a real (throwaway) Postgres db via Prisma, never the dev
-    // one — globalSetup below creates it fresh before the run and removes it
-    // after.
+    // one — globalSetup below resets the schema before the run and leaves the
+    // data in place afterwards, so a failed run can be inspected.
     env: {
       // Local throwaway Postgres. globalSetup refuses anything non-local,
       // because it drops and recreates the schema before every run.
