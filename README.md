@@ -88,7 +88,7 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐         REST (/api/search, /api/watchlist)
+┌─────────────────┐   REST (/api/auth, /watchlist, /alerts, /search, /history)
 │                  │ ───────────────────────────────────────►
 │  React frontend  │                                          ┌──────────────────┐
 │  (Vite + TS)     │         WebSocket (/ws)                  │  Express backend  │
@@ -104,7 +104,8 @@ Feature-complete for the initial build. Built incrementally, commit by commit �
                                               │  Massive REST    │               │  Prisma → Postgres     │
                                               │  (ticker search, │               │  (User, Watchlist,     │
                                               │   previous close,│               │   WatchlistItem,       │
-                                              │   rate-limited)  │               │   PriceAlert)          │
+                                              │   OHLC history;  │               │   PriceAlert)          │
+                                              │   rate-limited)  │               │                        │
                                               └──────────────────┘               └────────────────────────┘
 ```
 
