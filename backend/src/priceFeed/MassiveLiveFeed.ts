@@ -7,7 +7,11 @@ import { fetchPreviousClose } from "./previousClose";
 
 const MASSIVE_WS_URL = "wss://socket.massive.com/stocks";
 const AUTH_TIMEOUT_MS = 6000;
-const RECONNECT_BASE_MS = 1000;
+// The multiplier, not the first delay: reconnectAttempt is incremented before
+// this is used, so the sequence is 2s, 4s, 8s, 16s, then capped. Same naming
+// fix the frontend's useLiveTicks already had - the old BASE name described a
+// 1s first retry that never happens.
+const RECONNECT_STEP_MS = 1000;
 const RECONNECT_MAX_MS = 30_000;
 
 type AuthState = "connecting" | "authenticated" | "failed";
@@ -112,7 +116,7 @@ export class MassiveLiveFeed implements PriceFeed {
 
   private scheduleReconnect() {
     this.reconnectAttempt += 1;
-    const delay = Math.min(RECONNECT_BASE_MS * 2 ** this.reconnectAttempt, RECONNECT_MAX_MS);
+    const delay = Math.min(RECONNECT_STEP_MS * 2 ** this.reconnectAttempt, RECONNECT_MAX_MS);
     setTimeout(() => this.connect(), delay);
   }
 
