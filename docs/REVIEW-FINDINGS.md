@@ -1,15 +1,16 @@
-# Review findings — 2026-08-17
+# Review findings
 
-Progress snapshot from the post-redesign quality pass. Four ECC reviewers were
-launched; only the security review finished before the run was stopped to save
-tokens. The other three were killed mid-flight and produced no output.
+Started 2026-08-17 as a progress snapshot from the post-redesign quality pass:
+four ECC reviewers were launched and only the security review finished before
+the run was stopped to save tokens. The other three were re-run separately
+over the following weeks, and this file grew a section per pass.
 
-| Reviewer | Status |
+| Review | Status |
 |---|---|
-| `ecc:security-reviewer` | ✅ Completed — findings below |
-| `ecc:react-reviewer` | ⛔ Stopped before reporting |
-| `ecc:typescript-reviewer` | ⛔ Stopped before reporting |
-| `ecc:a11y-architect` | ⛔ Stopped before reporting |
+| Security | ✅ 2026-08-17, re-audited 2026-09-06 after the auth surface was rewritten — below |
+| React correctness and TypeScript | ✅ 2026-08-31 — below |
+| Backend correctness | ✅ 2026-09-03 — below |
+| Accessibility (WCAG 2.2 AA) | ✅ 2026-08-23 — recorded in the README's Accessibility section, not here |
 
 ---
 
