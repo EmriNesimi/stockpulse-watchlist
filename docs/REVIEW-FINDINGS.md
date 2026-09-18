@@ -73,7 +73,7 @@ does not cover this; it only protects the API origin.
 The reviewer flagged that a state-mutating `GET` can have its single-use token
 burned by corporate mail scanners (Defender Safe Links, Proofpoint) that
 prefetch links. **This does not apply here**: the email links to
-`${FRONTEND_ORIGIN}/verify-email?token=...` (`routes/auth.ts:33`), not to the
+`${FRONTEND_ORIGIN}/verify-email?token=...` (`verifyUrl` in `routes/auth.ts`), not to the
 API. A scanner fetching that URL gets the SPA shell; consuming the token
 requires executing the JS in `App.tsx` that calls the API, which scanners do
 not do. Recorded so the same finding isn't re-raised.
