@@ -360,6 +360,8 @@ npx wscat -c ws://localhost:4000/ws
 
 You'll get back `{"type":"tick","symbol":"AAPL","price":...,"changePercent":...,"source":"simulated"}` messages roughly every 1.5s per symbol.
 
+This works from `wscat` because a non-browser client sends no `Origin` header, and the upgrade allows that. A browser page on any origin other than `FRONTEND_ORIGIN` sends one and is refused — so if you're poking at it from a devtools console on some other site, that's why.
+
 ## 🌿 Contributing to this repo
 
 `main` is protected: no direct pushes, and the secret scan plus both package pipelines have to be green before a pull request can merge. That applies to the repo owner too — protection that the owner can walk past isn't protection.
