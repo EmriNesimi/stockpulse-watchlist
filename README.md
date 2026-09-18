@@ -279,6 +279,7 @@ Light-first dashboard built against a Figma trading-dashboard reference, with a 
 | `--color-bullish` | ![#077a4e](https://placehold.co/14x14/077a4e/077a4e.png) | `#077a4e` | ![#26c281](https://placehold.co/14x14/26c281/26c281.png) | `#26c281` | price up, profit |
 | `--color-bearish` | ![#c42318](https://placehold.co/14x14/c42318/c42318.png) | `#c42318` | ![#f0554b](https://placehold.co/14x14/f0554b/f0554b.png) | `#f0554b` | price down, loss |
 | `--color-border` | ![#ececf0](https://placehold.co/14x14/ececf0/ececf0.png) | `#ececf0` | ![#262636](https://placehold.co/14x14/262636/262636.png) | `#262636` | dividers |
+| `--color-input-border` | ![#8e8e99](https://placehold.co/14x14/8e8e99/8e8e99.png) | `#8e8e99` | ![#63637a](https://placehold.co/14x14/63637a/63637a.png) | `#63637a` | resting form-field boundary — `--color-border` is decorative at 1.1:1, a control needs 3:1 (SC 1.4.11) |
 
 </div>
 
