@@ -420,6 +420,13 @@ both return nothing now, and `signedDirection` is the only thing deciding
 which way a number points. Worth re-running both before believing the next
 shared-formatter fix is complete.
 
+Postscript, 2026-09-15: there was an eighth. The screen-reader summary
+decided "up"/"down" with a plain `>= 0` and its own `< 0.005` flat check —
+no `?? 0`, no `toFixed`, so neither grep matched it. It goes through
+`signedDirection` now, and the grep that would have caught it is
+`grep -rn '"up" : "down"' src` returning only `format.ts` (and `PriceCell`'s
+tick flash, which compares two raw prices and is fine).
+
 **The price chart was broken in production and the tests said it was fine.**
 Worth writing down, because the interesting part isn't the bug.
 
