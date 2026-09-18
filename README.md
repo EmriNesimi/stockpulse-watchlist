@@ -62,6 +62,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - ♿ **Accessible by default** — throttled screen-reader announcements, keyboard support, visible focus states, and full `prefers-reduced-motion` compliance. Audited against WCAG 2.2 AA rather than assumed; see [Accessibility](#-accessibility) for what that audit found and what's still open.
 - ⚠️ **Visible failure states** — a failed watchlist load, ticker add, or alert creation now surfaces as a dismissible error toast instead of failing silently, and the watchlist table distinguishes "loading" from "genuinely empty" on first load.
 - 🔐 **Real multi-user accounts** — email/password signup and login (scrypt-hashed, signed session cookie), each user gets their own private watchlist and alerts. Price ticks stay public over the WebSocket (they're just market data), but price-alert notifications are routed only to the connection belonging to the alert's owner.
+- ✉️ **Verification, reset, and sign out everywhere** — a verification email on signup (a trust badge, never a wall: nothing is gated on it), forgot/reset-password by emailed one-hour token, and a Profile control that ends every session for the account, open WebSockets included. The reset endpoint answers identically for a known and unknown address, so it can't be used to enumerate accounts.
 
 ## 📍 Status
 
