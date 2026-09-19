@@ -188,7 +188,7 @@ stockpulse-watchlist/
 │   │   ├── test/
 │   │   │   └── globalSetup.ts     # resets the throwaway Postgres schema before the route tests; refuses any non-local DB
 │   │   └── ws/
-│   │       ├── broadcaster.ts     # WS server: subscribe/unsubscribe, rate + size limits, user-scoped alert delivery (+ .test.ts)
+│   │       ├── broadcaster.ts     # WS server: origin check, session from the upgrade cookie, per-IP message budget + connection cap, per-connection symbol/size caps, user-scoped alert delivery, 1008 on revocation (+ .test.ts, .limits.test.ts, .origin.test.ts)
 │   │       ├── revocation.ts      # lets the auth routes cut off a user's live sockets on logout-everywhere / reset (+ .test.ts)
 │   │       └── testHelpers.ts     # FakePriceFeed, real server/client setup (connectClient takes an optional session cookie)
 │   ├── prisma/
