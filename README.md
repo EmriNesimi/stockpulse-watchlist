@@ -222,7 +222,7 @@ stockpulse-watchlist/
 │   │   │   ├── Sidebar.tsx              # persistent nav; collapses to an icon rail under 1000px
 │   │   │   ├── PortfolioCards.tsx       # one card per open position
 │   │   │   ├── FavoritesList.tsx        # compact watching rail beside the chart
-│   │   │   ├── HoldingsForm.tsx         # inline shares/cost-basis entry
+│   │   │   ├── HoldingsForm.tsx         # inline shares/cost-basis entry; both fields or neither, so a position is never half-entered
 │   │   │   ├── TickerAvatar.tsx         # deterministic coloured initials (no fake brand logos)
 │   │   │   ├── ThemeToggle.tsx          # light/dark switch
 │   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator
