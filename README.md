@@ -142,7 +142,7 @@ stockpulse-watchlist/
 │   ├── src/
 │   │   ├── server.ts              # http server + WS broadcaster; SIGTERM drains for 10s then exits, so a Render deploy doesn't drop sockets mid-frame
 │   │   ├── app.ts                 # Express app: trust proxy (one hop), request log first, helmet, CORS, two rate limiters, routes (+ .cors.test.ts, health.test.ts)
-│   │   ├── env.ts                 # env var loading with sane defaults
+│   │   ├── env.ts                 # env var loading: dev fallbacks outside production, hard throw on a missing required var inside it (+ .test.ts)
 │   │   ├── db.ts                  # Prisma client singleton
 │   │   ├── asyncHandler.ts        # Express 4 leftover - 5 forwards async rejections itself; kept so the two can't both react
 │   │   ├── logger.ts              # structured JSON logging (+ .test.ts)
