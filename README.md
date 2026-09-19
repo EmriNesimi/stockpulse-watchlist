@@ -239,7 +239,7 @@ stockpulse-watchlist/
 │   │   │   ├── useErrorToasts.ts        # generic dismissible/auto-expiring error toast state (+ .test.ts)
 │   │   │   └── useThrottledAnnouncement.ts  # aria-live summary, throttled to 1/8s (+ .test.ts)
 │   │   ├── lib/
-│   │   │   ├── api.ts                   # fetch wrappers for the backend REST API, credentials: "include" (+ .test.ts)
+│   │   │   ├── api.ts                   # fetch wrappers for the backend REST API, credentials: "include", responses run through apiShapes before anything does maths on them (+ .test.ts)
 │   │   │   ├── apiShapes.ts             # runtime validation of REST responses whose numbers reach arithmetic (+ .test.ts)
 │   │   │   ├── wsMessages.ts            # runtime validation of everything the WebSocket sends (+ .test.ts)
 │   │   │   ├── guards.ts                # the primitive type guards both validators share (+ .test.ts)
