@@ -217,7 +217,7 @@ stockpulse-watchlist/
 │   │   │   ├── StatsRow.tsx             # top-of-dashboard figures, all derived from the watchlist and prices in memory
 │   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash
 │   │   │   ├── Sparkline.tsx            # inline SVG price history (SVG presentation attrs, not CSS Modules — nothing to scope)
-│   │   │   ├── CandlestickChart.tsx     # inline SVG OHLC chart
+│   │   │   ├── CandlestickChart.tsx     # inline SVG OHLC chart; role="img" with a data-derived label, role="status" while loading, role="alert" on error
 │   │   │   ├── SymbolChartPanel.tsx     # chart + timeframe pills + live price header
 │   │   │   ├── Sidebar.tsx              # persistent nav; collapses to an icon rail under 1000px
 │   │   │   ├── PortfolioCards.tsx       # one card per open position
