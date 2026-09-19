@@ -161,7 +161,7 @@ stockpulse-watchlist/
 │   │   ├── routes/
 │   │   │   ├── auth.ts                    # signup/login/logout/logout-everywhere/me, verify-email + resend, forgot/reset-password (seven .test.ts files: routes, cookie, ratelimit, reset, resend, logoutEverywhere, schemas)
 │   │   │   ├── auth.schemas.ts            # credentials, forgot-password, reset-password and token schemas; z.email() pipes through trim first (+ .test.ts)
-│   │   │   ├── watchlist.ts               # GET/POST/DELETE, zod-validated, requires auth (+ .routes.test.ts, real db)
+│   │   │   ├── watchlist.ts               # GET/POST/PATCH/DELETE - PATCH sets or clears a position - zod-validated, requires auth, 409 at the 30-ticker cap (+ .routes.test.ts, real db)
 │   │   │   ├── watchlist.schemas.ts       # symbol/addItem schemas (+ .test.ts)
 │   │   │   ├── search.ts                  # Massive ticker search proxy + fallback list (+ .routes.test.ts)
 │   │   │   ├── search.schemas.ts          # query schema (+ .test.ts)
