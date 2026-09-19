@@ -230,7 +230,7 @@ stockpulse-watchlist/
 │   │   │   ├── ErrorToast.tsx           # dismissible toast for failed load/add/alert-create
 │   │   │   ├── ErrorBoundary.tsx        # catches a render crash and shows a reload prompt instead of a blank page
 │   │   │   ├── VerificationBanner.tsx   # "resend verification email" for unverified accounts; gates nothing
-│   │   │   └── AuthGate.tsx             # login/signup form, renders in place of the app until signed in
+│   │   │   └── AuthGate.tsx             # login/signup/forgot/reset form in one component, renders in place of the app until signed in
 │   │   ├── hooks/
 │   │   │   ├── useTheme.ts              # light/dark, persisted to localStorage (+ .test.ts)
 │   │   │   ├── useDebouncedValue.ts     # generic trailing debounce; Search feeds it the query at 300ms (+ .test.ts)
