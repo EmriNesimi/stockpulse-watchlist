@@ -172,7 +172,7 @@ stockpulse-watchlist/
 │   │   │   ├── clientErrors.ts            # POST: where a crash in someone's browser gets reported (+ .test.ts)
 │   │   │   └── clientErrors.schemas.ts    # every field length-capped - it's public and takes what a browser sends
 │   │   ├── alerts/
-│   │   │   └── checkAndTriggerAlerts.ts   # evaluates a tick against active alerts, marks fired ones (+ .test.ts)
+│   │   │   └── checkAndTriggerAlerts.ts   # evaluates a tick against active alerts; claims each with triggeredAt: null in the where so two ticks can't fire it twice, notifies per alert (+ .test.ts)
 │   │   ├── massive/
 │   │   │   ├── fallbackTickers.ts # static list used when there's no API key
 │   │   │   ├── fetchHistory.ts    # real Massive aggregates endpoint for OHLC candles
