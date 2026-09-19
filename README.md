@@ -150,7 +150,7 @@ stockpulse-watchlist/
 │   │   ├── watchlistHelper.ts     # shared getOrCreateWatchlist() - an upsert, so a first visit loading two lists at once can't race itself into a 500
 │   │   ├── wsLimits.ts            # MAX_SYMBOLS_PER_CLIENT (30) - shared between the WS broadcaster and the watchlist size cap
 │   │   ├── auth/
-│   │   │   ├── password.ts        # scrypt hash/verify (+ .test.ts)
+│   │   │   ├── password.ts        # scrypt hash/verify with a per-password salt, constant-time compare (+ .test.ts)
 │   │   │   ├── session.ts         # signed session cookie create/verify (+ .test.ts)
 │   │   │   ├── middleware.ts      # attachUserId (always runs) + requireAuth (401s if not signed in)
 │   │   │   ├── verification.ts    # 24h email verification token
