@@ -175,7 +175,7 @@ stockpulse-watchlist/
 │   │   │   └── checkAndTriggerAlerts.ts   # evaluates a tick against active alerts; claims each with triggeredAt: null in the where so two ticks can't fire it twice, notifies per alert (+ .test.ts)
 │   │   ├── massive/
 │   │   │   ├── fallbackTickers.ts # static list used when there's no API key
-│   │   │   ├── fetchHistory.ts    # real Massive aggregates endpoint for OHLC candles
+│   │   │   ├── fetchHistory.ts    # real Massive aggregates endpoint for OHLC candles; null on no key, quota or rejection, with a warn line each time (+ .test.ts)
 │   │   │   └── rateLimiter.ts     # sliding-window limiter for the free-tier 5/min cap (+ .test.ts)
 │   │   ├── priceFeed/
 │   │   │   ├── PriceFeed.ts               # the interface
