@@ -203,7 +203,7 @@ stockpulse-watchlist/
 │   │   ├── views/                       # one file per screen, each with a .test.tsx and .module.css
 │   │   │   ├── DashboardView.tsx        # stats, portfolio cards, chart panel + watching rail, watchlist table
 │   │   │   ├── WalletView.tsx           # portfolio totals and per-holding breakdown
-│   │   │   ├── ProfileView.tsx          # account details + inline holdings entry
+│   │   │   ├── ProfileView.tsx          # account details, verification banner, inline holdings entry, and the confirmed sign-out-everywhere control
 │   │   │   └── StockDetailView.tsx      # per-symbol chart, position, and price alert
 │   │   ├── main.tsx
 │   │   ├── types.ts                     # shared PriceState type
