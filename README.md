@@ -163,7 +163,7 @@ stockpulse-watchlist/
 │   │   │   ├── auth.schemas.ts            # credentials, forgot-password, reset-password and token schemas; z.email() pipes through trim first (+ .test.ts)
 │   │   │   ├── watchlist.ts               # GET/POST/PATCH/DELETE - PATCH sets or clears a position - zod-validated, requires auth, 409 at the 30-ticker cap (+ .routes.test.ts, real db)
 │   │   │   ├── watchlist.schemas.ts       # symbol/addItem schemas (+ .test.ts)
-│   │   │   ├── search.ts                  # Massive ticker search proxy + fallback list (+ .routes.test.ts)
+│   │   │   ├── search.ts                  # Massive ticker search proxy; serves the static list instead when there's no key or the 4/min budget is spent, and source: says which (+ .routes.test.ts)
 │   │   │   ├── search.schemas.ts          # query schema (+ .test.ts)
 │   │   │   ├── alerts.ts                  # GET/POST/DELETE price alerts, requires auth (+ .routes.test.ts)
 │   │   │   ├── alerts.schemas.ts          # symbol/threshold/direction schema (+ .test.ts)
