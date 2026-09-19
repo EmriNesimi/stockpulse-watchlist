@@ -236,7 +236,7 @@ stockpulse-watchlist/
 │   │   │   ├── useDebouncedValue.ts     # generic trailing debounce; Search feeds it the query at 300ms (+ .test.ts)
 │   │   │   ├── useLiveTicks.ts          # WS client: subscribe diffing, 2s→15s reconnect backoff, 5s error-resync cooldown, 1008 = signed out, alert events (+ .test.ts)
 │   │   │   ├── useHistory.ts            # fetches candles for SymbolChartPanel; null symbol means don't fetch, and clears loading if the symbol goes away mid-flight (+ .test.ts)
-│   │   │   ├── useErrorToasts.ts        # generic dismissible/auto-expiring error toast state (+ .test.ts)
+│   │   │   ├── useErrorToasts.ts        # dismissible/auto-expiring error toast state; stable pushError, timers cleared on unmount (+ .test.ts)
 │   │   │   └── useThrottledAnnouncement.ts  # aria-live summary, throttled to 1/8s (+ .test.ts)
 │   │   ├── lib/
 │   │   │   ├── api.ts                   # fetch wrappers for the backend REST API, credentials: "include", responses run through apiShapes before anything does maths on them (+ .test.ts)
