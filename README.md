@@ -194,6 +194,7 @@ stockpulse-watchlist/
 │   ├── prisma/
 │   │   ├── schema.prisma          # User, Watchlist, WatchlistItem, PriceAlert models
 │   │   └── migrations/
+│   ├── prisma.config.ts           # where the connection URL lives now - Prisma 7 removed datasource.url from the schema
 │   └── vitest.config.ts
 ├── frontend/
 │   ├── src/
