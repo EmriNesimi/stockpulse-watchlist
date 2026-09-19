@@ -181,7 +181,7 @@ stockpulse-watchlist/
 │   │   │   ├── PriceFeed.ts               # the interface
 │   │   │   ├── SimulatedFeed.ts           # default — random walk, no key needed (+ .test.ts)
 │   │   │   ├── MassiveLiveFeed.ts         # real wss://socket.massive.com/stocks feed (+ .test.ts)
-│   │   │   ├── previousClose.ts           # shared REST helper for seeding base prices
+│   │   │   ├── previousClose.ts           # shared REST helper for seeding base prices; null on no key or quota, logged, so the caller substitutes a deterministic seed (+ .test.ts)
 │   │   │   ├── deterministicBasePrice.ts  # per-symbol seed shared by SimulatedFeed + simulatedHistory
 │   │   │   ├── simulatedHistory.ts        # simulated OHLC candle generator (+ .test.ts)
 │   │   │   └── index.ts                   # createPriceFeed() factory
