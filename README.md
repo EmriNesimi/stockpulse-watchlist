@@ -152,7 +152,7 @@ stockpulse-watchlist/
 │   │   ├── auth/
 │   │   │   ├── password.ts        # scrypt hash/verify with a per-password salt, constant-time compare (+ .test.ts)
 │   │   │   ├── session.ts         # signed cookie userId.epoch.hmac - the epoch is what makes sign-out-everywhere possible (+ .test.ts)
-│   │   │   ├── middleware.ts      # attachUserId (always runs) + requireAuth (401s if not signed in)
+│   │   │   ├── middleware.ts      # attachUserId (always runs, checks the cookie's epoch against the user's) + requireAuth (401s if not signed in) (+ .epoch.test.ts)
 │   │   │   ├── verification.ts    # 24h email verification token
 │   │   │   └── passwordReset.ts   # 1h reset token - shorter on purpose, it hands over the account
 │   │   ├── email/
