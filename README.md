@@ -165,7 +165,7 @@ stockpulse-watchlist/
 │   │   │   ├── watchlist.schemas.ts       # symbol/addItem schemas (+ .test.ts)
 │   │   │   ├── search.ts                  # Massive ticker search proxy; serves the static list instead when there's no key or the 4/min budget is spent, and source: says which (+ .routes.test.ts)
 │   │   │   ├── search.schemas.ts          # query schema (+ .test.ts)
-│   │   │   ├── alerts.ts                  # GET/POST/DELETE price alerts, requires auth (+ .routes.test.ts)
+│   │   │   ├── alerts.ts                  # GET/POST/DELETE price alerts, requires auth; DELETE is a deleteMany scoped to the caller's watchlist, so another user's id just 404s (+ .routes.test.ts)
 │   │   │   ├── alerts.schemas.ts          # symbol/threshold/direction schema (+ .test.ts)
 │   │   │   ├── history.ts                 # GET OHLC candles per symbol - Massive when it answers, generated candles when it doesn't, and the response says which (+ .routes.test.ts)
 │   │   │   ├── history.schemas.ts         # days-range schema (+ .test.ts)
