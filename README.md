@@ -160,7 +160,7 @@ stockpulse-watchlist/
 │   │   │   └── sendThrottle.ts    # per-recipient cooldown on outbound mail (+ .test.ts)
 │   │   ├── routes/
 │   │   │   ├── auth.ts                    # signup/login/logout/logout-everywhere/me, verify-email + resend, forgot/reset-password (seven .test.ts files: routes, cookie, ratelimit, reset, resend, logoutEverywhere, schemas)
-│   │   │   ├── auth.schemas.ts            # email/password schema
+│   │   │   ├── auth.schemas.ts            # credentials, forgot-password, reset-password and token schemas; z.email() pipes through trim first (+ .test.ts)
 │   │   │   ├── watchlist.ts               # GET/POST/DELETE, zod-validated, requires auth (+ .routes.test.ts, real db)
 │   │   │   ├── watchlist.schemas.ts       # symbol/addItem schemas (+ .test.ts)
 │   │   │   ├── search.ts                  # Massive ticker search proxy + fallback list (+ .routes.test.ts)
