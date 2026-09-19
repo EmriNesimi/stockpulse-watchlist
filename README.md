@@ -159,7 +159,7 @@ stockpulse-watchlist/
 │   │   │   ├── resend.ts          # Resend's HTTP API via fetch, plus the email templates (+ .test.ts)
 │   │   │   └── sendThrottle.ts    # per-recipient cooldown on outbound mail (+ .test.ts)
 │   │   ├── routes/
-│   │   │   ├── auth.ts                    # signup/login/logout/me (+ .routes.test.ts, + .ratelimit.test.ts)
+│   │   │   ├── auth.ts                    # signup/login/logout/logout-everywhere/me, verify-email + resend, forgot/reset-password (seven .test.ts files: routes, cookie, ratelimit, reset, resend, logoutEverywhere, schemas)
 │   │   │   ├── auth.schemas.ts            # email/password schema
 │   │   │   ├── watchlist.ts               # GET/POST/DELETE, zod-validated, requires auth (+ .routes.test.ts, real db)
 │   │   │   ├── watchlist.schemas.ts       # symbol/addItem schemas (+ .test.ts)
