@@ -140,7 +140,7 @@ PriceFeed (backend/src/priceFeed/):
 stockpulse-watchlist/
 ├── backend/
 │   ├── src/
-│   │   ├── server.ts              # http server + attaches the WS broadcaster
+│   │   ├── server.ts              # http server + WS broadcaster; SIGTERM drains for 10s then exits, so a Render deploy doesn't drop sockets mid-frame
 │   │   ├── app.ts                 # Express app: helmet, CORS, rate limiting, routes
 │   │   ├── env.ts                 # env var loading with sane defaults
 │   │   ├── db.ts                  # Prisma client singleton
