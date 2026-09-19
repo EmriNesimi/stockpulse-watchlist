@@ -232,7 +232,7 @@ stockpulse-watchlist/
 │   │   │   ├── VerificationBanner.tsx   # "resend verification email" for unverified accounts; gates nothing
 │   │   │   └── AuthGate.tsx             # login/signup/forgot/reset form in one component, renders in place of the app until signed in
 │   │   ├── hooks/
-│   │   │   ├── useTheme.ts              # light/dark, persisted to localStorage (+ .test.ts)
+│   │   │   ├── useTheme.ts              # light/dark, persisted to localStorage - and tolerant of it throwing, which it does when site data is blocked (+ .test.ts)
 │   │   │   ├── useDebouncedValue.ts     # generic trailing debounce; Search feeds it the query at 300ms (+ .test.ts)
 │   │   │   ├── useLiveTicks.ts          # WS client: subscribe diffing, 2s→15s reconnect backoff, 5s error-resync cooldown, 1008 = signed out, alert events (+ .test.ts)
 │   │   │   ├── useHistory.ts            # fetches candles for SymbolChartPanel; null symbol means don't fetch, and clears loading if the symbol goes away mid-flight (+ .test.ts)
