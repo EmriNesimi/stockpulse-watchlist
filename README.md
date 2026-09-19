@@ -226,7 +226,7 @@ stockpulse-watchlist/
 │   │   │   ├── ThemeToggle.tsx          # light/dark switch
 │   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator
 │   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon
-│   │   │   ├── AlertToast.tsx           # dismissible toast for fired price alerts
+│   │   │   ├── AlertToast.tsx           # dismissible toast for fired price alerts; a role="log" container with one role="alert" per toast, so each is announced once
 │   │   │   ├── ErrorToast.tsx           # dismissible toast for a failed load, add, remove or alert-create, and for WebSocket errors
 │   │   │   ├── ErrorBoundary.tsx        # catches a render crash and shows a reload prompt instead of a blank page
 │   │   │   ├── VerificationBanner.tsx   # "resend verification email" for unverified accounts; gates nothing
