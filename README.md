@@ -197,7 +197,7 @@ stockpulse-watchlist/
 │   └── vitest.config.ts
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx                      # auth-status gate only — checking/AuthGate/Dashboard (+ .test.tsx, integration suite)
+│   │   ├── App.tsx                      # auth-status gate — checking/AuthGate/Dashboard — plus reading ?token= (verify) and ?reset= off the URL, since there's no router (+ .test.tsx, integration suite)
 │   │   ├── Dashboard.tsx                # authenticated shell: owns watchlist + live ticks, swaps views — remounted per key={user.id}
 │   │   ├── App.module.css               # shell layout (sidebar + content column + top bar)
 │   │   ├── views/                       # one file per screen, each with a .test.tsx and .module.css
