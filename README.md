@@ -205,7 +205,7 @@ stockpulse-watchlist/
 │   │   │   ├── WalletView.tsx           # portfolio totals and per-holding breakdown
 │   │   │   ├── ProfileView.tsx          # account details, verification banner, inline holdings entry, and the confirmed sign-out-everywhere control
 │   │   │   └── StockDetailView.tsx      # per-symbol chart, position, and price alert
-│   │   ├── main.tsx
+│   │   ├── main.tsx                     # installs uncaught-error reporting before the first render, then StrictMode > ErrorBoundary > App
 │   │   ├── types.ts                     # shared PriceState type
 │   │   ├── index.css                    # global styles, tabular-nums, sr-only, reduced-motion
 │   │   ├── styles/tokens.css            # design system CSS variables
