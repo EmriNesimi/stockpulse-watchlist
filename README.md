@@ -176,7 +176,7 @@ stockpulse-watchlist/
 │   │   ├── massive/
 │   │   │   ├── fallbackTickers.ts # static list used when there's no API key
 │   │   │   ├── fetchHistory.ts    # real Massive aggregates endpoint for OHLC candles; null on no key, quota or rejection, with a warn line each time (+ .test.ts)
-│   │   │   └── rateLimiter.ts     # sliding-window limiter for the free-tier 5/min cap (+ .test.ts)
+│   │   │   └── rateLimiter.ts     # sliding-window limiter capped at 4/min, one under the free tier's 5, so search-as-you-type plus previous-close lookups never ride the line (+ .test.ts)
 │   │   ├── priceFeed/
 │   │   │   ├── PriceFeed.ts               # the interface
 │   │   │   ├── SimulatedFeed.ts           # default — 1.5s random walk per symbol, seeded from Massive's previous close when a key allows and a deterministic per-symbol price otherwise (+ .test.ts)
