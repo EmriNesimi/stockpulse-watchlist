@@ -203,7 +203,7 @@ stockpulse-watchlist/
 │   │   ├── App.module.css               # shell layout (sidebar + content column + top bar)
 │   │   ├── views/                       # one file per screen, each with a .test.tsx and .module.css
 │   │   │   ├── DashboardView.tsx        # stats, portfolio cards, chart panel + watching rail, watchlist table
-│   │   │   ├── WalletView.tsx           # portfolio totals and per-holding breakdown
+│   │   │   ├── WalletView.tsx           # portfolio totals and per-holding breakdown; a total with any holding still waiting on its first tick renders as a dash, not a partial sum
 │   │   │   ├── ProfileView.tsx          # account details, verification banner, inline holdings entry, and the confirmed sign-out-everywhere control
 │   │   │   └── StockDetailView.tsx      # per-symbol chart, position, and price alert
 │   │   ├── main.tsx                     # installs uncaught-error reporting before the first render, then StrictMode > ErrorBoundary > App
