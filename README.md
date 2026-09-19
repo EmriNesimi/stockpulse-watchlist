@@ -211,7 +211,7 @@ stockpulse-watchlist/
 │   │   ├── styles/tokens.css            # design system CSS variables
 │   │   ├── components/          # every component here has a matching .test.tsx and .module.css, except WatchlistRow (see its line)
 │   │   │   ├── Search.tsx               # debounced ticker search
-│   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell
+│   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell; loading vs genuinely-empty states; focusable scroll region so it reflows at 320px
 │   │   │   ├── WatchlistRow.tsx         # one memo()'d row, split out so holdings edits elsewhere don't re-render every row; tested and styled through WatchlistTable
 │   │   │   ├── StatsRow.tsx             # top-of-dashboard figures, all derived from the watchlist and prices in memory
 │   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash
