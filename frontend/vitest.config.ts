@@ -3,6 +3,11 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  // Reaching above the package root is refused by default. The mirrored-limit
+  // tests read the backend's source as text to check that a number copied
+  // into the frontend still matches, and that file is one directory up.
+  // Test-only config, so the dev server's default stays strict.
+  server: { fs: { allow: [".."] } },
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}"],

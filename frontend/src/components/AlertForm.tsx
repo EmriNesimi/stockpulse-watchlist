@@ -5,7 +5,8 @@ import styles from "./AlertForm.module.css";
 
 // Mirrors MAX_THRESHOLD in backend/src/routes/alerts.schemas.ts - keeping
 // this in sync means a too-large value gets caught here instead of round-
-// tripping to the server just to bounce off the same cap.
+// tripping to the server just to bounce off the same cap. lib/limits.test.ts
+// checks the two still agree.
 const MAX_THRESHOLD = 10_000_000;
 // The floor, stated once. It was previously three separate claims — the
 // message said $0.01, the guard said "above zero", the input said min="0.01"

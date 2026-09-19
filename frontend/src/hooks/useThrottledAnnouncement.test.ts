@@ -93,6 +93,22 @@ describe("useThrottledAnnouncement", () => {
     expect(result.current).not.toContain("999");
   });
 
+  it("re-announces when the watchlist itself changes, not only when a price ticks", () => {
+    const prices = { AAPL: price({ price: 100 }), MSFT: price({ price: 400 }) };
+    const { result, rerender } = renderHook(
+      ({ items }: { items: WatchlistItem[] }) => useThrottledAnnouncement(items, prices),
+      { initialProps: { items: [item("AAPL")] } }
+    );
+    expect(result.current).toContain("AAPL");
+    expect(result.current).not.toContain("MSFT");
+
+    vi.advanceTimersByTime(8001);
+    // Same prices object - the only thing that changed is the list.
+    rerender({ items: [item("AAPL"), item("MSFT")] });
+
+    expect(result.current).toContain("MSFT");
+  });
+
   it("announces again once the throttle window has passed", () => {
     const { result, rerender } = renderHook(
       ({ prices }: { prices: Record<string, PriceState> }) =>

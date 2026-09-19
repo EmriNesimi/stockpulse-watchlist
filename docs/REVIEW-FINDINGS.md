@@ -1,15 +1,16 @@
-# Review findings — 2026-08-17
+# Review findings
 
-Progress snapshot from the post-redesign quality pass. Four ECC reviewers were
-launched; only the security review finished before the run was stopped to save
-tokens. The other three were killed mid-flight and produced no output.
+Started 2026-08-17 as a progress snapshot from the post-redesign quality pass:
+four ECC reviewers were launched and only the security review finished before
+the run was stopped to save tokens. The other three were re-run separately
+over the following weeks, and this file grew a section per pass.
 
-| Reviewer | Status |
+| Review | Status |
 |---|---|
-| `ecc:security-reviewer` | ✅ Completed — findings below |
-| `ecc:react-reviewer` | ⛔ Stopped before reporting |
-| `ecc:typescript-reviewer` | ⛔ Stopped before reporting |
-| `ecc:a11y-architect` | ⛔ Stopped before reporting |
+| Security | ✅ 2026-08-17, re-audited 2026-09-06 after the auth surface was rewritten — below |
+| React correctness and TypeScript | ✅ 2026-08-31 — below |
+| Backend correctness | ✅ 2026-09-03 — below |
+| Accessibility (WCAG 2.2 AA) | ✅ 2026-08-23 — recorded in the README's Accessibility section, not here |
 
 ---
 
@@ -35,10 +36,13 @@ All four held up under adversarial re-examination. Specifically confirmed sound:
 
 ### Independently confirmed clean
 
-- **Session cookie** (`auth/session.ts`) — `${userId}.${hmac}` split on
-  `lastIndexOf(".")`. Not forgeable: cuid userIds and hex signatures can never
-  contain `.`, and the verifier recomputes the HMAC from whatever it split, so
-  a shifted split cannot yield a valid signature for another user.
+- **Session cookie** (`auth/session.ts`) — was `${userId}.${hmac}` when
+  reviewed; since revocation landed it is `${userId}.${epoch}.${hmac}`, still
+  split on `lastIndexOf(".")` so the HMAC covers `userId.epoch` as one payload.
+  Not forgeable: cuid userIds, integer epochs and hex signatures can none of
+  them contain `.`, and the verifier recomputes the HMAC from whatever it
+  split, so a shifted split cannot yield a valid signature for another user
+  or another epoch. The 2026-09-06 re-audit below covers the epoch check.
 - **Per-user scoping** — no IDOR. Deletes use `deleteMany({ where: { watchlistId, ... } })`
   rather than `delete({ where: { id } })`, so another user's row can never match.
 - **Secrets** — none in tracked files or git history. `backend/.env` is
@@ -48,10 +52,11 @@ All four held up under adversarial re-examination. Specifically confirmed sound:
 
 ### Open items
 
-> **All three below were fixed on 2026-08-22–23 and are kept for the reasoning,
-> not as outstanding work.** 1 and 2 are closed in `render.yaml` and
-> `ws/broadcaster.ts`; the SPA-fallback note further down is closed by the
-> rewrite rule in `render.yaml`. Current open items live in the README's
+> **None of the three below is outstanding; they're kept for the reasoning.**
+> 1 and 2 were fixed on 2026-08-22–23, in `render.yaml` and
+> `ws/broadcaster.ts`; 3 was dismissed as not applicable, with the argument
+> left in place so it isn't re-raised. The SPA-fallback note further down is
+> closed by the rewrite rule in `render.yaml`. Current open items live in the README's
 > Accessibility section, which supersedes this file.
 
 **1. Low — clickjacking header missing (defence in depth)**
@@ -69,7 +74,7 @@ does not cover this; it only protects the API origin.
 The reviewer flagged that a state-mutating `GET` can have its single-use token
 burned by corporate mail scanners (Defender Safe Links, Proofpoint) that
 prefetch links. **This does not apply here**: the email links to
-`${FRONTEND_ORIGIN}/verify-email?token=...` (`routes/auth.ts:33`), not to the
+`${FRONTEND_ORIGIN}/verify-email?token=...` (`verifyUrl` in `routes/auth.ts`), not to the
 API. A scanner fetching that URL gets the SPA shell; consuming the token
 requires executing the JS in `App.tsx` that calls the API, which scanners do
 not do. Recorded so the same finding isn't re-raised.
@@ -78,9 +83,9 @@ not do. Recorded so the same finding isn't re-raised.
 
 ## Found while verifying the above (not from a reviewer)
 
-**The verification email still uses the pre-redesign green.**
-`email/resend.ts:43` hardcodes `background: #16a34a` on the CTA button — the old
-accent. Should be the violet `#8044fe`.
+**The verification email still uses the pre-redesign green.** Fixed: every
+CTA in `email/resend.ts` (verify, reset, account-exists) is the violet
+`#8044fe` now. Was `#16a34a`, the old accent.
 
 **`/verify-email` needs an SPA fallback in production.**
 There is no router; `App.tsx` reads `?token=` from `window.location.search`
@@ -120,9 +125,12 @@ API tests whose fixtures were partial enough to have passed against a client
 that accepted anything, which is a better argument for the change than the
 reasoning was.
 
-Also still open: the reconnect backoff's first delay is 2s, not the 1s its
-`RECONNECT_BASE_MS` name implies (the exponent is applied after incrementing).
-Cosmetic, already encoded in a test, left as-is.
+Since closed: the reconnect backoff's first delay is 2s, not the 1s its old
+`RECONNECT_BASE_MS` name implied (the exponent is applied after
+incrementing). The curve was fine; the name wasn't. It is `RECONNECT_STEP_MS`
+now, with a comment saying what the sequence actually is. The backend's
+`MassiveLiveFeed` had the identical constant with the identical off-by-one
+name, found on 2026-09-19 by grepping for the old name; renamed the same way.
 
 **Accessibility is no longer on this list.** It was audited against WCAG 2.2 AA
 on 2026-08-23. Both worries named here turned out to be worth having: the

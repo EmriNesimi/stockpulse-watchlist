@@ -5,8 +5,8 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts"],
     // Route tests hit a real (throwaway) Postgres db via Prisma, never the dev
-    // one — globalSetup below creates it fresh before the run and removes it
-    // after.
+    // one — globalSetup below resets the schema before the run and leaves the
+    // data in place afterwards, so a failed run can be inspected.
     env: {
       // Local throwaway Postgres. globalSetup refuses anything non-local,
       // because it drops and recreates the schema before every run.
@@ -19,9 +19,9 @@ export default defineConfig({
     // on the rerun. A red run should mean something went wrong.
     testTimeout: 15_000,
     // Route test files that hit the db all share the same underlying Postgres
-    // database and the same single "default-user" watchlist row. Running test
-    // files in parallel (vitest's default) lets one file's afterEach
-    // cleanup race another file's assertions on that shared row — added a
+    // database, and each file's afterEach wipes tables rather than rows it
+    // owns. Running test files in parallel (vitest's default) lets one file's
+    // cleanup race another file's assertions on the same table — added a
     // second db-backed route test file (alerts) and immediately saw exactly
     // that flake. Serializing files is the simplest correct fix given how
     // small this suite is; not worth a per-file db just to parallelize.
