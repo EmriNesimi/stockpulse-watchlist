@@ -167,7 +167,7 @@ stockpulse-watchlist/
 │   │   │   ├── search.schemas.ts          # query schema (+ .test.ts)
 │   │   │   ├── alerts.ts                  # GET/POST/DELETE price alerts, requires auth (+ .routes.test.ts)
 │   │   │   ├── alerts.schemas.ts          # symbol/threshold/direction schema (+ .test.ts)
-│   │   │   ├── history.ts                 # GET OHLC candles per symbol (+ .routes.test.ts)
+│   │   │   ├── history.ts                 # GET OHLC candles per symbol - Massive when it answers, generated candles when it doesn't, and the response says which (+ .routes.test.ts)
 │   │   │   ├── history.schemas.ts         # days-range schema (+ .test.ts)
 │   │   │   ├── clientErrors.ts            # POST: where a crash in someone's browser gets reported (+ .test.ts)
 │   │   │   └── clientErrors.schemas.ts    # every field length-capped - it's public and takes what a browser sends
