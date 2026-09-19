@@ -225,7 +225,7 @@ stockpulse-watchlist/
 │   │   │   ├── HoldingsForm.tsx         # inline shares/cost-basis entry; both fields or neither, so a position is never half-entered
 │   │   │   ├── TickerAvatar.tsx         # deterministic coloured initials (no fake brand logos)
 │   │   │   ├── ThemeToggle.tsx          # light/dark switch
-│   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator
+│   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator, a role="status" so a drop is announced without stealing focus
 │   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon
 │   │   │   ├── AlertToast.tsx           # dismissible toast for fired price alerts; a role="log" container with one role="alert" per toast, so each is announced once
 │   │   │   ├── ErrorToast.tsx           # dismissible toast for a failed load, add, remove or alert-create, and for WebSocket errors
