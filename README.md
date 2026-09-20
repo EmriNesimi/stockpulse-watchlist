@@ -183,7 +183,7 @@ stockpulse-watchlist/
 │   │   │   ├── MassiveLiveFeed.ts         # real wss://socket.massive.com/stocks feed; on auth failure, timeout or error status it moves every subscriber to a SimulatedFeed and stays there (+ .test.ts)
 │   │   │   ├── previousClose.ts           # shared REST helper for seeding base prices; null on no key or quota, logged, so the caller substitutes a deterministic seed (+ .test.ts)
 │   │   │   ├── deterministicBasePrice.ts  # per-symbol seed shared by SimulatedFeed + simulatedHistory
-│   │   │   ├── simulatedHistory.ts        # simulated OHLC candle generator (+ .test.ts)
+│   │   │   ├── simulatedHistory.ts        # simulated OHLC candle generator, seeded per symbol so re-requesting gives the same chart, YYYY-MM-DD times like the real one (+ .test.ts)
 │   │   │   └── index.ts                   # createPriceFeed() factory
 │   │   ├── test/
 │   │   │   └── globalSetup.ts     # resets the throwaway Postgres schema before the route tests; refuses any non-local DB
