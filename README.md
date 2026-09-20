@@ -178,7 +178,7 @@ stockpulse-watchlist/
 │   │   │   ├── fetchHistory.ts    # real Massive aggregates endpoint for OHLC candles; null on no key, quota or rejection, with a warn line each time (+ .test.ts)
 │   │   │   └── rateLimiter.ts     # sliding-window limiter capped at 4/min, one under the free tier's 5, so search-as-you-type plus previous-close lookups never ride the line (+ .test.ts)
 │   │   ├── priceFeed/
-│   │   │   ├── PriceFeed.ts               # the interface
+│   │   │   ├── PriceFeed.ts               # the interface: subscribe(symbol, onTick) returns an unsubscribe, and that's all a feed has to do
 │   │   │   ├── SimulatedFeed.ts           # default — 1.5s random walk per symbol, seeded from Massive's previous close when a key allows and a deterministic per-symbol price otherwise (+ .test.ts)
 │   │   │   ├── MassiveLiveFeed.ts         # real wss://socket.massive.com/stocks feed (+ .test.ts)
 │   │   │   ├── previousClose.ts           # shared REST helper for seeding base prices; null on no key or quota, logged, so the caller substitutes a deterministic seed (+ .test.ts)
