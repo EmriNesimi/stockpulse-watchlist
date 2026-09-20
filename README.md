@@ -244,7 +244,7 @@ stockpulse-watchlist/
 │   │   │   ├── apiShapes.ts             # runtime validation of REST responses whose numbers reach arithmetic (+ .test.ts)
 │   │   │   ├── wsMessages.ts            # runtime validation of everything the WebSocket sends (+ .test.ts)
 │   │   │   ├── guards.ts                # the primitive type guards both validators share (+ .test.ts)
-│   │   │   ├── holdings.ts              # portfolio maths: cost, market value, profit (+ .test.ts)
+│   │   │   ├── holdings.ts              # portfolio maths: toHoldings, valueHolding, portfolioTotals - a value is undefined until its price has ticked, never zero (+ .test.ts)
 │   │   │   ├── format.ts                # currency/percent/share formatting, signedDirection (+ .test.ts)
 │   │   │   ├── tickerColor.ts           # deterministic avatar colour per symbol (+ .test.ts)
 │   │   │   ├── uncaught.ts              # reports the failures the error boundary never sees (+ .test.ts)
