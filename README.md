@@ -230,7 +230,7 @@ stockpulse-watchlist/
 │   │   │   ├── AlertToast.tsx           # dismissible toast for fired price alerts; a role="log" container with one role="alert" per toast, so each is announced once
 │   │   │   ├── ErrorToast.tsx           # dismissible toast for a failed load, add, remove or alert-create, and for WebSocket errors
 │   │   │   ├── ErrorBoundary.tsx        # catches a render crash, reports it to /api/client-errors, shows a reload prompt instead of a blank page (a class, since there's still no hook for componentDidCatch)
-│   │   │   ├── VerificationBanner.tsx   # "resend verification email" for unverified accounts; gates nothing
+│   │   │   ├── VerificationBanner.tsx   # "resend verification email" for unverified accounts, a role="status" region; gates nothing
 │   │   │   └── AuthGate.tsx             # login/signup/forgot/reset form in one component, renders in place of the app until signed in
 │   │   ├── hooks/
 │   │   │   ├── useTheme.ts              # light/dark, persisted to localStorage - and tolerant of it throwing, which it does when site data is blocked (+ .test.ts)
