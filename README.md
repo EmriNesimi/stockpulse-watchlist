@@ -385,10 +385,10 @@ This works from `wscat` because a non-browser client sends no `Origin` header, a
 git switch -c your-branch
 # ...work, commit...
 git push -u origin your-branch
-gh pr create --fill && gh pr merge --squash
+gh pr create --fill && gh pr merge
 ```
 
-Squash on merge is the convention: a branch's granular commits are the record while it's being reviewed and bisected, and `main` gets one commit per PR. Both #59 and #60 went in that way.
+**Merge, don't squash.** The point of committing in small pieces is being able to `git bisect` to the exact change that broke something, and squashing on merge throws that away — a branch with thirty commits lands on `main` as one. #59 to #62 were squashed before this was written down, which is why those four read as single lines in the history and the work inside them isn't separately addressable. #63 onwards keeps its commits.
 
 ## ♿ Accessibility
 
