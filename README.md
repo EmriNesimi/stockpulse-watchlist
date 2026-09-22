@@ -529,6 +529,8 @@ The WebSocket check covers the app's headline feature, and the upgrade path has 
 
 Read-only — it creates nothing and signs in as nobody. Point it elsewhere with `API_URL` and `APP_URL`.
 
+**It earned its keep on 22 September 2026.** CI was green on every commit and the repo looked healthy; the deployed API was answering nothing. The run reports 8 passed, 11 failed, and which 11 is the diagnosis by itself — every API check plus the CORS preflight and the WebSocket tick, with the static site's four checks and all three security headers still passing. That splits "the whole deployment is gone" from "the backend service specifically is", without opening a dashboard.
+
 ## 💾 Backups
 
 The Render free database is **deleted on its expiry date**, not suspended. Losing it loses every account, watchlist and holding, and nothing in this repo prevents that — the only protection is having a copy somewhere else.
