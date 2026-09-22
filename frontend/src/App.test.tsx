@@ -707,6 +707,35 @@ describe("App — verify-email link", () => {
     );
   });
 
+  // Both mount effects fire at once and there's no ordering between them.
+  // When verifyEmail resolved first, the setUser updater saw prev === null,
+  // its `prev && ...` guard fell through, and the verified user was thrown
+  // away - nothing re-applied it once getCurrentUser landed. The banner then
+  // sat there telling a freshly-verified user to verify their email.
+  it("keeps the verification when it lands before the current-user request", async () => {
+    let resolveCurrentUser: (v: { user: { id: string; email: string; emailVerified: boolean } }) => void;
+    vi.mocked(getCurrentUser).mockReturnValue(
+      new Promise((resolve) => {
+        resolveCurrentUser = resolve;
+      })
+    );
+    vi.mocked(verifyEmail).mockResolvedValue({
+      user: { id: "u1", email: "trader@example.com", emailVerified: true },
+    });
+    window.history.replaceState({}, "", "/?token=abc123");
+
+    render(<App />);
+
+    // Verification comes back first, while the app still has no user.
+    await waitFor(() => expect(verifyEmail).toHaveBeenCalledWith("abc123"));
+
+    // Then the session resolves, still carrying the pre-verification row.
+    resolveCurrentUser!({ user: { id: "u1", email: "trader@example.com", emailVerified: false } });
+
+    await waitFor(() => expect(screen.getByText("StockPulse")).toBeInTheDocument());
+    expect(screen.queryByText(/verify your email/i)).not.toBeInTheDocument();
+  });
+
   it("does nothing when there's no token in the URL", async () => {
     vi.mocked(getCurrentUser).mockRejectedValue(new Error("Not signed in"));
     render(<App />);
