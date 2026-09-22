@@ -207,7 +207,7 @@ stockpulse-watchlist/
 │   │   │   ├── ProfileView.tsx          # account details, verification banner, inline holdings entry, and the confirmed sign-out-everywhere control
 │   │   │   └── StockDetailView.tsx      # per-symbol screen: SymbolChartPanel, the position, and an AlertForm
 │   │   ├── main.tsx                     # installs uncaught-error reporting before the first render, then StrictMode > ErrorBoundary > App
-│   │   ├── types.ts                     # shared PriceState type
+│   │   ├── types.ts                     # PriceState: price, changePercent, source "live" | "simulated", and the rolling history the sparkline draws
 │   │   ├── index.css                    # global styles, tabular-nums, sr-only, reduced-motion
 │   │   ├── styles/tokens.css            # design system CSS variables
 │   │   ├── components/          # every component here has a matching .test.tsx and .module.css, except WatchlistRow (see its line)
