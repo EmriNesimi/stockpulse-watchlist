@@ -11,6 +11,7 @@ over the following weeks, and this file grew a section per pass.
 | React correctness and TypeScript | ✅ 2026-08-31 — below |
 | Backend correctness | ✅ 2026-09-03 — below |
 | Accessibility (WCAG 2.2 AA) | ✅ 2026-08-23 — recorded in the README's Accessibility section, not here |
+| React + backend, second pass | ✅ 2026-09-22 — three concurrency findings, below |
 
 ---
 
