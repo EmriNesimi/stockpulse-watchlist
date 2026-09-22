@@ -221,7 +221,7 @@ stockpulse-watchlist/
 │   │   │   ├── SymbolChartPanel.tsx     # chart + live price header + 1W/1M/3M/6M/1Y pills mapped to 7-365 days for useHistory
 │   │   │   ├── Sidebar.tsx              # persistent <nav aria-label="Main">, aria-current="page" on the active item; collapses to an icon rail under 1000px with the labels kept for screen readers
 │   │   │   ├── PortfolioCards.tsx       # one card per open position, coloured by the position's return rather than the day's tick
-│   │   │   ├── FavoritesList.tsx        # compact watching rail beside the chart
+│   │   │   ├── FavoritesList.tsx        # compact watching rail beside the chart; each entry is a real button that opens that symbol's screen
 │   │   │   ├── HoldingsForm.tsx         # inline shares/cost-basis entry; both fields or neither, so a position is never half-entered
 │   │   │   ├── TickerAvatar.tsx         # deterministic coloured initials (no fake brand logos): first two letters before any ./- suffix, hue from lib/tickerColor, aria-hidden because the symbol text sits beside it
 │   │   │   ├── ThemeToggle.tsx          # light/dark switch whose aria-label names the mode it would switch *to*
