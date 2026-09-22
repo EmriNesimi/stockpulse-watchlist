@@ -378,6 +378,8 @@ git push -u origin your-branch
 gh pr create --fill && gh pr merge --squash
 ```
 
+Squash on merge is the convention: a branch's granular commits are the record while it's being reviewed and bisected, and `main` gets one commit per PR. Both #59 and #60 went in that way.
+
 ## ♿ Accessibility
 
 Audited against **WCAG 2.2 AA**. Worth being specific about, because the claims above were previously unverified and two of them turned out to be partly wrong.
