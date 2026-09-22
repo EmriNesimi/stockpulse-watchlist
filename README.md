@@ -193,7 +193,7 @@ stockpulse-watchlist/
 │   │       └── testHelpers.ts     # FakePriceFeed, real server/client setup (connectClient takes an optional session cookie)
 │   ├── prisma/
 │   │   ├── schema.prisma          # User, Watchlist, WatchlistItem, PriceAlert models
-│   │   └── migrations/
+│   │   └── migrations/            # three so far: init, add_password_reset, add_session_epoch
 │   ├── prisma.config.ts           # where the connection URL lives now - Prisma 7 removed datasource.url from the schema
 │   └── vitest.config.ts
 ├── frontend/
