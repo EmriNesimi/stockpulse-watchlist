@@ -69,7 +69,12 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 
 ## 📍 Status
 
-**Live**, on Render's free tier:
+**The API is down as of 22 September 2026.** The static site still serves, but
+every backend check fails — see the banner below. The rest of this section
+describes the deployment as it was built and as it will work again once the
+backend has a database.
+
+Deployed on Render's free tier:
 
 | | |
 |---|---|
