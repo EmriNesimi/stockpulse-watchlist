@@ -43,5 +43,8 @@ Five review passes, with findings and fixes recorded in
 - **Security, again** (2026-09-06) — the auth surface rewritten since the
   first pass: revocation, password reset, the mail throttle, the scripts and
   workflows. Two findings, both in the new code.
+- **React and backend, again** (2026-09-22) — three concurrency findings,
+  two of them the same read-then-write shape as September's races, in code
+  those passes had already read.
 
 Each one found real problems, and each one's misses are recorded too.
