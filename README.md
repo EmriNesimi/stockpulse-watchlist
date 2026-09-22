@@ -61,6 +61,7 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 - 🌓 **Light and dark themes** — light by default (matching the reference), switchable from the header, persisted to `localStorage`. Both palettes are contrast-checked against composed UI, not just base tokens — the light theme originally wasn't, and three real failures came out of checking it properly.
 - 🟢 **Transparent data source** — a LIVE/SIM badge on every price and a connection-status indicator in the header, so it's never a mystery whether you're looking at real trades or the simulated fallback.
 - 🔔 **Price alerts** — set a one-shot "notify me when AAPL crosses $200" alert per symbol (the bell icon on each row); fires once as soon as a tick crosses the threshold, delivered over the same WebSocket connection as an `{"type":"alert"}` message and shown as a dismissible toast.
+- 🖥️ **Runs locally with two commands** — clone, start a Postgres container, `npm run dev` in each package. The hosted demo is down as of 22 September 2026 (see [Status](#-status)); nothing about running it yourself depends on that.
 - 🔌 **Runs without an API key** — no Massive account and no config needed; it boots on the simulated price feed and a static ticker-search list. It does need a Postgres to talk to, since accounts live there — see [Setup](#-setup) for the one-line container.
 - ♿ **Accessible by default** — throttled screen-reader announcements, keyboard support, visible focus states, and full `prefers-reduced-motion` compliance. Audited against WCAG 2.2 AA rather than assumed; see [Accessibility](#-accessibility) for what that audit found and what's still open.
 - ⚠️ **Visible failure states** — a failed watchlist load, ticker add, or alert creation now surfaces as a dismissible error toast instead of failing silently, and the watchlist table distinguishes "loading" from "genuinely empty" on first load.
@@ -69,16 +70,25 @@ Built as a portfolio project to demonstrate working with an external API, real-t
 
 ## 📍 Status
 
-**Live**, on Render's free tier:
+**The API is down as of 22 September 2026.** The static site still serves, but
+every backend check fails — see the banner below. The rest of this section
+describes the deployment as it was built and as it will work again once the
+backend has a database.
+
+Deployed on Render's free tier:
 
 | | |
 |---|---|
-| App | https://stockpulse-b449.onrender.com |
-| API | https://stockpulse-api-n3yu.onrender.com |
+| App | https://stockpulse-b449.onrender.com — serving |
+| API | https://stockpulse-api-n3yu.onrender.com — not answering |
 
-Both come out of `render.yaml` (see [Deployment](#-deployment)). The free instance sleeps when idle, so the first request after a quiet spell takes ~50s to wake — that's the platform, not the app.
+Both come out of `render.yaml` (see [Deployment](#-deployment)). The free instance sleeps when idle, so the first request after a quiet spell takes ~50s to wake — that's the platform, not the app. What's happening now is different: the API doesn't answer within 120s, which is well past a cold start.
 
-> **The free database is deleted on 20 September 2026**, not suspended. See [Backups](#-backups) — that script is the whole contingency.
+> **The free database's deletion date was 20 September 2026** — deleted, not
+> suspended. Two days later the API stopped answering entirely, which is
+> consistent with the health check failing its database probe and Render
+> pulling the instance, though that hasn't been confirmed in the dashboard.
+> See [Backups](#-backups).
 
 Feature-complete for the initial build. Built incrementally, commit by commit — full history on the repo shows each piece landing and getting manually tested before the next one started.
 
@@ -412,6 +422,13 @@ Ratios were computed from the token hex values and re-derived independently rath
 
 ## 🐛 Known issues
 
+**A green pipeline says nothing about the deployed app.** Since 22 September
+2026 the API answers nothing while CI is green on every commit, because CI
+builds and tests the code and never touches the running service. The two
+signals answer different questions, and only one of them was being watched
+for most of this project's life. The smoke workflow is the other one; it is
+red, and it is right.
+
 **A fix can land and not ship.** `format.ts` stopped signing a move too small
 to show on 2026-09-09. Seven other places built the same string, or the arrow
 and colour beside it, by hand — so the bug stayed live in the main watchlist
@@ -519,6 +536,8 @@ It runs automatically after every push to `main` and once a day. Daily matters b
 The WebSocket check covers the app's headline feature, and the upgrade path has its own origin check, session resolution and per-IP caps that no HTTP request touches — a deploy where the socket refuses upgrades looks healthy from every other angle.
 
 Read-only — it creates nothing and signs in as nobody. Point it elsewhere with `API_URL` and `APP_URL`.
+
+**It earned its keep on 22 September 2026.** CI was green on every commit and the repo looked healthy; the deployed API was answering nothing. The run reports 8 passed, 11 failed, and which 11 is the diagnosis by itself — every API check plus the CORS preflight and the WebSocket tick, with the static site's four checks and all three security headers still passing. That splits "the whole deployment is gone" from "the backend service specifically is", without opening a dashboard.
 
 ## 💾 Backups
 
