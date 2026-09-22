@@ -10,8 +10,10 @@ interface StatsRowProps {
 }
 
 // Every number here comes straight from the watchlist/prices already in
-// memory - no invented "portfolio value" or fake holdings data, since this
-// app tracks tickers, not actual positions.
+// memory. Positions exist now (WalletView and PortfolioCards do that maths),
+// but this row is deliberately about the watchlist as a whole - counts and
+// an average move - so a symbol you merely watch counts the same as one you
+// hold.
 export default function StatsRow({ items, prices }: StatsRowProps) {
   if (items.length === 0) return null;
 
