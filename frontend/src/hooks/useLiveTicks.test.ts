@@ -476,6 +476,54 @@ describe("useLiveTicks — error resync storm", () => {
 
     expect(socket.sent.length).toBeGreaterThan(afterFirst);
   });
+
+  // The cooldown wraps the *automatic* resync only. Editing the watchlist
+  // runs a different effect, which calls syncSubscriptions() directly — and
+  // since the error handler has just emptied subscribedSymbols, that call
+  // resends the whole desired set immediately. An ordinary add, made while
+  // the client is meant to be backing off, restarts the loop the cooldown
+  // exists to break.
+  it("does not resubscribe mid-cooldown just because the watchlist changed", () => {
+    const { rerender } = renderHook(({ symbols }) => useLiveTicks(symbols), {
+      initialProps: { symbols: ["AAPL"] },
+    });
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+
+    act(() => socket.triggerMessage({ type: "error", message: "Too many messages, slow down" }));
+    const afterError = socket.sent.length;
+
+    // Two seconds into the five-second cooldown, the user adds a ticker.
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    act(() => rerender({ symbols: ["AAPL", "MSFT"] }));
+
+    expect(socket.sent.length).toBe(afterError);
+  });
+
+  // ...and the edit still has to reach the server once the window closes,
+  // or backing off would mean the new symbol never gets subscribed at all.
+  it("picks up a mid-cooldown watchlist change once the cooldown ends", () => {
+    const { rerender } = renderHook(({ symbols }) => useLiveTicks(symbols), {
+      initialProps: { symbols: ["AAPL"] },
+    });
+    const socket = latestSocket();
+    act(() => socket.triggerOpen());
+
+    act(() => socket.triggerMessage({ type: "error", message: "Too many messages, slow down" }));
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    act(() => rerender({ symbols: ["AAPL", "MSFT"] }));
+
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    const subscribes = sentMessages(socket).filter((m) => m.action === "subscribe");
+    expect(subscribes.at(-1)?.symbols).toEqual(expect.arrayContaining(["AAPL", "MSFT"]));
+  });
 });
 
 describe("useLiveTicks — session revoked", () => {
