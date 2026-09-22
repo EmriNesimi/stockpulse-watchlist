@@ -202,7 +202,7 @@ stockpulse-watchlist/
 │   │   ├── Dashboard.tsx                # authenticated shell: owns watchlist + live ticks, swaps views, removes optimistically and rolls back on a rejected delete — remounted per key={user.id}
 │   │   ├── App.module.css               # shell layout (sidebar + content column + top bar)
 │   │   ├── views/                       # one file per screen, each with a .test.tsx and .module.css
-│   │   │   ├── DashboardView.tsx        # stats, portfolio cards, chart panel + watching rail, watchlist table
+│   │   │   ├── DashboardView.tsx        # composes StatsRow, PortfolioCards, SymbolChartPanel + FavoritesList, WatchlistTable - layout only, no state of its own
 │   │   │   ├── WalletView.tsx           # portfolio totals and per-holding breakdown; a total with any holding still waiting on its first tick renders as a dash, not a partial sum
 │   │   │   ├── ProfileView.tsx          # account details, verification banner, inline holdings entry, and the confirmed sign-out-everywhere control
 │   │   │   └── StockDetailView.tsx      # per-symbol screen: SymbolChartPanel, the position, and an AlertForm
