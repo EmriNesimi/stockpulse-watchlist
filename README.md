@@ -200,7 +200,7 @@ stockpulse-watchlist/
 │   ├── src/
 │   │   ├── App.tsx                      # auth-status gate — checking/AuthGate/Dashboard — plus reading ?token= (verify) and ?reset= off the URL, since there's no router (+ .test.tsx, integration suite)
 │   │   ├── Dashboard.tsx                # authenticated shell: owns watchlist + live ticks, swaps views, removes optimistically and rolls back on a rejected delete — remounted per key={user.id}
-│   │   ├── App.module.css               # shell layout (sidebar + content column + top bar)
+│   │   ├── App.module.css               # shell layout (sidebar + content column + top bar); the only stylesheet not co-located with a component
 │   │   ├── views/                       # one file per screen, each with a .test.tsx and .module.css
 │   │   │   ├── DashboardView.tsx        # composes StatsRow, PortfolioCards, SymbolChartPanel + FavoritesList, WatchlistTable - layout only, no state of its own
 │   │   │   ├── WalletView.tsx           # portfolio totals and per-holding breakdown; a total with any holding still waiting on its first tick renders as a dash, not a partial sum
