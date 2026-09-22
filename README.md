@@ -209,7 +209,7 @@ stockpulse-watchlist/
 │   │   ├── main.tsx                     # installs uncaught-error reporting before the first render, then StrictMode > ErrorBoundary > App
 │   │   ├── types.ts                     # PriceState: price, changePercent, source "live" | "simulated", and the rolling history the sparkline draws
 │   │   ├── index.css                    # Inter from Google Fonts, tokens import, then the globals: tabular-nums, sr-only, skip-link, spin, and the blanket prefers-reduced-motion rule
-│   │   ├── styles/tokens.css            # design system CSS variables
+│   │   ├── styles/tokens.css            # design tokens: light set on :root, dark set under [data-theme="dark"], with the contrast ratio noted beside every value that moved for AA
 │   │   ├── components/          # every component here has a matching .test.tsx and .module.css, except WatchlistRow (see its line)
 │   │   │   ├── Search.tsx               # debounced ticker search
 │   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell; loading vs genuinely-empty states; focusable scroll region so it reflows at 320px
