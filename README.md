@@ -260,7 +260,7 @@ stockpulse-watchlist/
 │   ├── workflows/smoke.yml      # hits the deployed app after a push to main and daily - see Smoke test
 │   └── dependabot.yml           # weekly grouped minor/patch bumps per package; majors deliberately excluded
 ├── scripts/
-│   ├── smoke.sh                 # the read-only checks smoke.yml runs
+│   ├── smoke.sh                 # the nineteen read-only checks smoke.yml runs; API_URL/APP_URL point it elsewhere
 │   └── backup-db.sh             # pg_dump via the postgres:18 image, gzipped
 ├── docs/REVIEW-FINDINGS.md      # the three audits: what they found, what was fixed, what they missed
 ├── render.yaml                  # both services and the database, as a Render Blueprint
