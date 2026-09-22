@@ -182,7 +182,7 @@ stockpulse-watchlist/
 │   │   │   ├── SimulatedFeed.ts           # default — 1.5s random walk per symbol, seeded from Massive's previous close when a key allows and a deterministic per-symbol price otherwise (+ .test.ts)
 │   │   │   ├── MassiveLiveFeed.ts         # real wss://socket.massive.com/stocks feed; on auth failure, timeout or error status it moves every subscriber to a SimulatedFeed and stays there (+ .test.ts)
 │   │   │   ├── previousClose.ts           # shared REST helper for seeding base prices; null on no key or quota, logged, so the caller substitutes a deterministic seed (+ .test.ts)
-│   │   │   ├── deterministicBasePrice.ts  # per-symbol seed shared by SimulatedFeed + simulatedHistory
+│   │   │   ├── deterministicBasePrice.ts  # per-symbol seed shared by SimulatedFeed + simulatedHistory: a string hash mapped into $20-$500, so a symbol's fake price and fake chart agree
 │   │   │   ├── simulatedHistory.ts        # simulated OHLC candle generator, seeded per symbol so re-requesting gives the same chart, YYYY-MM-DD times like the real one (+ .test.ts)
 │   │   │   └── index.ts                   # createPriceFeed() factory
 │   │   ├── test/
