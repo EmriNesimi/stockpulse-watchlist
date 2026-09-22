@@ -216,7 +216,7 @@ stockpulse-watchlist/
 │   │   │   ├── WatchlistRow.tsx         # one memo()'d row, split out so holdings edits elsewhere don't re-render every row; tested and styled through WatchlistTable
 │   │   │   ├── StatsRow.tsx             # tracking / gainers / losers / average change, all derived from the watchlist and prices in memory; an exactly-zero change counts as a gainer, by decision and by test
 │   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash; the flash is a supporting cue beside the arrow, never the only signal, and off under prefers-reduced-motion
-│   │   │   ├── Sparkline.tsx            # inline SVG price history (SVG presentation attrs, not CSS Modules — nothing to scope)
+│   │   │   ├── Sparkline.tsx            # inline SVG price history, role="img" with a label derived from the data; under two points it says so instead of drawing a dot (SVG presentation attrs, not CSS Modules — nothing to scope)
 │   │   │   ├── CandlestickChart.tsx     # inline SVG OHLC chart; role="img" with a data-derived label, role="status" while loading, role="alert" on error
 │   │   │   ├── SymbolChartPanel.tsx     # chart + live price header + 1W/1M/3M/6M/1Y pills mapped to 7-365 days for useHistory
 │   │   │   ├── Sidebar.tsx              # persistent nav; collapses to an icon rail under 1000px
