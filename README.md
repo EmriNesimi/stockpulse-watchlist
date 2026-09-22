@@ -162,44 +162,44 @@ stockpulse-watchlist/
 │   │   │   ├── auth.ts                    # signup/login/logout/logout-everywhere/me, verify-email + resend, forgot/reset-password (seven .test.ts files: routes, cookie, ratelimit, reset, resend, logoutEverywhere, schemas)
 │   │   │   ├── auth.schemas.ts            # credentials, forgot-password, reset-password and token schemas; z.email() pipes through trim first (+ .test.ts)
 │   │   │   ├── watchlist.ts               # GET/POST/PATCH/DELETE - PATCH sets or clears a position - zod-validated, requires auth, 409 at the 30-ticker cap (+ .routes.test.ts, real db)
-│   │   │   ├── watchlist.schemas.ts       # symbol/addItem schemas (+ .test.ts)
+│   │   │   ├── watchlist.schemas.ts       # symbolSchema (uppercased, 1-6 letters with an optional .X/-X suffix), addItem, updateHoldings; shares capped at 1e9 (+ .test.ts)
 │   │   │   ├── search.ts                  # Massive ticker search proxy; serves the static list instead when there's no key or the 4/min budget is spent, and source: says which (+ .routes.test.ts)
-│   │   │   ├── search.schemas.ts          # query schema (+ .test.ts)
+│   │   │   ├── search.schemas.ts          # ?q= trimmed, 1-50 chars (+ .test.ts)
 │   │   │   ├── alerts.ts                  # GET/POST/DELETE price alerts, requires auth; DELETE is a deleteMany scoped to the caller's watchlist, so another user's id just 404s (+ .routes.test.ts)
-│   │   │   ├── alerts.schemas.ts          # symbol/threshold/direction schema (+ .test.ts)
+│   │   │   ├── alerts.schemas.ts          # symbol, threshold (positive, finite, ≤ $10M), direction "above" | "below" (+ .test.ts)
 │   │   │   ├── history.ts                 # GET OHLC candles per symbol - Massive when it answers, generated candles when it doesn't, and the response says which (+ .routes.test.ts)
-│   │   │   ├── history.schemas.ts         # days-range schema (+ .test.ts)
+│   │   │   ├── history.schemas.ts         # ?days= coerced to an int, 7-365, default 30 (+ .test.ts)
 │   │   │   ├── clientErrors.ts            # POST: where a crash in someone's browser gets reported (+ .test.ts)
 │   │   │   └── clientErrors.schemas.ts    # every field length-capped - it's public and takes what a browser sends
 │   │   ├── alerts/
 │   │   │   └── checkAndTriggerAlerts.ts   # evaluates a tick against active alerts; claims each with triggeredAt: null in the where so two ticks can't fire it twice, notifies per alert (+ .test.ts)
 │   │   ├── massive/
-│   │   │   ├── fallbackTickers.ts # static list used when there's no API key
+│   │   │   ├── fallbackTickers.ts # static list of 30 large-caps, used when there's no API key or the quota is spent
 │   │   │   ├── fetchHistory.ts    # real Massive aggregates endpoint for OHLC candles; null on no key, quota or rejection, with a warn line each time (+ .test.ts)
 │   │   │   └── rateLimiter.ts     # sliding-window limiter capped at 4/min, one under the free tier's 5, so search-as-you-type plus previous-close lookups never ride the line (+ .test.ts)
 │   │   ├── priceFeed/
-│   │   │   ├── PriceFeed.ts               # the interface
+│   │   │   ├── PriceFeed.ts               # the interface: subscribe(symbol, onTick) returns an unsubscribe, and that's all a feed has to do
 │   │   │   ├── SimulatedFeed.ts           # default — 1.5s random walk per symbol, seeded from Massive's previous close when a key allows and a deterministic per-symbol price otherwise (+ .test.ts)
-│   │   │   ├── MassiveLiveFeed.ts         # real wss://socket.massive.com/stocks feed (+ .test.ts)
+│   │   │   ├── MassiveLiveFeed.ts         # real wss://socket.massive.com/stocks feed; on auth failure, timeout or error status it moves every subscriber to a SimulatedFeed and stays there (+ .test.ts)
 │   │   │   ├── previousClose.ts           # shared REST helper for seeding base prices; null on no key or quota, logged, so the caller substitutes a deterministic seed (+ .test.ts)
-│   │   │   ├── deterministicBasePrice.ts  # per-symbol seed shared by SimulatedFeed + simulatedHistory
-│   │   │   ├── simulatedHistory.ts        # simulated OHLC candle generator (+ .test.ts)
-│   │   │   └── index.ts                   # createPriceFeed() factory
+│   │   │   ├── deterministicBasePrice.ts  # per-symbol seed shared by SimulatedFeed + simulatedHistory: a string hash mapped into $20-$500, so a symbol's fake price and fake chart agree
+│   │   │   ├── simulatedHistory.ts        # simulated OHLC candle generator, seeded per symbol so re-requesting gives the same chart, YYYY-MM-DD times like the real one (+ .test.ts)
+│   │   │   └── index.ts                   # createPriceFeed(): MassiveLiveFeed iff a key is set, SimulatedFeed otherwise - always safe, since the live feed falls over on its own
 │   │   ├── test/
 │   │   │   └── globalSetup.ts     # resets the throwaway Postgres schema before the route tests; refuses any non-local DB
 │   │   └── ws/
 │   │       ├── broadcaster.ts     # WS server: origin check, session from the upgrade cookie, per-IP message budget + connection cap, per-connection symbol/size caps, user-scoped alert delivery, 1008 on revocation (+ .test.ts, .limits.test.ts, .origin.test.ts)
 │   │       ├── revocation.ts      # lets the auth routes cut off a user's live sockets on logout-everywhere / reset (+ .test.ts)
-│   │       └── testHelpers.ts     # FakePriceFeed, real server/client setup (connectClient takes an optional session cookie)
+│   │       └── testHelpers.ts     # FakePriceFeed + fakeTick, startTestServer, connectClient (optional session cookie), MessageCollector, closeAndSettle
 │   ├── prisma/
 │   │   ├── schema.prisma          # User, Watchlist, WatchlistItem, PriceAlert models
-│   │   └── migrations/
+│   │   └── migrations/            # three so far: init, add_password_reset, add_session_epoch
 │   ├── prisma.config.ts           # where the connection URL lives now - Prisma 7 removed datasource.url from the schema
 │   └── vitest.config.ts
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx                      # auth-status gate — checking/AuthGate/Dashboard — plus reading ?token= (verify) and ?reset= off the URL, since there's no router (+ .test.tsx, integration suite)
-│   │   ├── Dashboard.tsx                # authenticated shell: owns watchlist + live ticks, swaps views — remounted per key={user.id}
+│   │   ├── Dashboard.tsx                # authenticated shell: owns watchlist + live ticks, swaps views, removes optimistically and rolls back on a rejected delete — remounted per key={user.id}
 │   │   ├── App.module.css               # shell layout (sidebar + content column + top bar)
 │   │   ├── views/                       # one file per screen, each with a .test.tsx and .module.css
 │   │   │   ├── DashboardView.tsx        # stats, portfolio cards, chart panel + watching rail, watchlist table
@@ -207,30 +207,30 @@ stockpulse-watchlist/
 │   │   │   ├── ProfileView.tsx          # account details, verification banner, inline holdings entry, and the confirmed sign-out-everywhere control
 │   │   │   └── StockDetailView.tsx      # per-symbol screen: SymbolChartPanel, the position, and an AlertForm
 │   │   ├── main.tsx                     # installs uncaught-error reporting before the first render, then StrictMode > ErrorBoundary > App
-│   │   ├── types.ts                     # shared PriceState type
-│   │   ├── index.css                    # global styles, tabular-nums, sr-only, reduced-motion
-│   │   ├── styles/tokens.css            # design system CSS variables
+│   │   ├── types.ts                     # PriceState: price, changePercent, source "live" | "simulated", and the rolling history the sparkline draws
+│   │   ├── index.css                    # Inter from Google Fonts, tokens import, then the globals: tabular-nums, sr-only, skip-link, spin, and the blanket prefers-reduced-motion rule
+│   │   ├── styles/tokens.css            # design tokens: light set on :root, dark set under [data-theme="dark"], with the contrast ratio noted beside every value that moved for AA
 │   │   ├── components/          # every component here has a matching .test.tsx and .module.css, except WatchlistRow (see its line)
-│   │   │   ├── Search.tsx               # debounced ticker search
+│   │   │   ├── Search.tsx               # ticker search debounced at 300ms; result count announced through a role="status" span, Escape clears, disabled with a message at the 30-ticker cap
 │   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell; loading vs genuinely-empty states; focusable scroll region so it reflows at 320px
 │   │   │   ├── WatchlistRow.tsx         # one memo()'d row, split out so holdings edits elsewhere don't re-render every row; tested and styled through WatchlistTable
-│   │   │   ├── StatsRow.tsx             # top-of-dashboard figures, all derived from the watchlist and prices in memory
-│   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash
-│   │   │   ├── Sparkline.tsx            # inline SVG price history (SVG presentation attrs, not CSS Modules — nothing to scope)
+│   │   │   ├── StatsRow.tsx             # tracking / gainers / losers / average change, all derived from the watchlist and prices in memory; an exactly-zero change counts as a gainer, by decision and by test
+│   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash; the flash is a supporting cue beside the arrow, never the only signal, and off under prefers-reduced-motion
+│   │   │   ├── Sparkline.tsx            # inline SVG price history, role="img" with a label derived from the data; under two points it says so instead of drawing a dot (SVG presentation attrs, not CSS Modules — nothing to scope)
 │   │   │   ├── CandlestickChart.tsx     # inline SVG OHLC chart; role="img" with a data-derived label, role="status" while loading, role="alert" on error
-│   │   │   ├── SymbolChartPanel.tsx     # chart + timeframe pills + live price header
-│   │   │   ├── Sidebar.tsx              # persistent nav; collapses to an icon rail under 1000px
-│   │   │   ├── PortfolioCards.tsx       # one card per open position
-│   │   │   ├── FavoritesList.tsx        # compact watching rail beside the chart
+│   │   │   ├── SymbolChartPanel.tsx     # chart + live price header + 1W/1M/3M/6M/1Y pills mapped to 7-365 days for useHistory
+│   │   │   ├── Sidebar.tsx              # persistent <nav aria-label="Main">, aria-current="page" on the active item; collapses to an icon rail under 1000px with the labels kept for screen readers
+│   │   │   ├── PortfolioCards.tsx       # one card per open position, coloured by the position's return rather than the day's tick
+│   │   │   ├── FavoritesList.tsx        # compact watching rail beside the chart; each entry is a real button that opens that symbol's screen
 │   │   │   ├── HoldingsForm.tsx         # inline shares/cost-basis entry; both fields or neither, so a position is never half-entered
-│   │   │   ├── TickerAvatar.tsx         # deterministic coloured initials (no fake brand logos)
-│   │   │   ├── ThemeToggle.tsx          # light/dark switch
+│   │   │   ├── TickerAvatar.tsx         # deterministic coloured initials (no fake brand logos): first two letters before any ./- suffix, hue from lib/tickerColor, aria-hidden because the symbol text sits beside it
+│   │   │   ├── ThemeToggle.tsx          # light/dark switch whose aria-label names the mode it would switch *to*
 │   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator, a role="status" so a drop is announced without stealing focus
 │   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon
 │   │   │   ├── AlertToast.tsx           # dismissible toast for fired price alerts; a role="log" container with one role="alert" per toast, so each is announced once
 │   │   │   ├── ErrorToast.tsx           # dismissible toast for a failed load, add, remove or alert-create, and for WebSocket errors
-│   │   │   ├── ErrorBoundary.tsx        # catches a render crash and shows a reload prompt instead of a blank page
-│   │   │   ├── VerificationBanner.tsx   # "resend verification email" for unverified accounts; gates nothing
+│   │   │   ├── ErrorBoundary.tsx        # catches a render crash, reports it to /api/client-errors, shows a reload prompt instead of a blank page (a class, since there's still no hook for componentDidCatch)
+│   │   │   ├── VerificationBanner.tsx   # "resend verification email" for unverified accounts, a role="status" region; gates nothing
 │   │   │   └── AuthGate.tsx             # login/signup/forgot/reset form in one component, renders in place of the app until signed in
 │   │   ├── hooks/
 │   │   │   ├── useTheme.ts              # light/dark, persisted to localStorage - and tolerant of it throwing, which it does when site data is blocked (+ .test.ts)
@@ -244,12 +244,12 @@ stockpulse-watchlist/
 │   │   │   ├── apiShapes.ts             # runtime validation of REST responses whose numbers reach arithmetic (+ .test.ts)
 │   │   │   ├── wsMessages.ts            # runtime validation of everything the WebSocket sends (+ .test.ts)
 │   │   │   ├── guards.ts                # the primitive type guards both validators share (+ .test.ts)
-│   │   │   ├── holdings.ts              # portfolio maths: cost, market value, profit (+ .test.ts)
+│   │   │   ├── holdings.ts              # portfolio maths: toHoldings, valueHolding, portfolioTotals - a value is undefined until its price has ticked, never zero (+ .test.ts)
 │   │   │   ├── format.ts                # currency/percent/share formatting, signedDirection (+ .test.ts)
 │   │   │   ├── tickerColor.ts           # deterministic avatar colour per symbol (+ .test.ts)
 │   │   │   ├── uncaught.ts              # reports the failures the error boundary never sees (+ .test.ts)
 │   │   │   ├── views.ts                 # the View union the shell navigates over
-│   │   │   ├── ws.ts                    # WS URL resolution (+ .test.ts)
+│   │   │   ├── ws.ts                    # WS_URL derived from API_BASE by swapping http(s) for ws(s), so one env var drives both (+ .test.ts)
 │   │   │   └── limits.ts                # MAX_WATCHLIST_SYMBOLS (30) - mirrors backend/src/wsLimits.ts (+ .test.ts, which checks the mirror)
 │   │   └── test/
 │   │       └── setup.ts                 # jest-dom matchers, and an explicit afterEach(cleanup) - Testing Library only auto-registers it with test.globals on
