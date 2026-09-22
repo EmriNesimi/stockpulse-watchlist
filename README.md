@@ -253,7 +253,8 @@ stockpulse-watchlist/
 │   │   │   └── limits.ts                # MAX_WATCHLIST_SYMBOLS (30) - mirrors backend/src/wsLimits.ts (+ .test.ts, which checks the mirror)
 │   │   └── test/
 │   │       └── setup.ts                 # jest-dom matchers, and an explicit afterEach(cleanup) - Testing Library only auto-registers it with test.globals on
-│   └── vite.config.ts, vitest.config.ts
+│   ├── vite.config.ts               # dev server + a build-only plugin that injects the CSP meta tag with the real API and WS origins
+│   └── vitest.config.ts             # jsdom, 15s timeout, and fs.allow one directory up so limits.test.ts can read the backend's source
 ├── .github/
 │   ├── workflows/ci.yml         # secret grep, then typecheck/lint/build/test/audit per package (backend against a real Postgres)
 │   ├── workflows/smoke.yml      # hits the deployed app after a push to main and daily - see Smoke test
