@@ -83,7 +83,11 @@ Deployed on Render's free tier:
 
 Both come out of `render.yaml` (see [Deployment](#-deployment)). The free instance sleeps when idle, so the first request after a quiet spell takes ~50s to wake — that's the platform, not the app.
 
-> **The free database is deleted on 20 September 2026**, not suspended. See [Backups](#-backups) — that script is the whole contingency.
+> **The free database's deletion date was 20 September 2026** — deleted, not
+> suspended. Two days later the API stopped answering entirely, which is
+> consistent with the health check failing its database probe and Render
+> pulling the instance, though that hasn't been confirmed in the dashboard.
+> See [Backups](#-backups).
 
 Feature-complete for the initial build. Built incrementally, commit by commit — full history on the repo shows each piece landing and getting manually tested before the next one started.
 
