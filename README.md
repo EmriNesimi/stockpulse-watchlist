@@ -219,7 +219,7 @@ stockpulse-watchlist/
 │   │   │   ├── Sparkline.tsx            # inline SVG price history, role="img" with a label derived from the data; under two points it says so instead of drawing a dot (SVG presentation attrs, not CSS Modules — nothing to scope)
 │   │   │   ├── CandlestickChart.tsx     # inline SVG OHLC chart; role="img" with a data-derived label, role="status" while loading, role="alert" on error
 │   │   │   ├── SymbolChartPanel.tsx     # chart + live price header + 1W/1M/3M/6M/1Y pills mapped to 7-365 days for useHistory
-│   │   │   ├── Sidebar.tsx              # persistent nav; collapses to an icon rail under 1000px
+│   │   │   ├── Sidebar.tsx              # persistent <nav aria-label="Main">, aria-current="page" on the active item; collapses to an icon rail under 1000px with the labels kept for screen readers
 │   │   │   ├── PortfolioCards.tsx       # one card per open position
 │   │   │   ├── FavoritesList.tsx        # compact watching rail beside the chart
 │   │   │   ├── HoldingsForm.tsx         # inline shares/cost-basis entry; both fields or neither, so a position is never half-entered
