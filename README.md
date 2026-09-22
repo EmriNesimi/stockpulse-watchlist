@@ -211,7 +211,7 @@ stockpulse-watchlist/
 │   │   ├── index.css                    # Inter from Google Fonts, tokens import, then the globals: tabular-nums, sr-only, skip-link, spin, and the blanket prefers-reduced-motion rule
 │   │   ├── styles/tokens.css            # design tokens: light set on :root, dark set under [data-theme="dark"], with the contrast ratio noted beside every value that moved for AA
 │   │   ├── components/          # every component here has a matching .test.tsx and .module.css, except WatchlistRow (see its line)
-│   │   │   ├── Search.tsx               # debounced ticker search
+│   │   │   ├── Search.tsx               # ticker search debounced at 300ms; result count announced through a role="status" span, Escape clears, disabled with a message at the 30-ticker cap
 │   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell; loading vs genuinely-empty states; focusable scroll region so it reflows at 320px
 │   │   │   ├── WatchlistRow.tsx         # one memo()'d row, split out so holdings edits elsewhere don't re-render every row; tested and styled through WatchlistTable
 │   │   │   ├── StatsRow.tsx             # top-of-dashboard figures, all derived from the watchlist and prices in memory
