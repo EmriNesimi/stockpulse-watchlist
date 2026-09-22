@@ -184,7 +184,7 @@ stockpulse-watchlist/
 │   │   │   ├── previousClose.ts           # shared REST helper for seeding base prices; null on no key or quota, logged, so the caller substitutes a deterministic seed (+ .test.ts)
 │   │   │   ├── deterministicBasePrice.ts  # per-symbol seed shared by SimulatedFeed + simulatedHistory: a string hash mapped into $20-$500, so a symbol's fake price and fake chart agree
 │   │   │   ├── simulatedHistory.ts        # simulated OHLC candle generator, seeded per symbol so re-requesting gives the same chart, YYYY-MM-DD times like the real one (+ .test.ts)
-│   │   │   └── index.ts                   # createPriceFeed() factory
+│   │   │   └── index.ts                   # createPriceFeed(): MassiveLiveFeed iff a key is set, SimulatedFeed otherwise - always safe, since the live feed falls over on its own
 │   │   ├── test/
 │   │   │   └── globalSetup.ts     # resets the throwaway Postgres schema before the route tests; refuses any non-local DB
 │   │   └── ws/
