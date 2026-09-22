@@ -223,7 +223,7 @@ stockpulse-watchlist/
 │   │   │   ├── PortfolioCards.tsx       # one card per open position
 │   │   │   ├── FavoritesList.tsx        # compact watching rail beside the chart
 │   │   │   ├── HoldingsForm.tsx         # inline shares/cost-basis entry; both fields or neither, so a position is never half-entered
-│   │   │   ├── TickerAvatar.tsx         # deterministic coloured initials (no fake brand logos)
+│   │   │   ├── TickerAvatar.tsx         # deterministic coloured initials (no fake brand logos): first two letters before any ./- suffix, hue from lib/tickerColor, aria-hidden because the symbol text sits beside it
 │   │   │   ├── ThemeToggle.tsx          # light/dark switch whose aria-label names the mode it would switch *to*
 │   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator, a role="status" so a drop is announced without stealing focus
 │   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon
