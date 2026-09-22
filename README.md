@@ -168,7 +168,7 @@ stockpulse-watchlist/
 │   │   │   ├── alerts.ts                  # GET/POST/DELETE price alerts, requires auth; DELETE is a deleteMany scoped to the caller's watchlist, so another user's id just 404s (+ .routes.test.ts)
 │   │   │   ├── alerts.schemas.ts          # symbol, threshold (positive, finite, ≤ $10M), direction "above" | "below" (+ .test.ts)
 │   │   │   ├── history.ts                 # GET OHLC candles per symbol - Massive when it answers, generated candles when it doesn't, and the response says which (+ .routes.test.ts)
-│   │   │   ├── history.schemas.ts         # days-range schema (+ .test.ts)
+│   │   │   ├── history.schemas.ts         # ?days= coerced to an int, 7-365, default 30 (+ .test.ts)
 │   │   │   ├── clientErrors.ts            # POST: where a crash in someone's browser gets reported (+ .test.ts)
 │   │   │   └── clientErrors.schemas.ts    # every field length-capped - it's public and takes what a browser sends
 │   │   ├── alerts/
