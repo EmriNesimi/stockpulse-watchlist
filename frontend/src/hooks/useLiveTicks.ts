@@ -179,7 +179,12 @@ export function useLiveTicks(symbols: string[]) {
   // write can be left behind by a render React discards.
   useEffect(() => {
     desiredSymbols.current = symbols;
-    syncSubscriptions();
+    // Not while we're backing off. The error handler empties
+    // subscribedSymbols and schedules a resync; syncing here in between
+    // would resend the entire desired set immediately, which is the exact
+    // message the cooldown exists to delay. Recording the new desired set is
+    // enough - the pending timer reads it when it fires.
+    if (resyncTimer.current === null) syncSubscriptions();
     // syncSubscriptions only reads refs and stable setters, so it doesn't need
     // to be a dependency; symbols is compared by value via the join.
     // eslint-disable-next-line react-hooks/exhaustive-deps

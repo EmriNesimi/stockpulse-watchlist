@@ -23,6 +23,12 @@ lists strengths isn't worth reading:
 - **Verification email delivery is limited to one address.** The default Resend
   sender only reaches the account owner. Verification gates nothing, so this
   costs a trust badge rather than access.
+- **Price alerts have no cap.** A watchlist is limited to 30 items; the
+  number of alerts a user can create is unbounded, and an alert's symbol
+  doesn't have to be on their watchlist. Every tick for a popular symbol
+  does a `findMany` across all alerts for it, so the per-tick cost grows
+  with total alerts rather than with anything a single user sees. Known,
+  not fixed — it's a missing limit rather than a bug.
 - **REST responses are runtime-validated only where their numbers reach
   arithmetic** — watchlist items, candles and alerts. Other responses are
   still trusted on shape. Same trusted backend either way, so the risk is
@@ -43,5 +49,8 @@ Five review passes, with findings and fixes recorded in
 - **Security, again** (2026-09-06) — the auth surface rewritten since the
   first pass: revocation, password reset, the mail throttle, the scripts and
   workflows. Two findings, both in the new code.
+- **React and backend, again** (2026-09-22) — three concurrency findings,
+  two of them the same read-then-write shape as September's races, in code
+  those passes had already read.
 
 Each one found real problems, and each one's misses are recorded too.

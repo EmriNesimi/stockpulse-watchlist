@@ -11,6 +11,7 @@ over the following weeks, and this file grew a section per pass.
 | React correctness and TypeScript | ✅ 2026-08-31 — below |
 | Backend correctness | ✅ 2026-09-03 — below |
 | Accessibility (WCAG 2.2 AA) | ✅ 2026-08-23 — recorded in the README's Accessibility section, not here |
+| React + backend, second pass | ✅ 2026-09-22 — three concurrency findings, below |
 
 ---
 
@@ -92,6 +93,61 @@ There is no router; `App.tsx` reads `?token=` from `window.location.search`
 regardless of path. The Vite dev server serves `index.html` for unknown paths,
 so this works locally — but a static host must be configured to rewrite
 `/verify-email` to `index.html` or the link 404s.
+
+---
+
+## Reviewed 2026-09-22 — a second React and backend pass
+
+Three findings, all concurrency, all reachable without an attacker. Notable
+that the first two are the same shape as the races the 2026-09-03 pass
+found — read-then-write with nothing holding the gap — in code that pass
+had already looked at.
+
+**The watchlist cap was a count and then an insert.** Two adds in flight for
+one user both read 29, both pass the `>= 30` check, and both insert. Going
+over isn't cosmetic: the broadcaster's subscribe schema tops out at
+`MAX_SYMBOLS_PER_CLIENT` and rejects the *whole* batch, so a 31-item list
+silently loses live prices on every symbol.
+
+The interesting part is why it never showed up. Through the route it is
+masked — `getOrCreateWatchlist` upserts first and takes the same watchlist
+row's lock on conflict, which staggers concurrent callers. A test firing two
+real HTTP adds at once passes against the unfixed code. Strip the upsert out
+and probe the bare count-then-insert directly and it overflows on **19 of 20
+attempts**. So the route was protected by an accident of an unrelated
+function rather than by anything at the site. Now it takes
+`SELECT ... FOR UPDATE` on the user's own row and the protection is the
+point of the code rather than a side effect of its neighbour.
+
+Worth keeping in mind for the next one of these: the end-to-end test here
+passes either way, and on its own would have been evidence of nothing.
+
+**A watchlist edit walked straight through the WebSocket resync cooldown.**
+The 5s cooldown added on 2026-08-31 only ever wrapped the *automatic*
+resync. The effect reacting to watchlist changes called `syncSubscriptions()`
+directly, and since the error handler had just emptied `subscribedSymbols`,
+that call resent the entire desired set — the precise message the cooldown
+exists to hold back. Adding a ticker is exactly what someone does while the
+dashboard is misbehaving, so ordinary use restarted the error loop. The
+effect now records the desired set and lets the pending timer send it.
+
+**Verification was dropped when it beat the session request.** `App.tsx`
+fires `getCurrentUser` and `verifyEmail` from two mount effects with no
+ordering between them. The verify handler applied its result through a
+guard requiring a user to already be present, so when it won the race
+`prev` was `null`, the guard fell through, and the confirmation was
+discarded — nothing re-applied it once the session landed carrying the
+pre-verification row. The user clicked the link, the server verified them,
+and the app kept telling them to verify their email. The confirmed row is
+held in a ref now so whichever request finishes last applies it.
+
+**Raised and deliberately not acted on:** `routes/alerts.ts` caps nothing.
+A watchlist is limited to 30 items but a user can create unbounded
+`PriceAlert` rows, and an alert's symbol isn't required to be on their
+watchlist. Every tick for a popular symbol does an unbounded `findMany`
+across all users' alerts for it. That's a missing limit rather than a bug —
+no wrong behaviour to point at — so it's recorded here rather than fixed
+on the way past.
 
 ---
 
