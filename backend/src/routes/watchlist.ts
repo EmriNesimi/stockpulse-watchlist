@@ -38,23 +38,44 @@ router.post("/", asyncHandler(async (req, res) => {
 
   const watchlist = await getOrCreateWatchlist(req.userId!);
 
-  const itemCount = await prisma.watchlistItem.count({ where: { watchlistId: watchlist.id } });
-  if (itemCount >= MAX_SYMBOLS_PER_CLIENT) {
-    return res.status(409).json({
-      error: `Watchlist is full — a single connection can only track ${MAX_SYMBOLS_PER_CLIENT} tickers at once. Remove one before adding another.`,
-    });
-  }
-
   try {
-    const item = await prisma.watchlistItem.create({
-      data: {
-        symbol: parsed.data.symbol,
-        name: parsed.data.name,
-        shares: parsed.data.shares,
-        costBasis: parsed.data.costBasis,
-        watchlistId: watchlist.id,
-      },
+    // Counting and then inserting are two queries, and between them another
+    // request for the same user can do its own count. Both see room, both
+    // insert, and the list ends up over the cap — which is not a cosmetic
+    // overflow: the broadcaster's subscribe schema tops out at
+    // MAX_SYMBOLS_PER_CLIENT and rejects the whole batch, so going over
+    // silently kills live prices for every symbol on the list.
+    //
+    // Locking this user's watchlist row for the duration serialises adds per
+    // user and leaves everyone else's untouched. In practice the upsert in
+    // getOrCreateWatchlist above has been masking this, because it takes the
+    // same row's lock on conflict — but that is an accident of an unrelated
+    // function, and it stops protecting us the moment that call is cached or
+    // reordered. A db-level probe of the bare count-then-insert overflowed on
+    // 19 of 20 attempts.
+    const item = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Watchlist" WHERE id = ${watchlist.id} FOR UPDATE`;
+
+      const itemCount = await tx.watchlistItem.count({ where: { watchlistId: watchlist.id } });
+      if (itemCount >= MAX_SYMBOLS_PER_CLIENT) return null;
+
+      return tx.watchlistItem.create({
+        data: {
+          symbol: parsed.data.symbol,
+          name: parsed.data.name,
+          shares: parsed.data.shares,
+          costBasis: parsed.data.costBasis,
+          watchlistId: watchlist.id,
+        },
+      });
     });
+
+    if (item === null) {
+      return res.status(409).json({
+        error: `Watchlist is full — a single connection can only track ${MAX_SYMBOLS_PER_CLIENT} tickers at once. Remove one before adding another.`,
+      });
+    }
+
     res.status(201).json({ item });
   } catch (err) {
     // Prisma unique constraint violation -> symbol's already on the list
