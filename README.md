@@ -208,7 +208,7 @@ stockpulse-watchlist/
 │   │   │   └── StockDetailView.tsx      # per-symbol screen: SymbolChartPanel, the position, and an AlertForm
 │   │   ├── main.tsx                     # installs uncaught-error reporting before the first render, then StrictMode > ErrorBoundary > App
 │   │   ├── types.ts                     # PriceState: price, changePercent, source "live" | "simulated", and the rolling history the sparkline draws
-│   │   ├── index.css                    # global styles, tabular-nums, sr-only, reduced-motion
+│   │   ├── index.css                    # Inter from Google Fonts, tokens import, then the globals: tabular-nums, sr-only, skip-link, spin, and the blanket prefers-reduced-motion rule
 │   │   ├── styles/tokens.css            # design system CSS variables
 │   │   ├── components/          # every component here has a matching .test.tsx and .module.css, except WatchlistRow (see its line)
 │   │   │   ├── Search.tsx               # debounced ticker search
