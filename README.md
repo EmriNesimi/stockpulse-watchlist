@@ -79,8 +79,8 @@ Deployed on Render's free tier:
 
 | | |
 |---|---|
-| App | https://stockpulse-b449.onrender.com |
-| API | https://stockpulse-api-n3yu.onrender.com |
+| App | https://stockpulse-b449.onrender.com — serving |
+| API | https://stockpulse-api-n3yu.onrender.com — not answering |
 
 Both come out of `render.yaml` (see [Deployment](#-deployment)). The free instance sleeps when idle, so the first request after a quiet spell takes ~50s to wake — that's the platform, not the app. What's happening now is different: the API doesn't answer within 120s, which is well past a cold start.
 
