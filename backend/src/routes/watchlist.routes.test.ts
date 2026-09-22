@@ -126,6 +126,29 @@ describe("POST /api/watchlist", () => {
     const list = await agent.get("/api/watchlist");
     expect(list.body.items).toHaveLength(30); // the 31st never got inserted
   });
+
+  // The cap above is checked with a count() and then enforced by a separate
+  // create(). Sequentially that's fine. Two adds in flight at once both read
+  // the same count, both pass the check, and both insert — and the list ends
+  // up over the cap. Not a cosmetic overflow: the broadcaster's subscribe
+  // schema tops out at MAX_SYMBOLS_PER_CLIENT and rejects the *whole* batch,
+  // so going over silently kills live prices for every symbol on the list,
+  // not just the extra one.
+  it("still caps the watchlist when two adds arrive at once", async () => {
+    const symbols = Array.from({ length: 29 }, (_, i) => String.fromCharCode(65 + Math.floor(i / 26)) + String.fromCharCode(65 + (i % 26)));
+    for (const symbol of symbols) {
+      expect((await agent.post("/api/watchlist").send({ symbol })).status).toBe(201);
+    }
+
+    // One slot left, two different symbols racing for it.
+    await Promise.all([
+      agent.post("/api/watchlist").send({ symbol: "YY" }),
+      agent.post("/api/watchlist").send({ symbol: "ZZ" }),
+    ]);
+
+    const list = await agent.get("/api/watchlist");
+    expect(list.body.items.length).toBeLessThanOrEqual(30);
+  });
 });
 
 describe("DELETE /api/watchlist/:symbol", () => {
