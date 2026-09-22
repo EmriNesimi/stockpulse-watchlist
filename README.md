@@ -421,6 +421,13 @@ Ratios were computed from the token hex values and re-derived independently rath
 
 ## 🐛 Known issues
 
+**A green pipeline says nothing about the deployed app.** Since 22 September
+2026 the API answers nothing while CI is green on every commit, because CI
+builds and tests the code and never touches the running service. The two
+signals answer different questions, and only one of them was being watched
+for most of this project's life. The smoke workflow is the other one; it is
+red, and it is right.
+
 **A fix can land and not ship.** `format.ts` stopped signing a move too small
 to show on 2026-09-09. Seven other places built the same string, or the arrow
 and colour beside it, by hand — so the bug stayed live in the main watchlist
