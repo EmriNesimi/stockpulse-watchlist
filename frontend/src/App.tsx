@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AuthGate from "./components/AuthGate";
 import Dashboard from "./Dashboard";
 import { useTheme } from "./hooks/useTheme";
@@ -23,11 +23,18 @@ export default function App() {
     new URLSearchParams(window.location.search).get("reset")
   );
   const [emailVerifyMessage, setEmailVerifyMessage] = useState<string | null>(null);
+  // The two effects below race, and either can win. This holds whatever
+  // verify-email confirmed so the loser can still apply it.
+  const verifiedUser = useRef<AuthUser | null>(null);
 
   useEffect(() => {
     getCurrentUser()
       .then(({ user }) => {
-        setUser(user);
+        // If verification already came back for this account, its row is the
+        // fresher one: the session was fetched before the email was
+        // confirmed, so it still says emailVerified: false.
+        const verified = verifiedUser.current;
+        setUser(verified && verified.id === user.id ? verified : user);
         setAuthStatus("authenticated");
       })
       .catch(() => setAuthStatus("unauthenticated"));
@@ -51,9 +58,13 @@ export default function App() {
     window.history.replaceState({}, "", window.location.pathname);
 
     verifyEmail(token)
-      .then(({ user: verifiedUser }) => {
+      .then(({ user: confirmed }) => {
         setEmailVerifyResult("success");
-        setUser((prev) => (prev && prev.id === verifiedUser.id ? verifiedUser : prev));
+        // Recorded either way: if the session hasn't resolved yet there's no
+        // prev to update, and without this the confirmation would be dropped
+        // on the floor - leaving a just-verified user staring at the banner.
+        verifiedUser.current = confirmed;
+        setUser((prev) => (prev && prev.id === confirmed.id ? confirmed : prev));
       })
       .catch((err) => {
         setEmailVerifyResult("error");
