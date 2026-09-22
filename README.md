@@ -200,9 +200,9 @@ stockpulse-watchlist/
 │   ├── src/
 │   │   ├── App.tsx                      # auth-status gate — checking/AuthGate/Dashboard — plus reading ?token= (verify) and ?reset= off the URL, since there's no router (+ .test.tsx, integration suite)
 │   │   ├── Dashboard.tsx                # authenticated shell: owns watchlist + live ticks, swaps views, removes optimistically and rolls back on a rejected delete — remounted per key={user.id}
-│   │   ├── App.module.css               # shell layout (sidebar + content column + top bar)
+│   │   ├── App.module.css               # shell layout (sidebar + content column + top bar); the only stylesheet not co-located with a component
 │   │   ├── views/                       # one file per screen, each with a .test.tsx and .module.css
-│   │   │   ├── DashboardView.tsx        # stats, portfolio cards, chart panel + watching rail, watchlist table
+│   │   │   ├── DashboardView.tsx        # composes StatsRow, PortfolioCards, SymbolChartPanel + FavoritesList, WatchlistTable - layout only, no state of its own
 │   │   │   ├── WalletView.tsx           # portfolio totals and per-holding breakdown; a total with any holding still waiting on its first tick renders as a dash, not a partial sum
 │   │   │   ├── ProfileView.tsx          # account details, verification banner, inline holdings entry, and the confirmed sign-out-everywhere control
 │   │   │   └── StockDetailView.tsx      # per-symbol screen: SymbolChartPanel, the position, and an AlertForm
@@ -226,7 +226,7 @@ stockpulse-watchlist/
 │   │   │   ├── TickerAvatar.tsx         # deterministic coloured initials (no fake brand logos): first two letters before any ./- suffix, hue from lib/tickerColor, aria-hidden because the symbol text sits beside it
 │   │   │   ├── ThemeToggle.tsx          # light/dark switch whose aria-label names the mode it would switch *to*
 │   │   │   ├── ConnectionBadge.tsx      # WS connection status indicator, a role="status" so a drop is announced without stealing focus
-│   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon
+│   │   │   ├── AlertForm.tsx            # inline threshold/direction form, opened via the bell icon; rejects anything outside $0.01-$10M in the handler, not via native validation, which a paste can skip
 │   │   │   ├── AlertToast.tsx           # dismissible toast for fired price alerts; a role="log" container with one role="alert" per toast, so each is announced once
 │   │   │   ├── ErrorToast.tsx           # dismissible toast for a failed load, add, remove or alert-create, and for WebSocket errors
 │   │   │   ├── ErrorBoundary.tsx        # catches a render crash, reports it to /api/client-errors, shows a reload prompt instead of a blank page (a class, since there's still no hook for componentDidCatch)
@@ -253,13 +253,14 @@ stockpulse-watchlist/
 │   │   │   └── limits.ts                # MAX_WATCHLIST_SYMBOLS (30) - mirrors backend/src/wsLimits.ts (+ .test.ts, which checks the mirror)
 │   │   └── test/
 │   │       └── setup.ts                 # jest-dom matchers, and an explicit afterEach(cleanup) - Testing Library only auto-registers it with test.globals on
-│   └── vite.config.ts, vitest.config.ts
+│   ├── vite.config.ts               # dev server + a build-only plugin that injects the CSP meta tag with the real API and WS origins
+│   └── vitest.config.ts             # jsdom, 15s timeout, and fs.allow one directory up so limits.test.ts can read the backend's source
 ├── .github/
 │   ├── workflows/ci.yml         # secret grep, then typecheck/lint/build/test/audit per package (backend against a real Postgres)
 │   ├── workflows/smoke.yml      # hits the deployed app after a push to main and daily - see Smoke test
 │   └── dependabot.yml           # weekly grouped minor/patch bumps per package; majors deliberately excluded
 ├── scripts/
-│   ├── smoke.sh                 # the read-only checks smoke.yml runs
+│   ├── smoke.sh                 # the nineteen read-only checks smoke.yml runs; API_URL/APP_URL point it elsewhere
 │   └── backup-db.sh             # pg_dump via the postgres:18 image, gzipped
 ├── docs/REVIEW-FINDINGS.md      # the three audits: what they found, what was fixed, what they missed
 ├── render.yaml                  # both services and the database, as a Render Blueprint
@@ -376,6 +377,8 @@ git switch -c your-branch
 git push -u origin your-branch
 gh pr create --fill && gh pr merge --squash
 ```
+
+Squash on merge is the convention: a branch's granular commits are the record while it's being reviewed and bisected, and `main` gets one commit per PR. Both #59 and #60 went in that way.
 
 ## ♿ Accessibility
 
