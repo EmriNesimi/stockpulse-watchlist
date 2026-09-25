@@ -54,5 +54,5 @@ jobs:
             sleep 30
           done
 
-          echo "::error::the deployed app still doesn't match this commit after ~6 minutes"
+          echo "::error::the deployed app still doesn't match this commit after 12 attempts"
           ./scripts/smoke.sh
