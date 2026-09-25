@@ -19,6 +19,10 @@ readonly API="${API_URL:-https://stockpulse-api-n3yu.onrender.com}"
 readonly APP="${APP_URL:-https://stockpulse-b449.onrender.com}"
 # The free instance sleeps, so the first request has to wait for a cold start.
 readonly TIMEOUT="${SMOKE_TIMEOUT:-90}"
+# Exit code for "the API answered nothing at all", as distinct from "the API
+# answered and something was wrong". The caller retries the second - a deploy
+# mid-rollout looks like that - and should not retry the first.
+readonly EXIT_UNREACHABLE=2
 
 pass=0
 fail=0
@@ -39,6 +43,28 @@ status() { curl -s -o /dev/null -m "$TIMEOUT" -w '%{http_code}' "$@"; }
 echo "backend  $API"
 echo "frontend $APP"
 echo
+
+# One cheap probe before the real checks. If the API answers nothing within a
+# short window, every API check below would sit through its own 90s timeout to
+# discover that individually - about seventeen minutes to say "it's down",
+# which the retry loop then multiplies. Bail out instead and let the caller
+# know this isn't a rollout in progress.
+#
+# Deliberately short: a sleeping free instance needs the full TIMEOUT to wake,
+# but it does answer. Answering nothing in 20s is a different condition.
+if ! curl -s -o /dev/null -m 20 "$API/health" && ! curl -s -o /dev/null -m 20 "$API/health"; then
+  echo "  FAIL  api unreachable — no response from $API/health in 20s, twice"
+  echo
+  echo "Not running the rest: with nothing answering, every check just waits out"
+  echo "its own timeout. The static site is checked separately below."
+  echo
+  frontend_status="$(curl -s -o /dev/null -m 20 -w '%{http_code}' "$APP")"
+  echo "frontend $APP -> ${frontend_status:-no response}"
+  if [[ "$frontend_status" == "200" ]]; then
+    echo "So the static site is up and the backend service is not."
+  fi
+  exit "$EXIT_UNREACHABLE"
+fi
 
 echo "api"
 check "health responds"            "200" "$(status "$API/health")"

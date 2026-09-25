@@ -20,6 +20,11 @@ jobs:
   smoke:
     name: Deployed app
     runs-on: ubuntu-latest
+    # A ceiling, because there wasn't one. The default is six hours, and the
+    # retry loop below has been taking over three of them per run since the
+    # API went dark - every check waiting out its own curl timeout, twelve
+    # times over, to re-learn the same fact twice a day.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
@@ -35,13 +40,19 @@ jobs:
       - name: Smoke test
         run: |
           for attempt in $(seq 1 12); do
-            if ./scripts/smoke.sh; then
-              echo "passed on attempt $attempt"
-              exit 0
+            ./scripts/smoke.sh && { echo "passed on attempt $attempt"; exit 0; }
+            code=$?
+
+            # 2 means nothing answered at all. Retrying can't help: the retry
+            # is here for a rollout in progress, and a rollout answers.
+            if [ "$code" -eq 2 ]; then
+              echo "::error::the API is not answering — this is not a deploy in progress, so not retrying"
+              exit 1
             fi
+
             echo "::notice::attempt $attempt did not pass — the deploy may still be rolling out"
             sleep 30
           done
 
-          echo "::error::the deployed app still doesn't match this commit after ~6 minutes"
+          echo "::error::the deployed app still doesn't match this commit after 12 attempts"
           ./scripts/smoke.sh
