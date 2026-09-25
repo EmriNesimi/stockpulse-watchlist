@@ -19,6 +19,10 @@ readonly API="${API_URL:-https://stockpulse-api-n3yu.onrender.com}"
 readonly APP="${APP_URL:-https://stockpulse-b449.onrender.com}"
 # The free instance sleeps, so the first request has to wait for a cold start.
 readonly TIMEOUT="${SMOKE_TIMEOUT:-90}"
+# Exit code for "the API answered nothing at all", as distinct from "the API
+# answered and something was wrong". The caller retries the second - a deploy
+# mid-rollout looks like that - and should not retry the first.
+readonly EXIT_UNREACHABLE=2
 
 pass=0
 fail=0
