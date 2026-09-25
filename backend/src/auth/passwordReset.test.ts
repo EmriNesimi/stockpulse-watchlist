@@ -41,7 +41,7 @@ describe("generateResetToken", () => {
   });
 
   it("produces a token the reset-password schema accepts", async () => {
-    const { resetPasswordSchema } = await import("../routes/auth.schemas");
+    const { resetPasswordSchema } = await import("../routes/auth.schemas.js");
     const { token } = generateResetToken();
     expect(resetPasswordSchema.safeParse({ token, password: "a-long-enough-password" }).success).toBe(true);
   });

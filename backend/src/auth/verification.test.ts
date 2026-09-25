@@ -26,7 +26,7 @@ describe("generateVerificationToken", () => {
   // The token shape has to satisfy the route's own schema, or a token this
   // function mints could be rejected on the way back in.
   it("produces a token the verify-email schema accepts", async () => {
-    const { verifyEmailBodySchema } = await import("../routes/auth.schemas");
+    const { verifyEmailBodySchema } = await import("../routes/auth.schemas.js");
     const { token } = generateVerificationToken();
     expect(verifyEmailBodySchema.safeParse({ token }).success).toBe(true);
   });
