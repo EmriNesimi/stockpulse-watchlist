@@ -1,15 +1,25 @@
 name: Smoke
 
 # Deploys happen outside CI — Render builds from main on its own — so nothing
-# was checking the result. This runs after a push to main lands (giving Render
-# time to finish), and daily, because the two things most likely to break the
-# deployment break it without anyone pushing: a hostname changing and the free
-# database expiring.
+# was checking the result. This runs after a push to main lands, giving Render
+# time to finish.
+#
+# The daily schedule is off. It was there because the two likeliest ways this
+# deployment breaks need nobody to push anything — a hostname changing, and
+# the free database expiring. The second one then happened, the backend has
+# been down since 22 September 2026, and the run has gone red every day since
+# to report a fact already recorded in the README. A monitor that alarms daily
+# about a known, accepted outage is noise, and noise is how a real alarm gets
+# missed later.
+#
+# Re-enable it with the deployment: uncomment the two lines below. Nothing
+# else needs changing, and the push trigger and manual dispatch still work
+# meanwhile.
 on:
   push:
     branches: [main]
-  schedule:
-    - cron: "17 8 * * *"
+  # schedule:
+  #   - cron: "17 8 * * *"
   workflow_dispatch:
 
 concurrency:
