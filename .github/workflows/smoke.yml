@@ -20,6 +20,11 @@ jobs:
   smoke:
     name: Deployed app
     runs-on: ubuntu-latest
+    # A ceiling, because there wasn't one. The default is six hours, and the
+    # retry loop below has been taking over three of them per run since the
+    # API went dark - every check waiting out its own curl timeout, twelve
+    # times over, to re-learn the same fact twice a day.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
