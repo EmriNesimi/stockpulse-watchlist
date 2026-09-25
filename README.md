@@ -537,6 +537,14 @@ The WebSocket check covers the app's headline feature, and the upgrade path has 
 
 Read-only — it creates nothing and signs in as nobody. Point it elsewhere with `API_URL` and `APP_URL`.
 
+It fails fast when nothing is answering. A service that is mid-rollout
+answers and fails checks, which is worth retrying; a service that is gone
+answers nothing, and waiting out nine 90-second timeouts twelve times over
+costs three hours of runner time to establish one fact. The script probes
+`/health` once up front, and on no answer reports whether the static site is
+still up and exits 2, which the workflow treats as "don't retry". The job
+also has a 20-minute ceiling now, which it did not before.
+
 **It earned its keep on 22 September 2026.** CI was green on every commit and the repo looked healthy; the deployed API was answering nothing. The run reports 8 passed, 11 failed, and which 11 is the diagnosis by itself — every API check plus the CORS preflight and the WebSocket tick, with the static site's four checks and all three security headers still passing. That splits "the whole deployment is gone" from "the backend service specifically is", without opening a dashboard.
 
 ## 💾 Backups
