@@ -158,3 +158,24 @@ describe("design tokens", () => {
     expect(dangling).toEqual([]);
   });
 });
+
+// tickerColor.ts picks one of six hues by hash and emits
+// var(--avatar-hue-N). The count lives in that file as a constant and the
+// hues live in tokens.css, with nothing connecting them - raise one without
+// the other and some symbols get an avatar with no colour at all. Same
+// mirrored-constant shape as MAX_WATCHLIST_SYMBOLS, which already has a
+// guard on the frontend side.
+describe("avatar hues", () => {
+  it("defines exactly as many as tickerColor.ts hands out", () => {
+    const tokens = read("frontend/src/styles/tokens.css");
+    const source = read("frontend/src/lib/tickerColor.ts");
+
+    const defined = new Set([...tokens.matchAll(/--avatar-hue-(\d+)\s*:/g)].map((m) => Number(m[1])));
+    const hueCount = Number(source.match(/const HUE_COUNT = (\d+);/)?.[1]);
+
+    expect(hueCount, "HUE_COUNT is not a plain numeric literal any more").toBeGreaterThan(0);
+    expect(defined.size).toBe(hueCount);
+    // and they're 1..N with no gaps, since the index is (hash % N) + 1
+    expect([...defined].sort((a, b) => a - b)).toEqual(Array.from({ length: hueCount }, (_, i) => i + 1));
+  });
+});
