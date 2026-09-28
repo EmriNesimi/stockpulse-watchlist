@@ -546,6 +546,12 @@ The WebSocket check covers the app's headline feature, and the upgrade path has 
 
 Read-only — it creates nothing and signs in as nobody. Point it elsewhere with `API_URL` and `APP_URL`.
 
+Both automatic triggers are currently off — see the comment at the top of the
+workflow. With the backend down, every merge produced a red run reporting an
+outage this README already describes, and a check that is permanently red
+trains people to scroll past red. Manual dispatch still works, and two comment
+markers restore it.
+
 It fails fast when nothing is answering. A service that is mid-rollout
 answers and fails checks, which is worth retrying; a service that is gone
 answers nothing, and waiting out nine 90-second timeouts twelve times over
