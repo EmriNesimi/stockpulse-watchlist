@@ -55,3 +55,39 @@ describe(".nvmrc", () => {
     }
   });
 });
+
+describe("render.yaml", () => {
+  const blueprint = read("render.yaml");
+
+  // The one deploy trap the README calls out twice: Render appends a random
+  // suffix when a service name is taken, so the live hosts are
+  // stockpulse-b449 and stockpulse-api-n3yu. FRONTEND_ORIGIN and VITE_API_URL
+  // are pinned to those exact hosts, and if either service is recreated both
+  // values have to move together or CORS silently refuses every request.
+  function valueOf(key: string): string {
+    const match = blueprint.match(new RegExp(`- key: ${key}\\n\\s+value: (\\S+)`));
+    if (!match?.[1]) throw new Error(`${key} has no literal value in render.yaml`);
+    return match[1];
+  }
+
+  it("points FRONTEND_ORIGIN and VITE_API_URL at full https origins", () => {
+    for (const key of ["FRONTEND_ORIGIN", "VITE_API_URL"]) {
+      expect(valueOf(key)).toMatch(/^https:\/\/[^/]+$/);
+    }
+  });
+
+  it("gives VITE_API_URL no trailing slash, since ws.ts appends to it", () => {
+    expect(valueOf("VITE_API_URL").endsWith("/")).toBe(false);
+  });
+
+  it("keeps the two services in the same region as the database", () => {
+    const regions = [...blueprint.matchAll(/^\s+region: (\S+)/gm)].map((m) => m[1]);
+    if (regions.length > 1) expect(new Set(regions).size).toBe(1);
+  });
+
+  it("never commits a literal value for the two secrets", () => {
+    for (const key of ["MASSIVE_API_KEY", "RESEND_API_KEY"]) {
+      expect(blueprint).toMatch(new RegExp(`- key: ${key}\\n\\s+sync: false`));
+    }
+  });
+});
