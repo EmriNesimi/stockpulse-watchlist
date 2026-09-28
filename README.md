@@ -149,8 +149,10 @@ PriceFeed (backend/src/priceFeed/):
 Two tests guard this layout rather than trusting it: `backend/src/repoShape.test.ts`
 and `frontend/src/repoShape.test.ts` check that every schema, component, view
 and hook has a colocated test, that the three `.nvmrc` copies agree with each
-other and with both `engines` ranges, and that `render.yaml`'s pinned origins
-keep the shape CORS depends on. Several of the claims below were quietly false
+other and with both `engines` ranges, that `render.yaml`'s pinned origins keep
+the shape CORS depends on, and that every design token a stylesheet names
+actually exists — which found four `font-size` declarations that had been
+silently doing nothing. Several of the claims below were quietly false
 before those were written.
 
 ```
