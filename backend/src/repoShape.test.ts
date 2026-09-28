@@ -22,3 +22,36 @@ describe("every backend *.schemas.ts has a test", () => {
     expect(untested).toEqual([]);
   });
 });
+
+describe(".nvmrc", () => {
+  // Deploy gotcha #3 in the README: Render reads .nvmrc from the service's
+  // root directory, CI reads it from the repo root. Three copies have to say
+  // the same thing, and nothing checked that they did.
+  const paths = [".nvmrc", "backend/.nvmrc", "frontend/.nvmrc"];
+
+  it("exists in all three places Render and CI look", () => {
+    for (const p of paths) expect(() => read(p), `${p} is missing`).not.toThrow();
+  });
+
+  it("pins the same version in all three", () => {
+    const versions = paths.map((p) => read(p).trim());
+    expect(new Set(versions).size, `mismatched: ${versions.join(", ")}`).toBe(1);
+  });
+
+  it("pins an exact version rather than a range", () => {
+    expect(read(".nvmrc").trim()).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  it("satisfies the engines range both packages declare", () => {
+    const [major, minor] = read(".nvmrc").trim().split(".").map(Number);
+    for (const pkg of ["backend", "frontend"]) {
+      const engines = JSON.parse(read(`${pkg}/package.json`)).engines?.node as string;
+      expect(engines, `${pkg} declares no engines.node`).toBeTruthy();
+      // Every range in use here is of the form ^20.19.0 (optionally || >=22.12.0).
+      const lowest = engines.match(/\^(\d+)\.(\d+)/);
+      expect(lowest, `${pkg}: unrecognised engines range ${engines}`).not.toBeNull();
+      expect(major, `${pkg}: .nvmrc major ${major} vs engines ${engines}`).toBe(Number(lowest![1]));
+      expect(minor, `${pkg}: .nvmrc minor ${minor} vs engines ${engines}`).toBeGreaterThanOrEqual(Number(lowest![2]));
+    }
+  });
+});
