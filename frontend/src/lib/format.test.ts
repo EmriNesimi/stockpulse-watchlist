@@ -63,6 +63,21 @@ describe("formatShares", () => {
     expect(formatShares(10)).toBe("10");
     expect(formatShares(1.5)).toBe("1.5");
   });
+
+  // Fractional share counts are real - brokers sell them - so the cap is
+  // four places rather than zero, and it rounds rather than truncating.
+  it("keeps up to four decimal places", () => {
+    expect(formatShares(0.1234)).toBe("0.1234");
+    expect(formatShares(0.12345)).toBe("0.1235");
+  });
+
+  it("groups thousands, since a share count can be large", () => {
+    expect(formatShares(12500)).toBe("12,500");
+  });
+
+  it("shows a zero holding as 0 rather than blank", () => {
+    expect(formatShares(0)).toBe("0");
+  });
 });
 
 describe("signedDirection", () => {
