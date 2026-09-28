@@ -40,6 +40,22 @@ describe("formatCurrency", () => {
   it("always shows two decimal places", () => {
     expect(formatCurrency(1234.5)).toBe("$1,234.50");
   });
+
+  it("groups thousands and pads cents", () => {
+    expect(formatCurrency(1000000)).toBe("$1,000,000.00");
+    expect(formatCurrency(0)).toBe("$0.00");
+  });
+
+  // Unsigned, unlike formatSignedCurrency - this one is for a magnitude that
+  // already knows which way it points, so a minus here would double up.
+  it("puts a negative inside the currency symbol rather than dropping it", () => {
+    expect(formatCurrency(-12.4)).toBe("-$12.40");
+  });
+
+  it("rounds to cents rather than truncating", () => {
+    expect(formatCurrency(1.005)).toBe("$1.01");
+    expect(formatCurrency(1.004)).toBe("$1.00");
+  });
 });
 
 describe("formatShares", () => {
