@@ -91,3 +91,70 @@ describe("render.yaml", () => {
     }
   });
 });
+
+// Design tokens live in the frontend, but the guard lives here: vitest stubs
+// CSS imports by default, and turning that off would change what the
+// component tests see from CSS Modules. This side of the repo already reads
+// frontend/package.json with node:fs for the engines check, so it reads two
+// more files. A token mistake is completely silent otherwise - a var() naming
+// something undefined resolves to nothing, and a light token with no dark
+// counterpart simply keeps its light value on a dark background.
+describe("design tokens", () => {
+  const tokensCss = read("frontend/src/styles/tokens.css");
+
+  const block = (selector: string) => {
+    const start = tokensCss.indexOf(selector);
+    expect(start, `no ${selector} block in tokens.css`).toBeGreaterThan(-1);
+    return tokensCss.slice(start, tokensCss.indexOf("}", start));
+  };
+  const definedIn = (css: string) => new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]!));
+
+  const light = definedIn(block(":root {"));
+  const dark = definedIn(block('[data-theme="dark"]'));
+
+  it("defines tokens in both themes", () => {
+    expect(light.size).toBeGreaterThan(0);
+    expect(dark.size).toBeGreaterThan(0);
+  });
+
+  // Exactly one colour is meant to be theme-independent, and tokens.css says
+  // why: the six avatar hues are identical in both themes, and dark ink is
+  // the only choice clearing 3:1 on all six. Anything else turning up here is
+  // a colour added to light and forgotten in dark, which fails nothing and
+  // just renders the light value on a dark background.
+  it("gives every light colour a dark counterpart, bar the documented one", () => {
+    const missing = [...light].filter((t) => t.startsWith("--color-") && !dark.has(t)).sort();
+    expect(missing).toEqual(["--color-avatar-ink"]);
+  });
+
+  it("defines no dark token that light doesn't have", () => {
+    expect([...dark].filter((t) => !light.has(t)).sort()).toEqual([]);
+  });
+
+  it("names only tokens that exist, everywhere a var() is used", () => {
+    const cssFiles = [
+      "frontend/src/index.css",
+      "frontend/src/styles/tokens.css",
+      "frontend/src/App.module.css",
+      ...readdirSync(resolve(repoRoot, "frontend/src/components"))
+        .filter((f) => f.endsWith(".module.css"))
+        .map((f) => `frontend/src/components/${f}`),
+      ...readdirSync(resolve(repoRoot, "frontend/src/views"))
+        .filter((f) => f.endsWith(".module.css"))
+        .map((f) => `frontend/src/views/${f}`),
+    ];
+
+    const defined = new Set<string>();
+    for (const f of cssFiles) for (const t of definedIn(read(f))) defined.add(t);
+
+    const dangling: string[] = [];
+    for (const f of cssFiles) {
+      for (const m of read(f).matchAll(/var\((--[\w-]+)/g)) {
+        if (!defined.has(m[1]!)) dangling.push(`${m[1]} in ${f}`);
+      }
+    }
+
+    expect(cssFiles.length).toBeGreaterThan(5);
+    expect(dangling).toEqual([]);
+  });
+});
