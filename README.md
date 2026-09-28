@@ -146,6 +146,13 @@ PriceFeed (backend/src/priceFeed/):
 
 ## 📁 Project structure
 
+Two tests guard this layout rather than trusting it: `backend/src/repoShape.test.ts`
+and `frontend/src/repoShape.test.ts` check that every schema, component, view
+and hook has a colocated test, that the three `.nvmrc` copies agree with each
+other and with both `engines` ranges, and that `render.yaml`'s pinned origins
+keep the shape CORS depends on. Several of the claims below were quietly false
+before those were written.
+
 ```
 stockpulse-watchlist/
 ├── backend/
@@ -220,10 +227,10 @@ stockpulse-watchlist/
 │   │   ├── types.ts                     # PriceState: price, changePercent, source "live" | "simulated", and the rolling history the sparkline draws
 │   │   ├── index.css                    # Inter from Google Fonts, tokens import, then the globals: tabular-nums, sr-only, skip-link, spin, and the blanket prefers-reduced-motion rule
 │   │   ├── styles/tokens.css            # design tokens: light set on :root, dark set under [data-theme="dark"], with the contrast ratio noted beside every value that moved for AA
-│   │   ├── components/          # every component here has a matching .test.tsx and .module.css, except WatchlistRow (see its line)
+│   │   ├── components/          # every component here has a matching .test.tsx; all but Sparkline and WatchlistRow have a .module.css too (see their lines) — repoShape.test.ts enforces both
 │   │   │   ├── Search.tsx               # ticker search debounced at 300ms; result count announced through a role="status" span, Escape clears, disabled with a message at the 30-ticker cap
 │   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell; loading vs genuinely-empty states; focusable scroll region so it reflows at 320px
-│   │   │   ├── WatchlistRow.tsx         # one memo()'d row, split out so holdings edits elsewhere don't re-render every row; tested and styled through WatchlistTable
+│   │   │   ├── WatchlistRow.tsx         # one memo()'d row, split out so holdings edits elsewhere don't re-render every row; has its own test now, still shares WatchlistTable's stylesheet (+ .test.tsx)
 │   │   │   ├── StatsRow.tsx             # tracking / gainers / losers / average change, all derived from the watchlist and prices in memory; an exactly-zero change counts as a gainer, by decision and by test
 │   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash; the flash is a supporting cue beside the arrow, never the only signal, and off under prefers-reduced-motion
 │   │   │   ├── Sparkline.tsx            # inline SVG price history, role="img" with a label derived from the data; under two points it says so instead of drawing a dot (SVG presentation attrs, not CSS Modules — nothing to scope)
