@@ -10,6 +10,9 @@ export const symbolSchema = z
 
 // Same $10M-ish sanity ceiling as AlertForm/alerts.schemas.ts - comfortably
 // above any real share price, just a guard against a typo or garbage value.
+// HoldingsForm.tsx keeps its own copy of both numbers so the browser can
+// reject a silly value without a round trip; the frontend's
+// lib/limits.test.ts reads this file and fails if the two drift apart.
 const MAX_COST_BASIS = 10_000_000;
 const MAX_SHARES = 1_000_000_000;
 
