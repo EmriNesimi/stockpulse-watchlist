@@ -223,7 +223,7 @@ stockpulse-watchlist/
 │   │   ├── components/          # every component here has a matching .test.tsx and .module.css, except WatchlistRow (see its line)
 │   │   │   ├── Search.tsx               # ticker search debounced at 300ms; result count announced through a role="status" span, Escape clears, disabled with a message at the 30-ticker cap
 │   │   │   ├── WatchlistTable.tsx       # symbol/price/change/sparkline/remove/alert-bell; loading vs genuinely-empty states; focusable scroll region so it reflows at 320px
-│   │   │   ├── WatchlistRow.tsx         # one memo()'d row, split out so holdings edits elsewhere don't re-render every row; tested and styled through WatchlistTable
+│   │   │   ├── WatchlistRow.tsx         # one memo()'d row, split out so holdings edits elsewhere don't re-render every row; has its own test now, still shares WatchlistTable's stylesheet (+ .test.tsx)
 │   │   │   ├── StatsRow.tsx             # tracking / gainers / losers / average change, all derived from the watchlist and prices in memory; an exactly-zero change counts as a gainer, by decision and by test
 │   │   │   ├── PriceCell.tsx            # price + LIVE/SIM badge + tick flash; the flash is a supporting cue beside the arrow, never the only signal, and off under prefers-reduced-motion
 │   │   │   ├── Sparkline.tsx            # inline SVG price history, role="img" with a label derived from the data; under two points it says so instead of drawing a dot (SVG presentation attrs, not CSS Modules — nothing to scope)
