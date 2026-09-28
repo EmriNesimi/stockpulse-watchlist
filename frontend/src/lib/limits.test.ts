@@ -35,3 +35,19 @@ describe("AlertForm's MAX_THRESHOLD", () => {
     expect(constantIn(alertFormSource, "MAX_THRESHOLD")).toBe(constantIn(alertSchemasSource, "MAX_THRESHOLD"));
   });
 });
+
+// And the same again for the two holdings ceilings. HoldingsForm says in its
+// own header that it mirrors watchlist.schemas.ts "so a typo is caught here
+// rather than round-tripping just to bounce off the same cap" - which holds
+// only while the two numbers agree, and nothing was checking.
+describe("HoldingsForm's ceilings", () => {
+  it("matches MAX_SHARES in backend/src/routes/watchlist.schemas.ts", () => {
+    expect(constantIn(holdingsFormSource, "MAX_SHARES")).toBe(constantIn(watchlistSchemasSource, "MAX_SHARES"));
+  });
+
+  it("matches MAX_COST_BASIS in backend/src/routes/watchlist.schemas.ts", () => {
+    expect(constantIn(holdingsFormSource, "MAX_COST_BASIS")).toBe(
+      constantIn(watchlistSchemasSource, "MAX_COST_BASIS")
+    );
+  });
+});
