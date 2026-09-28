@@ -7,6 +7,8 @@ import { MAX_WATCHLIST_SYMBOLS } from "./limits";
 // frontend's test run.
 import wsLimitsSource from "../../../backend/src/wsLimits.ts?raw";
 import alertSchemasSource from "../../../backend/src/routes/alerts.schemas.ts?raw";
+import watchlistSchemasSource from "../../../backend/src/routes/watchlist.schemas.ts?raw";
+import holdingsFormSource from "../components/HoldingsForm.tsx?raw";
 // Not exported from the component, so the frontend side is read the same way.
 import alertFormSource from "../components/AlertForm.tsx?raw";
 
