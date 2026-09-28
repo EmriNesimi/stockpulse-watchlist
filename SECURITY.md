@@ -23,6 +23,10 @@ lists strengths isn't worth reading:
 - **Verification email delivery is limited to one address.** The default Resend
   sender only reaches the account owner. Verification gates nothing, so this
   costs a trust badge rather than access.
+- **Nothing is deployed right now.** The backend has answered nothing since
+  22 September 2026 and the smoke workflow's automatic triggers are off, so
+  the live security posture described below is about a service that isn't
+  currently running. The code is unchanged; only the deployment is gone.
 - **Price alerts have no cap.** A watchlist is limited to 30 items; the
   number of alerts a user can create is unbounded, and an alert's symbol
   doesn't have to be on their watchlist. Every tick for a popular symbol

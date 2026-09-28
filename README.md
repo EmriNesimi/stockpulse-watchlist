@@ -149,8 +149,10 @@ PriceFeed (backend/src/priceFeed/):
 Two tests guard this layout rather than trusting it: `backend/src/repoShape.test.ts`
 and `frontend/src/repoShape.test.ts` check that every schema, component, view
 and hook has a colocated test, that the three `.nvmrc` copies agree with each
-other and with both `engines` ranges, and that `render.yaml`'s pinned origins
-keep the shape CORS depends on. Several of the claims below were quietly false
+other and with both `engines` ranges, that `render.yaml`'s pinned origins keep
+the shape CORS depends on, and that every design token a stylesheet names
+actually exists — which found four `font-size` declarations that had been
+silently doing nothing. Several of the claims below were quietly false
 before those were written.
 
 ```
@@ -543,6 +545,12 @@ It runs automatically after every push to `main` and once a day. Daily matters b
 The WebSocket check covers the app's headline feature, and the upgrade path has its own origin check, session resolution and per-IP caps that no HTTP request touches — a deploy where the socket refuses upgrades looks healthy from every other angle.
 
 Read-only — it creates nothing and signs in as nobody. Point it elsewhere with `API_URL` and `APP_URL`.
+
+Both automatic triggers are currently off — see the comment at the top of the
+workflow. With the backend down, every merge produced a red run reporting an
+outage this README already describes, and a check that is permanently red
+trains people to scroll past red. Manual dispatch still works, and two comment
+markers restore it.
 
 It fails fast when nothing is answering. A service that is mid-rollout
 answers and fails checks, which is worth retrying; a service that is gone

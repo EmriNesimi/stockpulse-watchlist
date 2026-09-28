@@ -6,6 +6,15 @@ describe("tickerAvatarHue", () => {
     expect(tickerAvatarHue("AAPL")).toBe(tickerAvatarHue("AAPL"));
   });
 
+  // The hash is >>> 0 before the modulo, so a symbol that overflows 32 bits
+  // still lands in range rather than going negative and producing
+  // var(--avatar-hue-0) or a negative index, neither of which exists.
+  it("stays in range for long symbols that overflow the hash", () => {
+    for (const symbol of ["AAAAAA", "ZZZZZZ", "BRK.B", "BF-B"]) {
+      expect(tickerAvatarHue(symbol)).toMatch(/^var\(--avatar-hue-[1-6]\)$/);
+    }
+  });
+
   it("returns one of the six avatar hue CSS variables", () => {
     const value = tickerAvatarHue("MSFT");
     expect(value).toMatch(/^var\(--avatar-hue-[1-6]\)$/);
