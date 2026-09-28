@@ -269,7 +269,7 @@ stockpulse-watchlist/
 │   │   │   ├── uncaught.ts              # reports the failures the error boundary never sees (+ .test.ts)
 │   │   │   ├── views.ts                 # the View union the shell navigates over
 │   │   │   ├── ws.ts                    # WS_URL derived from API_BASE by swapping http(s) for ws(s), so one env var drives both (+ .test.ts)
-│   │   │   └── limits.ts                # MAX_WATCHLIST_SYMBOLS (30) - mirrors backend/src/wsLimits.ts (+ .test.ts, which checks the mirror)
+│   │   │   └── limits.ts                # MAX_WATCHLIST_SYMBOLS (30) - mirrors backend/src/wsLimits.ts (+ .test.ts, which checks that mirror and the three others: the alert threshold and both holdings ceilings)
 │   │   └── test/
 │   │       └── setup.ts                 # jest-dom matchers, and an explicit afterEach(cleanup) - Testing Library only auto-registers it with test.globals on
 │   ├── vite.config.ts               # dev server + a build-only plugin that injects the CSP meta tag with the real API and WS origins
