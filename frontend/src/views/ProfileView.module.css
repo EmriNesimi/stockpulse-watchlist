@@ -198,13 +198,13 @@
 
 .sessionsTitle {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
 .sessionsHint {
   margin: var(--space-1) 0 0;
-  font-size: var(--text-xs);
+  font-size: 0.8125rem;
   color: var(--color-foreground-muted);
   max-width: 52ch;
 }
@@ -220,7 +220,7 @@
   align-self: flex-start;
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   min-height: 36px;
@@ -248,6 +248,6 @@
 
 .sessionsError {
   margin: 0;
-  font-size: var(--text-xs);
+  font-size: 0.8125rem;
   color: var(--color-bearish);
 }
