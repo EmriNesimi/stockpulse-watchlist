@@ -4,6 +4,7 @@ import styles from "./HoldingsForm.module.css";
 
 // Mirrors the ceilings in backend/src/routes/watchlist.schemas.ts so a typo
 // is caught here rather than round-tripping just to bounce off the same cap.
+// lib/limits.test.ts reads both files and fails if they stop agreeing.
 const MAX_SHARES = 1_000_000_000;
 const MAX_COST_BASIS = 10_000_000;
 

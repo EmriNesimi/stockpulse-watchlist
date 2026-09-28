@@ -7,6 +7,8 @@ import { MAX_WATCHLIST_SYMBOLS } from "./limits";
 // frontend's test run.
 import wsLimitsSource from "../../../backend/src/wsLimits.ts?raw";
 import alertSchemasSource from "../../../backend/src/routes/alerts.schemas.ts?raw";
+import watchlistSchemasSource from "../../../backend/src/routes/watchlist.schemas.ts?raw";
+import holdingsFormSource from "../components/HoldingsForm.tsx?raw";
 // Not exported from the component, so the frontend side is read the same way.
 import alertFormSource from "../components/AlertForm.tsx?raw";
 
@@ -31,5 +33,21 @@ describe("MAX_WATCHLIST_SYMBOLS", () => {
 describe("AlertForm's MAX_THRESHOLD", () => {
   it("matches MAX_THRESHOLD in backend/src/routes/alerts.schemas.ts", () => {
     expect(constantIn(alertFormSource, "MAX_THRESHOLD")).toBe(constantIn(alertSchemasSource, "MAX_THRESHOLD"));
+  });
+});
+
+// And the same again for the two holdings ceilings. HoldingsForm says in its
+// own header that it mirrors watchlist.schemas.ts "so a typo is caught here
+// rather than round-tripping just to bounce off the same cap" - which holds
+// only while the two numbers agree, and nothing was checking.
+describe("HoldingsForm's ceilings", () => {
+  it("matches MAX_SHARES in backend/src/routes/watchlist.schemas.ts", () => {
+    expect(constantIn(holdingsFormSource, "MAX_SHARES")).toBe(constantIn(watchlistSchemasSource, "MAX_SHARES"));
+  });
+
+  it("matches MAX_COST_BASIS in backend/src/routes/watchlist.schemas.ts", () => {
+    expect(constantIn(holdingsFormSource, "MAX_COST_BASIS")).toBe(
+      constantIn(watchlistSchemasSource, "MAX_COST_BASIS")
+    );
   });
 });
