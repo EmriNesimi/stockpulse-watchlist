@@ -16,8 +16,17 @@ name: Smoke
 # else needs changing, and the push trigger and manual dispatch still work
 # meanwhile.
 on:
-  push:
-    branches: [main]
+  # Both automatic triggers are off while the backend is down. The daily one
+  # went first; this leaves the push trigger, which turns every merge into a
+  # red run reporting the same known outage. A check that is red for a reason
+  # already written down isn't telling anyone anything, and it trains people
+  # to scroll past red.
+  #
+  # Nothing about the deployment changes by commenting these out, and nothing
+  # about this workflow's contents changed either - uncomment both to restore
+  # it. Run it any time from the Actions tab meanwhile.
+  # push:
+  #   branches: [main]
   # schedule:
   #   - cron: "17 8 * * *"
   workflow_dispatch:
