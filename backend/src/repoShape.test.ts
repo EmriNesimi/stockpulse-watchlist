@@ -179,3 +179,22 @@ describe("avatar hues", () => {
     expect([...defined].sort((a, b) => a - b)).toEqual(Array.from({ length: hueCount }, (_, i) => i + 1));
   });
 });
+// The README quotes numbers that live in code - the watchlist cap, the
+// history range, the alert ceiling, the tick budget. Every one of them has
+// drifted at some point and been fixed by hand afterwards, which only works
+// while somebody is reading carefully. These are the ones stated as bare
+// figures in prose, where a reader has no reason to doubt them.
+describe("numbers the README quotes", () => {
+  const readme = read("README.md");
+  const numberIn = (source: string, name: string) => {
+    const match = source.match(new RegExp(`${name} = ([0-9_]+)`));
+    expect(match?.[1], `${name} is not a plain numeric literal any more`).toBeTruthy();
+    return Number(match![1]!.replace(/_/g, ""));
+  };
+
+  it("states the watchlist cap as the code enforces it", () => {
+    const cap = numberIn(read("backend/src/wsLimits.ts"), "MAX_SYMBOLS_PER_CLIENT");
+    expect(readme).toContain(`Capped at ${cap} tickers`);
+    expect(readme).toContain(`Limits: ${cap} subscribed symbols`);
+  });
+});
