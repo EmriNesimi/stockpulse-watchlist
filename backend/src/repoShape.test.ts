@@ -198,6 +198,13 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`Limits: ${cap} subscribed symbols`);
   });
 
+  it("states the alert ceiling as the schema enforces it", () => {
+    const ceiling = numberIn(read("backend/src/routes/alerts.schemas.ts"), "MAX_THRESHOLD");
+    // Written as $10M in prose rather than the raw figure, so compare the
+    // millions rather than the digits.
+    expect(readme).toContain(`\u2264 $${ceiling / 1_000_000}M`);
+  });
+
   it("states the history range as the schema enforces it", () => {
     const schema = read("backend/src/routes/history.schemas.ts");
     const min = Number(schema.match(/\.min\((\d+)\)/)?.[1]);
