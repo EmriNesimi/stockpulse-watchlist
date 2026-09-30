@@ -179,3 +179,53 @@ describe("avatar hues", () => {
     expect([...defined].sort((a, b) => a - b)).toEqual(Array.from({ length: hueCount }, (_, i) => i + 1));
   });
 });
+// The README quotes numbers that live in code - the watchlist cap, the
+// history range, the alert ceiling, the tick budget. Every one of them has
+// drifted at some point and been fixed by hand afterwards, which only works
+// while somebody is reading carefully. These are the ones stated as bare
+// figures in prose, where a reader has no reason to doubt them.
+describe("numbers the README quotes", () => {
+  const readme = read("README.md");
+  const numberIn = (source: string, name: string) => {
+    const match = source.match(new RegExp(`${name} = ([0-9_]+)`));
+    expect(match?.[1], `${name} is not a plain numeric literal any more`).toBeTruthy();
+    return Number(match![1]!.replace(/_/g, ""));
+  };
+
+  it("states the watchlist cap as the code enforces it", () => {
+    const cap = numberIn(read("backend/src/wsLimits.ts"), "MAX_SYMBOLS_PER_CLIENT");
+    expect(readme).toContain(`Capped at ${cap} tickers`);
+    expect(readme).toContain(`Limits: ${cap} subscribed symbols`);
+  });
+
+  it("states the WebSocket budget as the broadcaster enforces it", () => {
+    const broadcaster = read("backend/src/ws/broadcaster.ts");
+    const perMinute = numberIn(broadcaster, "MAX_MESSAGES_PER_MINUTE");
+    const perIp = numberIn(broadcaster, "MAX_CONNECTIONS_PER_IP");
+
+    expect(readme).toContain(`${perMinute} messages/min and ${perIp} concurrent connections per IP`);
+  });
+
+  it("states the sparkline history length as useLiveTicks keeps it", () => {
+    const length = numberIn(read("frontend/src/hooks/useLiveTicks.ts"), "HISTORY_LENGTH");
+    expect(readme).toContain(`a rolling ${length}-point price history`);
+  });
+
+  it("states the alert ceiling as the schema enforces it", () => {
+    const ceiling = numberIn(read("backend/src/routes/alerts.schemas.ts"), "MAX_THRESHOLD");
+    // Written as $10M in prose rather than the raw figure, so compare the
+    // millions rather than the digits.
+    expect(readme).toContain(`\u2264 $${ceiling / 1_000_000}M`);
+  });
+
+  it("states the history range as the schema enforces it", () => {
+    const schema = read("backend/src/routes/history.schemas.ts");
+    const min = Number(schema.match(/\.min\((\d+)\)/)?.[1]);
+    const max = Number(schema.match(/\.max\((\d+)\)/)?.[1]);
+    const fallback = Number(schema.match(/\.default\((\d+)\)/)?.[1]);
+
+    expect([min, max, fallback].every(Number.isFinite), "history.schemas.ts no longer reads as plain numbers").toBe(true);
+    expect(readme).toContain(`?days=<${min}-${max}, default ${fallback}>`);
+    expect(readme).toContain(`${min}-${max}, default ${fallback}`);
+  });
+});
