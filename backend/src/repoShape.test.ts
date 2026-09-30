@@ -198,6 +198,14 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`Limits: ${cap} subscribed symbols`);
   });
 
+  it("states the WebSocket budget as the broadcaster enforces it", () => {
+    const broadcaster = read("backend/src/ws/broadcaster.ts");
+    const perMinute = numberIn(broadcaster, "MAX_MESSAGES_PER_MINUTE");
+    const perIp = numberIn(broadcaster, "MAX_CONNECTIONS_PER_IP");
+
+    expect(readme).toContain(`${perMinute} messages/min and ${perIp} concurrent connections per IP`);
+  });
+
   it("states the sparkline history length as useLiveTicks keeps it", () => {
     const length = numberIn(read("frontend/src/hooks/useLiveTicks.ts"), "HISTORY_LENGTH");
     expect(readme).toContain(`a rolling ${length}-point price history`);
