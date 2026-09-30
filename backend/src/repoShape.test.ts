@@ -197,4 +197,15 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`Capped at ${cap} tickers`);
     expect(readme).toContain(`Limits: ${cap} subscribed symbols`);
   });
+
+  it("states the history range as the schema enforces it", () => {
+    const schema = read("backend/src/routes/history.schemas.ts");
+    const min = Number(schema.match(/\.min\((\d+)\)/)?.[1]);
+    const max = Number(schema.match(/\.max\((\d+)\)/)?.[1]);
+    const fallback = Number(schema.match(/\.default\((\d+)\)/)?.[1]);
+
+    expect([min, max, fallback].every(Number.isFinite), "history.schemas.ts no longer reads as plain numbers").toBe(true);
+    expect(readme).toContain(`?days=<${min}-${max}, default ${fallback}>`);
+    expect(readme).toContain(`${min}-${max}, default ${fallback}`);
+  });
 });
