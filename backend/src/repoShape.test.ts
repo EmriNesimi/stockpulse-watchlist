@@ -198,6 +198,11 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`Limits: ${cap} subscribed symbols`);
   });
 
+  it("states the sparkline history length as useLiveTicks keeps it", () => {
+    const length = numberIn(read("frontend/src/hooks/useLiveTicks.ts"), "HISTORY_LENGTH");
+    expect(readme).toContain(`a rolling ${length}-point price history`);
+  });
+
   it("states the alert ceiling as the schema enforces it", () => {
     const ceiling = numberIn(read("backend/src/routes/alerts.schemas.ts"), "MAX_THRESHOLD");
     // Written as $10M in prose rather than the raw figure, so compare the
