@@ -231,6 +231,25 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`caps itself at ${budget}/min`);
   });
 
+  it("states both token lifetimes as the generators set them", () => {
+    const hours = (source: string, name: string) => {
+      const match = source.match(new RegExp(`${name} = ([^;]+);`));
+      expect(match?.[1], `${name} is no longer a plain expression`).toBeTruthy();
+      // The literals are written as arithmetic - 24 * 60 * 60 * 1000 - so
+      // evaluate rather than trying to read a number out of them.
+      const ms = match![1]!.split("*").map((p) => Number(p.trim())).reduce((a, b) => a * b, 1);
+      return ms / (60 * 60 * 1000);
+    };
+
+    const verification = hours(read("backend/src/auth/verification.ts"), "VERIFICATION_TOKEN_TTL_MS");
+    const reset = hours(read("backend/src/auth/passwordReset.ts"), "RESET_TOKEN_TTL_MS");
+
+    expect(readme).toContain(`${verification}h email verification token`);
+    expect(readme).toContain(`${reset}h reset token`);
+    // The ordering is the actual security claim, not the two numbers.
+    expect(reset).toBeLessThan(verification);
+  });
+
   it("states the WebSocket budget as the broadcaster enforces it", () => {
     const broadcaster = read("backend/src/ws/broadcaster.ts");
     const perMinute = numberIn(broadcaster, "MAX_MESSAGES_PER_MINUTE");
