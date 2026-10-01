@@ -265,6 +265,20 @@ describe("numbers the README quotes", () => {
     expect(budget).toBeLessThan(freeTier);
   });
 
+  it("states the client-error field caps as the schema sets them", () => {
+    const schema = read("backend/src/routes/clientErrors.schemas.ts");
+    const caps = [...schema.matchAll(/\.max\((\d+)\)/g)].map((m) => Number(m[1]));
+    expect(caps.length, "clientErrors.schemas.ts no longer caps with plain numbers").toBeGreaterThan(0);
+
+    // The README doesn't quote the numbers, and shouldn't - it says every
+    // field is length-capped, which is the claim worth keeping true. So
+    // assert the claim rather than any figure: no field uncapped.
+    const fields = [...schema.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1]);
+    expect(fields.length).toBeGreaterThan(0);
+    expect(caps.length).toBe(fields.length);
+    expect(readme).toContain("every field is length-capped");
+  });
+
   it("states the WebSocket budget as the broadcaster enforces it", () => {
     const broadcaster = read("backend/src/ws/broadcaster.ts");
     const perMinute = numberIn(broadcaster, "MAX_MESSAGES_PER_MINUTE");
