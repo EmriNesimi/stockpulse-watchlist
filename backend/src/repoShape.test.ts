@@ -207,6 +207,14 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`${general} req/min, ${auth}/min on \`/api/auth\``);
   });
 
+  it("states the WebSocket payload cap as the broadcaster sets it", () => {
+    const broadcaster = read("backend/src/ws/broadcaster.ts");
+    const bytes = broadcaster.match(/MAX_PAYLOAD_BYTES = (\d+) \* 1024/)?.[1];
+    expect(bytes, "MAX_PAYLOAD_BYTES is no longer written as N * 1024").toBeTruthy();
+
+    expect(readme).toContain(`${bytes}KB max message size`);
+  });
+
   it("states the WebSocket budget as the broadcaster enforces it", () => {
     const broadcaster = read("backend/src/ws/broadcaster.ts");
     const perMinute = numberIn(broadcaster, "MAX_MESSAGES_PER_MINUTE");
