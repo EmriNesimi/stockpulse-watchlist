@@ -250,6 +250,11 @@ describe("numbers the README quotes", () => {
     expect(reset).toBeLessThan(verification);
   });
 
+  it("states the shutdown grace as server.ts sets it", () => {
+    const ms = numberIn(read("backend/src/server.ts"), "SHUTDOWN_GRACE_MS");
+    expect(readme).toContain(`SIGTERM drains for ${ms / 1000}s then exits`);
+  });
+
   it("states the WebSocket budget as the broadcaster enforces it", () => {
     const broadcaster = read("backend/src/ws/broadcaster.ts");
     const perMinute = numberIn(broadcaster, "MAX_MESSAGES_PER_MINUTE");
