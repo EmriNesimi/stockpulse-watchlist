@@ -198,6 +198,87 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`Limits: ${cap} subscribed symbols`);
   });
 
+  it("states the two API rate limits as app.ts sets them", () => {
+    const app = read("backend/src/app.ts");
+    const limits = [...app.matchAll(/limit: (\d+),/g)].map((m) => Number(m[1]));
+    expect(limits.length, "app.ts no longer declares two numeric limits").toBe(2);
+    const [general, auth] = limits;
+
+    expect(readme).toContain(`${general} req/min, ${auth}/min on \`/api/auth\``);
+  });
+
+  it("states the WebSocket payload cap as the broadcaster sets it", () => {
+    const broadcaster = read("backend/src/ws/broadcaster.ts");
+    const bytes = broadcaster.match(/MAX_PAYLOAD_BYTES = (\d+) \* 1024/)?.[1];
+    expect(bytes, "MAX_PAYLOAD_BYTES is no longer written as N * 1024").toBeTruthy();
+
+    expect(readme).toContain(`${bytes}KB max message size`);
+  });
+
+  it("states the JSON body cap as app.ts sets it", () => {
+    const cap = read("backend/src/app.ts").match(/express\.json\(\{ limit: "(\w+)" \}\)/)?.[1];
+    expect(cap, "express.json's limit is no longer a plain string").toBeTruthy();
+
+    expect(readme).toContain(`bounded by the ${cap} JSON limit`);
+  });
+
+  it("states the Massive call budget as the limiter sets it", () => {
+    const budget = numberIn(read("backend/src/massive/rateLimiter.ts"), "MAX_CALLS_PER_WINDOW");
+
+    // Stated twice: once in the tree, once in the architecture note, both as
+    // "4/min" against the free tier's 5.
+    expect(readme).toContain(`capped at ${budget}/min`);
+    expect(readme).toContain(`caps itself at ${budget}/min`);
+  });
+
+  it("states both token lifetimes as the generators set them", () => {
+    const hours = (source: string, name: string) => {
+      const match = source.match(new RegExp(`${name} = ([^;]+);`));
+      expect(match?.[1], `${name} is no longer a plain expression`).toBeTruthy();
+      // The literals are written as arithmetic - 24 * 60 * 60 * 1000 - so
+      // evaluate rather than trying to read a number out of them.
+      const ms = match![1]!.split("*").map((p) => Number(p.trim())).reduce((a, b) => a * b, 1);
+      return ms / (60 * 60 * 1000);
+    };
+
+    const verification = hours(read("backend/src/auth/verification.ts"), "VERIFICATION_TOKEN_TTL_MS");
+    const reset = hours(read("backend/src/auth/passwordReset.ts"), "RESET_TOKEN_TTL_MS");
+
+    expect(readme).toContain(`${verification}h email verification token`);
+    expect(readme).toContain(`${reset}h reset token`);
+    // The ordering is the actual security claim, not the two numbers.
+    expect(reset).toBeLessThan(verification);
+  });
+
+  it("states the shutdown grace as server.ts sets it", () => {
+    const ms = numberIn(read("backend/src/server.ts"), "SHUTDOWN_GRACE_MS");
+    expect(readme).toContain(`SIGTERM drains for ${ms / 1000}s then exits`);
+  });
+
+  it("keeps the Massive budget strictly under the free tier it quotes", () => {
+    const budget = numberIn(read("backend/src/massive/rateLimiter.ts"), "MAX_CALLS_PER_WINDOW");
+    const freeTier = Number(readme.match(/free tier is rate-limited \((\d+) REST calls\/min\)/)?.[1]);
+
+    expect(freeTier, "the env table no longer quotes the free-tier figure").toBeGreaterThan(0);
+    // The limiter exists to sit under the ceiling, not at it. Raising it to
+    // match would technically agree with the prose and defeat the point.
+    expect(budget).toBeLessThan(freeTier);
+  });
+
+  it("states the client-error field caps as the schema sets them", () => {
+    const schema = read("backend/src/routes/clientErrors.schemas.ts");
+    const caps = [...schema.matchAll(/\.max\((\d+)\)/g)].map((m) => Number(m[1]));
+    expect(caps.length, "clientErrors.schemas.ts no longer caps with plain numbers").toBeGreaterThan(0);
+
+    // The README doesn't quote the numbers, and shouldn't - it says every
+    // field is length-capped, which is the claim worth keeping true. So
+    // assert the claim rather than any figure: no field uncapped.
+    const fields = [...schema.matchAll(/^\s{2}(\w+):/gm)].map((m) => m[1]);
+    expect(fields.length).toBeGreaterThan(0);
+    expect(caps.length).toBe(fields.length);
+    expect(readme).toContain("every field is length-capped");
+  });
+
   it("states the WebSocket budget as the broadcaster enforces it", () => {
     const broadcaster = read("backend/src/ws/broadcaster.ts");
     const perMinute = numberIn(broadcaster, "MAX_MESSAGES_PER_MINUTE");
