@@ -222,6 +222,15 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`bounded by the ${cap} JSON limit`);
   });
 
+  it("states the Massive call budget as the limiter sets it", () => {
+    const budget = numberIn(read("backend/src/massive/rateLimiter.ts"), "MAX_CALLS_PER_WINDOW");
+
+    // Stated twice: once in the tree, once in the architecture note, both as
+    // "4/min" against the free tier's 5.
+    expect(readme).toContain(`capped at ${budget}/min`);
+    expect(readme).toContain(`caps itself at ${budget}/min`);
+  });
+
   it("states the WebSocket budget as the broadcaster enforces it", () => {
     const broadcaster = read("backend/src/ws/broadcaster.ts");
     const perMinute = numberIn(broadcaster, "MAX_MESSAGES_PER_MINUTE");
