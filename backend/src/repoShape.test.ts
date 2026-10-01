@@ -255,6 +255,16 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`SIGTERM drains for ${ms / 1000}s then exits`);
   });
 
+  it("keeps the Massive budget strictly under the free tier it quotes", () => {
+    const budget = numberIn(read("backend/src/massive/rateLimiter.ts"), "MAX_CALLS_PER_WINDOW");
+    const freeTier = Number(readme.match(/free tier is rate-limited \((\d+) REST calls\/min\)/)?.[1]);
+
+    expect(freeTier, "the env table no longer quotes the free-tier figure").toBeGreaterThan(0);
+    // The limiter exists to sit under the ceiling, not at it. Raising it to
+    // match would technically agree with the prose and defeat the point.
+    expect(budget).toBeLessThan(freeTier);
+  });
+
   it("states the WebSocket budget as the broadcaster enforces it", () => {
     const broadcaster = read("backend/src/ws/broadcaster.ts");
     const perMinute = numberIn(broadcaster, "MAX_MESSAGES_PER_MINUTE");
