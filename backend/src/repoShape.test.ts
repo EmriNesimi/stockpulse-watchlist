@@ -360,4 +360,21 @@ describe("css hygiene", () => {
     }
     expect(dead).toEqual([]);
   });
+
+  it("references every design token it defines", () => {
+    const allCss = walk(frontend, ".css");
+    const defined = new Set<string>();
+    for (const f of allCss) {
+      for (const m of readFileSync(f, "utf8").matchAll(/(--[\w-]+)\s*:/g)) defined.add(m[1]!);
+    }
+    const text = [...allCss, ...sources].map((f) => readFileSync(f, "utf8")).join("");
+    const used = new Set([...text.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]!));
+
+    // The avatar hues are the documented exception: tickerColor.ts builds
+    // the name at runtime as var(--avatar-hue-${n}), so no literal reference
+    // to hues 2..6 exists anywhere. Their count is pinned separately, above.
+    const unused = [...defined].filter((t) => !used.has(t) && !/^--avatar-hue-\d+$/.test(t)).sort();
+    expect(defined.size).toBeGreaterThan(20);
+    expect(unused).toEqual([]);
+  });
 });
