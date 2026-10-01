@@ -346,4 +346,18 @@ describe("css hygiene", () => {
     expect(stylesheets.length).toBeGreaterThan(10);
     expect(orphans).toEqual([]);
   });
+
+  it("uses every class it defines", () => {
+    const dead: string[] = [];
+    for (const sheet of stylesheets) {
+      const classes = [...readFileSync(sheet, "utf8").matchAll(/^\.([A-Za-z][\w-]*)/gm)].map((m) => m[1]!);
+      const markup = importersOf(sheet).map((f) => readFileSync(f, "utf8")).join("");
+      const used = new Set([
+        ...[...markup.matchAll(/styles\.([A-Za-z]\w*)/g)].map((m) => m[1]!),
+        ...[...markup.matchAll(/styles\["([^"]+)"\]/g)].map((m) => m[1]!),
+      ]);
+      for (const c of classes) if (!used.has(c)) dead.push(`${sheet.split("/").pop()} .${c}`);
+    }
+    expect(dead).toEqual([]);
+  });
 });
