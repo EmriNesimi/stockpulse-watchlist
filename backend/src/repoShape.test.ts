@@ -310,3 +310,40 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`${min}-${max}, default ${fallback}`);
   });
 });
+
+// CSS hygiene, over in the frontend, guarded from here for the same reason
+// the token checks are: vitest stubs CSS imports, and turning that off would
+// change what the component tests see from CSS Modules.
+//
+// A stylesheet is the one place nothing complains. An unused rule costs a
+// little bundle and a lot of confusion later; a token nobody references is
+// dead weight; a class the markup stopped using leaves a reader guessing
+// which of two similar rules is live.
+describe("css hygiene", () => {
+  const frontend = resolve(repoRoot, "frontend/src");
+
+  const walk = (dir: string, suffix: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const full = resolve(dir, e.name);
+      if (e.isDirectory()) return walk(full, suffix);
+      return e.name.endsWith(suffix) && !e.name.includes(".test.") ? [full] : [];
+    });
+
+  const stylesheets = walk(frontend, ".module.css");
+  const sources = [...walk(frontend, ".tsx"), ...walk(frontend, ".ts")];
+
+  // Which component(s) actually import each stylesheet - by following the
+  // import, not by matching filenames. App.module.css is imported by
+  // Dashboard.tsx, so pairing on name gets that one wrong.
+  const importersOf = (sheet: string) =>
+    sources.filter((src) => {
+      const rel = readFileSync(src, "utf8").match(/import\s+styles\s+from\s+"([^"]+\.module\.css)"/)?.[1];
+      return rel !== undefined && resolve(src, "..", rel) === sheet;
+    });
+
+  it("imports every stylesheet from somewhere", () => {
+    const orphans = stylesheets.filter((s) => importersOf(s).length === 0).map((s) => s.split("/").pop());
+    expect(stylesheets.length).toBeGreaterThan(10);
+    expect(orphans).toEqual([]);
+  });
+});
