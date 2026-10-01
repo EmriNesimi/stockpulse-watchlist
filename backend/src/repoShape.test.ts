@@ -377,4 +377,17 @@ describe("css hygiene", () => {
     expect(defined.size).toBeGreaterThan(20);
     expect(unused).toEqual([]);
   });
+
+  it("uses every global class index.css defines", () => {
+    const globals = read("frontend/src/index.css");
+    const classes = [...globals.matchAll(/^\.([A-Za-z][\w-]*)/gm)].map((m) => m[1]!);
+    // Global classes are applied as plain strings, not through the styles
+    // object, so look for the name anywhere outside its own definition.
+    const elsewhere = [...sources, ...walk(frontend, ".css").filter((f) => !f.endsWith("index.css"))]
+      .map((f) => readFileSync(f, "utf8"))
+      .join("");
+
+    expect(classes.length).toBeGreaterThan(0);
+    expect(classes.filter((c) => !elsewhere.includes(c))).toEqual([]);
+  });
 });
