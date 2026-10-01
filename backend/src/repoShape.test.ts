@@ -198,6 +198,15 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`Limits: ${cap} subscribed symbols`);
   });
 
+  it("states the two API rate limits as app.ts sets them", () => {
+    const app = read("backend/src/app.ts");
+    const limits = [...app.matchAll(/limit: (\d+),/g)].map((m) => Number(m[1]));
+    expect(limits.length, "app.ts no longer declares two numeric limits").toBe(2);
+    const [general, auth] = limits;
+
+    expect(readme).toContain(`${general} req/min, ${auth}/min on \`/api/auth\``);
+  });
+
   it("states the WebSocket budget as the broadcaster enforces it", () => {
     const broadcaster = read("backend/src/ws/broadcaster.ts");
     const perMinute = numberIn(broadcaster, "MAX_MESSAGES_PER_MINUTE");
