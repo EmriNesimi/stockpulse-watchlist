@@ -215,6 +215,13 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`${bytes}KB max message size`);
   });
 
+  it("states the JSON body cap as app.ts sets it", () => {
+    const cap = read("backend/src/app.ts").match(/express\.json\(\{ limit: "(\w+)" \}\)/)?.[1];
+    expect(cap, "express.json's limit is no longer a plain string").toBeTruthy();
+
+    expect(readme).toContain(`bounded by the ${cap} JSON limit`);
+  });
+
   it("states the WebSocket budget as the broadcaster enforces it", () => {
     const broadcaster = read("backend/src/ws/broadcaster.ts");
     const perMinute = numberIn(broadcaster, "MAX_MESSAGES_PER_MINUTE");
