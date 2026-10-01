@@ -310,3 +310,84 @@ describe("numbers the README quotes", () => {
     expect(readme).toContain(`${min}-${max}, default ${fallback}`);
   });
 });
+
+// CSS hygiene, over in the frontend, guarded from here for the same reason
+// the token checks are: vitest stubs CSS imports, and turning that off would
+// change what the component tests see from CSS Modules.
+//
+// A stylesheet is the one place nothing complains. An unused rule costs a
+// little bundle and a lot of confusion later; a token nobody references is
+// dead weight; a class the markup stopped using leaves a reader guessing
+// which of two similar rules is live.
+describe("css hygiene", () => {
+  const frontend = resolve(repoRoot, "frontend/src");
+
+  const walk = (dir: string, suffix: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const full = resolve(dir, e.name);
+      if (e.isDirectory()) return walk(full, suffix);
+      return e.name.endsWith(suffix) && !e.name.includes(".test.") ? [full] : [];
+    });
+
+  const stylesheets = walk(frontend, ".module.css");
+  const sources = [...walk(frontend, ".tsx"), ...walk(frontend, ".ts")];
+
+  // Which component(s) actually import each stylesheet - by following the
+  // import, not by matching filenames. App.module.css is imported by
+  // Dashboard.tsx, so pairing on name gets that one wrong.
+  const importersOf = (sheet: string) =>
+    sources.filter((src) => {
+      const rel = readFileSync(src, "utf8").match(/import\s+styles\s+from\s+"([^"]+\.module\.css)"/)?.[1];
+      return rel !== undefined && resolve(src, "..", rel) === sheet;
+    });
+
+  it("imports every stylesheet from somewhere", () => {
+    const orphans = stylesheets.filter((s) => importersOf(s).length === 0).map((s) => s.split("/").pop());
+    expect(stylesheets.length).toBeGreaterThan(10);
+    expect(orphans).toEqual([]);
+  });
+
+  it("uses every class it defines", () => {
+    const dead: string[] = [];
+    for (const sheet of stylesheets) {
+      const classes = [...readFileSync(sheet, "utf8").matchAll(/^\.([A-Za-z][\w-]*)/gm)].map((m) => m[1]!);
+      const markup = importersOf(sheet).map((f) => readFileSync(f, "utf8")).join("");
+      const used = new Set([
+        ...[...markup.matchAll(/styles\.([A-Za-z]\w*)/g)].map((m) => m[1]!),
+        ...[...markup.matchAll(/styles\["([^"]+)"\]/g)].map((m) => m[1]!),
+      ]);
+      for (const c of classes) if (!used.has(c)) dead.push(`${sheet.split("/").pop()} .${c}`);
+    }
+    expect(dead).toEqual([]);
+  });
+
+  it("references every design token it defines", () => {
+    const allCss = walk(frontend, ".css");
+    const defined = new Set<string>();
+    for (const f of allCss) {
+      for (const m of readFileSync(f, "utf8").matchAll(/(--[\w-]+)\s*:/g)) defined.add(m[1]!);
+    }
+    const text = [...allCss, ...sources].map((f) => readFileSync(f, "utf8")).join("");
+    const used = new Set([...text.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]!));
+
+    // The avatar hues are the documented exception: tickerColor.ts builds
+    // the name at runtime as var(--avatar-hue-${n}), so no literal reference
+    // to hues 2..6 exists anywhere. Their count is pinned separately, above.
+    const unused = [...defined].filter((t) => !used.has(t) && !/^--avatar-hue-\d+$/.test(t)).sort();
+    expect(defined.size).toBeGreaterThan(20);
+    expect(unused).toEqual([]);
+  });
+
+  it("uses every global class index.css defines", () => {
+    const globals = read("frontend/src/index.css");
+    const classes = [...globals.matchAll(/^\.([A-Za-z][\w-]*)/gm)].map((m) => m[1]!);
+    // Global classes are applied as plain strings, not through the styles
+    // object, so look for the name anywhere outside its own definition.
+    const elsewhere = [...sources, ...walk(frontend, ".css").filter((f) => !f.endsWith("index.css"))]
+      .map((f) => readFileSync(f, "utf8"))
+      .join("");
+
+    expect(classes.length).toBeGreaterThan(0);
+    expect(classes.filter((c) => !elsewhere.includes(c))).toEqual([]);
+  });
+});

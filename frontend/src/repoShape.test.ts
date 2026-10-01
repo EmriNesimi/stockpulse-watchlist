@@ -59,6 +59,22 @@ describe("views", () => {
   });
 });
 
+describe("lib", () => {
+  const libFiles = files(import.meta.glob("./lib/*"));
+
+  // Completes the set alongside components, views and hooks. One documented
+  // exception: views.ts is a type union and nothing else - there is no
+  // runtime behaviour in it to assert, and a test file that imported it
+  // would have nothing to say.
+  it("each have a colocated test, bar the types-only one", () => {
+    const modules = libFiles.filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
+    const untested = modules.filter((f) => !libFiles.includes(f.replace(/\.ts$/, ".test.ts"))).sort();
+
+    expect(modules.length).toBeGreaterThan(5);
+    expect(untested).toEqual(["views.ts"]);
+  });
+});
+
 describe("hooks", () => {
   it("each have a colocated test", () => {
     const hooks = hookFiles.filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));

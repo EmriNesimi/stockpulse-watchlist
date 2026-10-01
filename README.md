@@ -152,7 +152,9 @@ and hook has a colocated test, that the three `.nvmrc` copies agree with each
 other and with both `engines` ranges, that `render.yaml`'s pinned origins keep
 the shape CORS depends on, and that every design token a stylesheet names
 actually exists — which found four `font-size` declarations that had been
-silently doing nothing. Several of the claims below were quietly false
+silently doing nothing — and that the CSS stays honest in the other direction
+too: no stylesheet nobody imports, no class nobody applies, no token nobody
+references. That pass found two dead rules left behind by old refactors. Several of the claims below were quietly false
 before those were written.
 
 ```
