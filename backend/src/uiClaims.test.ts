@@ -90,3 +90,22 @@ describe("the favicon", () => {
     expect(readdirSync(resolve(repoRoot, "frontend/public"))).toContain(href!);
   });
 });
+
+describe("the webfont", () => {
+  // Two halves that have to agree: index.css fetches a family from Google
+  // Fonts, and the token stack asks for it by name. Change one and the page
+  // either downloads a font it never uses or asks for one it never fetched.
+  it("imports the family the token stack leads with", () => {
+    const imported = read("frontend/src/index.css").match(/fonts\.googleapis\.com\/css2\?family=([A-Za-z+]+)/)?.[1];
+    expect(imported, "no Google Fonts import in index.css").toBeTruthy();
+
+    const family = imported!.replace(/\+/g, " ");
+    const stack = read("frontend/src/styles/tokens.css").match(/--font-sans:\s*([^;]+);/)?.[1];
+    expect(stack, "no --font-sans token").toBeTruthy();
+    expect(stack!.trim().startsWith(`"${family}"`), `--font-sans does not lead with ${family}`).toBe(true);
+  });
+
+  it("is the family the README names", () => {
+    expect(read("README.md")).toContain("Inter from Google Fonts");
+  });
+});
