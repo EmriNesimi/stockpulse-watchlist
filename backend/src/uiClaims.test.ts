@@ -109,3 +109,24 @@ describe("the webfont", () => {
     expect(read("README.md")).toContain("Inter from Google Fonts");
   });
 });
+
+describe("the social preview tags", () => {
+  // index.html's comment says these exist because without them a shared
+  // link renders as a bare URL with no title, summary or image on every
+  // platform that reads them. Easy to drop in a tidy-up, invisible until
+  // somebody shares the link.
+  it("still carries the tags that stop a shared link rendering bare", () => {
+    const html = read("frontend/index.html");
+    for (const tag of ["og:type", "og:title", "og:description", "og:url", "twitter:card"]) {
+      expect(html.includes(`"${tag}"`), `${tag} is missing from index.html`).toBe(true);
+    }
+  });
+
+  it("gives og:title and og:description something to say", () => {
+    const html = read("frontend/index.html");
+    for (const tag of ["og:title", "og:description"]) {
+      const content = html.match(new RegExp(`property="${tag}" content="([^"]*)"`))?.[1] ?? "";
+      expect(content.trim().length, `${tag} is present but empty`).toBeGreaterThan(10);
+    }
+  });
+});
