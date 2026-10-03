@@ -125,7 +125,10 @@ describe("the social preview tags", () => {
   it("gives og:title and og:description something to say", () => {
     const html = read("frontend/index.html");
     for (const tag of ["og:title", "og:description"]) {
-      const content = html.match(new RegExp(`property="${tag}" content="([^"]*)"`))?.[1] ?? "";
+      // index.html wraps these attributes across lines, so the match has to
+      // span newlines. A single-line regex reported a populated tag as empty,
+      // which is how this comment came to exist.
+      const content = html.match(new RegExp(`property="${tag}"\\s+content="([^"]*)"`, "s"))?.[1] ?? "";
       expect(content.trim().length, `${tag} is present but empty`).toBeGreaterThan(10);
     }
   });
@@ -140,5 +143,18 @@ describe("the page description", () => {
     expect(title.length, "no <title>").toBeGreaterThan(0);
     expect(description.length, "no meta description").toBeGreaterThan(20);
     expect(description).not.toBe(title);
+  });
+});
+
+describe("the spacing scale", () => {
+  // tokens.css calls it a dense dashboard scale, 8-32px, deliberately not a
+  // spacious marketing scale. The numbers are the claim.
+  it("stays on the 4px grid the comment describes", () => {
+    const tokens = read("frontend/src/styles/tokens.css");
+    const spaces = [...tokens.matchAll(/--space-\d+:\s*(\d+)px;/g)].map((m) => Number(m[1]));
+
+    expect(spaces.length, "no --space-N tokens").toBeGreaterThan(3);
+    expect(spaces.filter((px) => px % 4 !== 0)).toEqual([]);
+    expect([...spaces].sort((a, b) => a - b)).toEqual(spaces);
   });
 });
