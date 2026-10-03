@@ -67,3 +67,17 @@ describe("the sidebar breakpoint", () => {
     expect(read("README.md")).toContain(`collapses to an icon rail under ${px}px`);
   });
 });
+
+describe("the browser chrome colour", () => {
+  // index.html's own comment says this exists to make mobile browsers tint
+  // their chrome to match the app rather than defaulting to white. It is a
+  // hardcoded hex that has to track a token.
+  it("matches the light accent token it is meant to copy", () => {
+    const meta = read("frontend/index.html").match(/name="theme-color" content="(#[0-9a-fA-F]{6})"/)?.[1];
+    const token = read("frontend/src/styles/tokens.css").match(/^ {2}--color-accent: (#[0-9a-fA-F]{6});/m)?.[1];
+
+    expect(meta, "no theme-color meta tag").toBeTruthy();
+    expect(token, "no --color-accent in the light set").toBeTruthy();
+    expect(meta!.toLowerCase()).toBe(token!.toLowerCase());
+  });
+});
