@@ -49,3 +49,12 @@ describe("the reduced-motion override", () => {
     }
   });
 });
+
+describe("the announcement throttle", () => {
+  it("matches the rate the README quotes", () => {
+    const ms = Number(read("frontend/src/hooks/useThrottledAnnouncement.ts").match(/THROTTLE_MS = (\d+)/)?.[1]);
+    expect(ms, "THROTTLE_MS is no longer a plain number").toBeGreaterThan(0);
+
+    expect(read("README.md")).toContain(`throttled to 1/${ms / 1000}s`);
+  });
+});
