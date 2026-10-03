@@ -34,3 +34,18 @@ describe("touch targets", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("the reduced-motion override", () => {
+  // The accessibility section's claim is specifically that every animation
+  // is CSS-driven, so one blanket rule catches all of them. That only holds
+  // while the rule really is blanket.
+  it("still applies to every element and pseudo-element", () => {
+    const css = read("frontend/src/index.css");
+    const block = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+
+    expect(block, "the prefers-reduced-motion block is gone").toContain("prefers-reduced-motion");
+    for (const selector of ["*", "*::before", "*::after"]) {
+      expect(block.includes(selector), `the override no longer covers ${selector}`).toBe(true);
+    }
+  });
+});
