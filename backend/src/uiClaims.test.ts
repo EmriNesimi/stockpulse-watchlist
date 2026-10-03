@@ -1,0 +1,160 @@
+import { describe, expect, it } from "vitest";
+import { readdirSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+const repoRoot = resolve(__dirname, "../..");
+const read = (p: string) => readFileSync(resolve(repoRoot, p), "utf8");
+
+// Claims the README and index.html make about the running UI. They live over
+// in the frontend; the checks live here because vitest stubs CSS imports and
+// turning that off would change what the component tests see from CSS
+// Modules - the same reason repoShape.test.ts holds the token guards.
+//
+// None of these fail a build or a type check if they drift. They are the
+// sentences a reader takes on trust.
+
+describe("touch targets", () => {
+  // SC 2.5.8 asks for 24x24 CSS px. The README states the audit found touch
+  // target sizes hold up throughout, which is true today - most controls are
+  // at 44px, well past it. This is what notices if one drops under the floor.
+  const FLOOR_PX = 24;
+
+  it("never sets an interactive min-height below the 2.5.8 floor", () => {
+    const dirs = ["frontend/src/components", "frontend/src/views"];
+    const offenders: string[] = [];
+
+    for (const dir of dirs) {
+      for (const file of readdirSync(resolve(repoRoot, dir)).filter((f) => f.endsWith(".module.css"))) {
+        for (const m of read(`${dir}/${file}`).matchAll(/min-height:\s*(\d+)px/g)) {
+          if (Number(m[1]) < FLOOR_PX) offenders.push(`${file}: ${m[0]}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe("the reduced-motion override", () => {
+  // The accessibility section's claim is specifically that every animation
+  // is CSS-driven, so one blanket rule catches all of them. That only holds
+  // while the rule really is blanket.
+  it("still applies to every element and pseudo-element", () => {
+    const css = read("frontend/src/index.css");
+    const block = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+
+    expect(block, "the prefers-reduced-motion block is gone").toContain("prefers-reduced-motion");
+    for (const selector of ["*", "*::before", "*::after"]) {
+      expect(block.includes(selector), `the override no longer covers ${selector}`).toBe(true);
+    }
+  });
+});
+
+describe("the announcement throttle", () => {
+  it("matches the rate the README quotes", () => {
+    const ms = Number(read("frontend/src/hooks/useThrottledAnnouncement.ts").match(/THROTTLE_MS = (\d+)/)?.[1]);
+    expect(ms, "THROTTLE_MS is no longer a plain number").toBeGreaterThan(0);
+
+    expect(read("README.md")).toContain(`throttled to 1/${ms / 1000}s`);
+  });
+});
+
+describe("the sidebar breakpoint", () => {
+  it("collapses at the width the README quotes", () => {
+    const px = read("frontend/src/components/Sidebar.module.css").match(/@media \(max-width: (\d+)px\)/)?.[1];
+    expect(px, "Sidebar.module.css no longer has a max-width media query").toBeTruthy();
+
+    expect(read("README.md")).toContain(`collapses to an icon rail under ${px}px`);
+  });
+});
+
+describe("the browser chrome colour", () => {
+  // index.html's own comment says this exists to make mobile browsers tint
+  // their chrome to match the app rather than defaulting to white. It is a
+  // hardcoded hex that has to track a token.
+  it("matches the light accent token it is meant to copy", () => {
+    const meta = read("frontend/index.html").match(/name="theme-color" content="(#[0-9a-fA-F]{6})"/)?.[1];
+    const token = read("frontend/src/styles/tokens.css").match(/^ {2}--color-accent: (#[0-9a-fA-F]{6});/m)?.[1];
+
+    expect(meta, "no theme-color meta tag").toBeTruthy();
+    expect(token, "no --color-accent in the light set").toBeTruthy();
+    expect(meta!.toLowerCase()).toBe(token!.toLowerCase());
+  });
+});
+
+describe("the favicon", () => {
+  it("points at a file that exists", () => {
+    const href = read("frontend/index.html").match(/rel="icon"[^>]*href="\/([^"]+)"/)?.[1];
+    expect(href, "no favicon link in index.html").toBeTruthy();
+
+    expect(readdirSync(resolve(repoRoot, "frontend/public"))).toContain(href!);
+  });
+});
+
+describe("the webfont", () => {
+  // Two halves that have to agree: index.css fetches a family from Google
+  // Fonts, and the token stack asks for it by name. Change one and the page
+  // either downloads a font it never uses or asks for one it never fetched.
+  it("imports the family the token stack leads with", () => {
+    const imported = read("frontend/src/index.css").match(/fonts\.googleapis\.com\/css2\?family=([A-Za-z+]+)/)?.[1];
+    expect(imported, "no Google Fonts import in index.css").toBeTruthy();
+
+    const family = imported!.replace(/\+/g, " ");
+    const stack = read("frontend/src/styles/tokens.css").match(/--font-sans:\s*([^;]+);/)?.[1];
+    expect(stack, "no --font-sans token").toBeTruthy();
+    expect(stack!.trim().startsWith(`"${family}"`), `--font-sans does not lead with ${family}`).toBe(true);
+  });
+
+  it("is the family the README names", () => {
+    expect(read("README.md")).toContain("Inter from Google Fonts");
+  });
+});
+
+describe("the social preview tags", () => {
+  // index.html's comment says these exist because without them a shared
+  // link renders as a bare URL with no title, summary or image on every
+  // platform that reads them. Easy to drop in a tidy-up, invisible until
+  // somebody shares the link.
+  it("still carries the tags that stop a shared link rendering bare", () => {
+    const html = read("frontend/index.html");
+    for (const tag of ["og:type", "og:title", "og:description", "og:url", "twitter:card"]) {
+      expect(html.includes(`"${tag}"`), `${tag} is missing from index.html`).toBe(true);
+    }
+  });
+
+  it("gives og:title and og:description something to say", () => {
+    const html = read("frontend/index.html");
+    for (const tag of ["og:title", "og:description"]) {
+      // index.html wraps these attributes across lines, so the match has to
+      // span newlines. A single-line regex reported a populated tag as empty,
+      // which is how this comment came to exist.
+      const content = html.match(new RegExp(`property="${tag}"\\s+content="([^"]*)"`, "s"))?.[1] ?? "";
+      expect(content.trim().length, `${tag} is present but empty`).toBeGreaterThan(10);
+    }
+  });
+});
+
+describe("the page description", () => {
+  it("has one, and it isn't the same text as the title", () => {
+    const html = read("frontend/index.html");
+    const description = html.match(/name="description"\s+content="([^"]*)"/s)?.[1]?.trim() ?? "";
+    const title = html.match(/<title>([^<]*)<\/title>/)?.[1]?.trim() ?? "";
+
+    expect(title.length, "no <title>").toBeGreaterThan(0);
+    expect(description.length, "no meta description").toBeGreaterThan(20);
+    expect(description).not.toBe(title);
+  });
+});
+
+describe("the spacing scale", () => {
+  // tokens.css calls it a dense dashboard scale, 8-32px, deliberately not a
+  // spacious marketing scale. The numbers are the claim.
+  it("stays on the 4px grid the comment describes", () => {
+    const tokens = read("frontend/src/styles/tokens.css");
+    const spaces = [...tokens.matchAll(/--space-\d+:\s*(\d+)px;/g)].map((m) => Number(m[1]));
+
+    expect(spaces.length, "no --space-N tokens").toBeGreaterThan(3);
+    expect(spaces.filter((px) => px % 4 !== 0)).toEqual([]);
+    expect([...spaces].sort((a, b) => a - b)).toEqual(spaces);
+  });
+});
