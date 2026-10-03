@@ -81,3 +81,12 @@ describe("the browser chrome colour", () => {
     expect(meta!.toLowerCase()).toBe(token!.toLowerCase());
   });
 });
+
+describe("the favicon", () => {
+  it("points at a file that exists", () => {
+    const href = read("frontend/index.html").match(/rel="icon"[^>]*href="\/([^"]+)"/)?.[1];
+    expect(href, "no favicon link in index.html").toBeTruthy();
+
+    expect(readdirSync(resolve(repoRoot, "frontend/public"))).toContain(href!);
+  });
+});
