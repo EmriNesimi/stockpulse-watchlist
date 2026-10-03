@@ -58,3 +58,12 @@ describe("the announcement throttle", () => {
     expect(read("README.md")).toContain(`throttled to 1/${ms / 1000}s`);
   });
 });
+
+describe("the sidebar breakpoint", () => {
+  it("collapses at the width the README quotes", () => {
+    const px = read("frontend/src/components/Sidebar.module.css").match(/@media \(max-width: (\d+)px\)/)?.[1];
+    expect(px, "Sidebar.module.css no longer has a max-width media query").toBeTruthy();
+
+    expect(read("README.md")).toContain(`collapses to an icon rail under ${px}px`);
+  });
+});
