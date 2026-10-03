@@ -130,3 +130,15 @@ describe("the social preview tags", () => {
     }
   });
 });
+
+describe("the page description", () => {
+  it("has one, and it isn't the same text as the title", () => {
+    const html = read("frontend/index.html");
+    const description = html.match(/name="description"\s+content="([^"]*)"/s)?.[1]?.trim() ?? "";
+    const title = html.match(/<title>([^<]*)<\/title>/)?.[1]?.trim() ?? "";
+
+    expect(title.length, "no <title>").toBeGreaterThan(0);
+    expect(description.length, "no meta description").toBeGreaterThan(20);
+    expect(description).not.toBe(title);
+  });
+});
