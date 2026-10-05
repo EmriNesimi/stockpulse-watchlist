@@ -727,7 +727,7 @@ Things that would make sense to add next, roughly in order of value:
 
 **Still open:**
 
-- [ ] **Node 20 → 22.** Node 20 reached end-of-life on 2026-04-30, so the runtime this is pinned to (`.nvmrc` ×3, both `engines`, Render, CI) no longer gets security fixes. It's a real change rather than a bump: `jsdom` and `@types/node` are held back *because* of Node 20, so both move with it, and the backend's `engines` currently refuses 22 outright. Nothing has been run on 22 yet.
+- [x] ~~**Node 20 → 22.**~~ — done: 22.23.3, the current LTS. Both suites passed on 22 *before* anything was repinned, so this moved a runtime that already worked rather than starting a migration and hoping. `jsdom` and `@types/node` were held back because of Node 20 and both came off the hold with it — the jsdom blocker was always the runtime, not jsdom. The principle behind the `@types/node` hold (types track the runtime major, or TypeScript starts accepting calls that don't exist at execution time) is a test now rather than a sentence in a blockquote.
 - [ ] **`typescript` 6 → 7.** Held, not skipped: typescript-eslint's current release (8.70) still declares `typescript ">=4.8.4 <6.1.0"` and hard-throws `does not support TS 7.0` at config load, so taking 7 today means shipping with no linting — and lint is a CI gate. Revisit when typescript-eslint ships TS 7 support.
 
 ## 📄 Licence
