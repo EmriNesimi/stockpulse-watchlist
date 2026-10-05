@@ -42,6 +42,19 @@ describe(".nvmrc", () => {
     expect(read(".nvmrc").trim()).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
+  // The README states the principle as a reason, not a preference: types
+  // ahead of the runtime let TypeScript accept calls that don't exist at
+  // execution time, which quietly removes the guard rail. It was a sentence
+  // in a blockquote and nothing else, and it is exactly the kind of thing
+  // that gets undone by a routine dependency bump.
+  it("keeps @types/node on the major actually being run", () => {
+    const pinned = Number(read(".nvmrc").trim().split(".")[0]);
+    const declared = JSON.parse(read("backend/package.json")).devDependencies["@types/node"] as string;
+    const major = Number(declared.match(/(\d+)\./)?.[1]);
+
+    expect(major, `@types/node is declared as ${declared}`).toBe(pinned);
+  });
+
   it("satisfies the engines range both packages declare", () => {
     const [major, minor] = read(".nvmrc").trim().split(".").map(Number);
     for (const pkg of ["backend", "frontend"]) {
