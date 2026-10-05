@@ -320,7 +320,6 @@ Requires Node 22.12+ — the current LTS line, and what everything here is now p
 
 > **Dependencies deliberately held back**, so nobody "helpfully" bumps them and breaks the build:
 >
-> - **`jsdom` at 27** — 28+ pulls an `undici` that calls `webidl.util.markAsUncloneable`, a Node 22 API. On the pinned Node 20 the test suite fails to collect at all.
 > - **`@types/node` at 20** — types should track the Node major actually being run. Types ahead of the runtime let TypeScript accept calls that don't exist at execution time, which quietly removes the guard rail.
 > - **`cookie` at 0.7** — tried v2 and backed it out. The rename (`parse` → `parseCookie`) is trivial and the `node16` migration did fix the types resolution, but underneath both sits the real blocker: **v2 is ESM-only**, and this package emits CommonJS, so `require()` can't load it at all (`TS1479`). Taking it means converting the whole backend to ESM, which is a far bigger change than a dependency bump and buys nothing here — there's no advisory against 0.7. Note the stale `@types/cookie` also has to go when this eventually happens; it shadows v2's own bundled types.
 > - **`deepmerge-ts` forced to 8** via an `overrides` entry — Prisma 7's CLI pins 7.1.5, which carries a high-severity stack-exhaustion advisory (GHSA-ggr8-5vv4-36mx). The CLI works fine on 8, and `npm audit` is a CI gate.
