@@ -47,7 +47,7 @@ describe(".nvmrc", () => {
     for (const pkg of ["backend", "frontend"]) {
       const engines = JSON.parse(read(`${pkg}/package.json`)).engines?.node as string;
       expect(engines, `${pkg} declares no engines.node`).toBeTruthy();
-      // Every range in use here is of the form ^20.19.0 (optionally || >=22.12.0).
+      // Every range in use here is of the form ^22.12.0.
       const lowest = engines.match(/\^(\d+)\.(\d+)/);
       expect(lowest, `${pkg}: unrecognised engines range ${engines}`).not.toBeNull();
       expect(major, `${pkg}: .nvmrc major ${major} vs engines ${engines}`).toBe(Number(lowest![1]));
