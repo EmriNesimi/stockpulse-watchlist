@@ -316,12 +316,10 @@ Font: **Inter**. Icons: **Phosphor** (`@phosphor-icons/react`), no emoji in the 
 
 ## 🚀 Setup
 
-Requires Node 20.19+ — that's what Vite 8/Rolldown need, and 20 is what everything here is pinned, typed and tested against. The frontend's `engines` also admits 22.12+; the backend's deliberately doesn't, because nothing has been run on 22 (and `jsdom`/`@types/node` below are held back on the assumption it's 20). A `.nvmrc` is committed at the repo root *and* in each package — the root one is what `nvm use` and CI read, and the per-package copies are what Render reads, since it resolves the version file from a service's root directory rather than the repo's.
+Requires Node 22.12+ — the current LTS line, and what everything here is now pinned, typed and tested against. Both packages' `engines` say so, and `repoShape.test.ts` fails if the three `.nvmrc` copies drift from each other or from either range.
 
 > **Dependencies deliberately held back**, so nobody "helpfully" bumps them and breaks the build:
 >
-> - **`jsdom` at 27** — 28+ pulls an `undici` that calls `webidl.util.markAsUncloneable`, a Node 22 API. On the pinned Node 20 the test suite fails to collect at all.
-> - **`@types/node` at 20** — types should track the Node major actually being run. Types ahead of the runtime let TypeScript accept calls that don't exist at execution time, which quietly removes the guard rail.
 > - **`cookie` at 0.7** — tried v2 and backed it out. The rename (`parse` → `parseCookie`) is trivial and the `node16` migration did fix the types resolution, but underneath both sits the real blocker: **v2 is ESM-only**, and this package emits CommonJS, so `require()` can't load it at all (`TS1479`). Taking it means converting the whole backend to ESM, which is a far bigger change than a dependency bump and buys nothing here — there's no advisory against 0.7. Note the stale `@types/cookie` also has to go when this eventually happens; it shadows v2's own bundled types.
 > - **`deepmerge-ts` forced to 8** via an `overrides` entry — Prisma 7's CLI pins 7.1.5, which carries a high-severity stack-exhaustion advisory (GHSA-ggr8-5vv4-36mx). The CLI works fine on 8, and `npm audit` is a CI gate.
 > - **`mysql2` forced to 3.24** via the same mechanism — the Prisma CLI pulls it in transitively, and versions below 3.22 carry a high-severity credential-leak advisory (GHSA-3f6p-5ww8-9rcr). This project talks to Postgres and never loads `mysql2` at all, so the exposure is nil either way, but `npm audit` doesn't know that. `npm audit fix --force` "fixes" it by downgrading Prisma to 6, which is worse than the problem.
@@ -729,8 +727,8 @@ Things that would make sense to add next, roughly in order of value:
 
 **Still open:**
 
-- [ ] **Node 20 → 22.** Node 20 reached end-of-life on 2026-04-30, so the runtime this is pinned to (`.nvmrc` ×3, both `engines`, Render, CI) no longer gets security fixes. It's a real change rather than a bump: `jsdom` and `@types/node` are held back *because* of Node 20, so both move with it, and the backend's `engines` currently refuses 22 outright. Nothing has been run on 22 yet.
-- [ ] **`typescript` 6 → 7.** Held, not skipped: typescript-eslint's current release (8.70) still declares `typescript ">=4.8.4 <6.1.0"` and hard-throws `does not support TS 7.0` at config load, so taking 7 today means shipping with no linting — and lint is a CI gate. Revisit when typescript-eslint ships TS 7 support.
+- [x] ~~**Node 20 → 22.**~~ — done: 22.23.3, the current LTS. Both suites passed on 22 *before* anything was repinned, so this moved a runtime that already worked rather than starting a migration and hoping. `jsdom` and `@types/node` were held back because of Node 20 and both came off the hold with it — the jsdom blocker was always the runtime, not jsdom. The principle behind the `@types/node` hold (types track the runtime major, or TypeScript starts accepting calls that don't exist at execution time) is a test now rather than a sentence in a blockquote.
+- [ ] **`typescript` 6 → 7.** Held, not skipped: typescript-eslint's current release (8.71) still declares `typescript ">=4.8.4 <6.1.0"` and hard-throws `does not support TS 7.0` at config load, so taking 7 today means shipping with no linting — and lint is a CI gate. Checked again on 2026-10-05; revisit when typescript-eslint ships TS 7 support.
 
 ## 📄 Licence
 
@@ -739,7 +737,7 @@ MIT — see [LICENSE](LICENSE).
 ## 🧰 Tech stack
 
 - **Frontend**: React 19, TypeScript 6, Vite 8 (Rolldown), CSS Modules
-- **Backend**: Node.js 20 (end-of-life since 2026-04 — see [Roadmap](#️-roadmap)), Express 5, TypeScript 6, `ws`
+- **Backend**: Node.js 22 LTS, Express 5, TypeScript 6, `ws`
 - **Database**: Postgres via Prisma 7 (`@prisma/adapter-pg`)
 - **Validation**: Zod
 - **External API**: Massive (REST + WebSocket), formerly Polygon.io

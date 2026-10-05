@@ -8,10 +8,10 @@
     "url": "git+https://github.com/EmriNesimi/stockpulse-watchlist.git",
     "directory": "backend"
   },
-  "description": "StockPulse backend \u2014 Express REST API, WebSocket price broadcaster, Prisma/Postgres persistence, Massive integration",
+  "description": "StockPulse backend — Express REST API, WebSocket price broadcaster, Prisma/Postgres persistence, Massive integration",
   "main": "dist/server.js",
   "engines": {
-    "node": "^20.19.0"
+    "node": "^22.12.0"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
@@ -43,7 +43,7 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "2.8.19",
     "@types/express": "^5.0.6",
-    "@types/node": "^20.19.43",
+    "@types/node": "^22.20.5",
     "@types/pg": "^8.23.1",
     "@types/supertest": "7.2.1",
     "@types/ws": "8.18.1",
